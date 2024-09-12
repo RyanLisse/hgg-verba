@@ -28,7 +28,7 @@ const DocumentView: React.FC<DocumentViewProps> = ({
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
 
   return (
-    <div className="flex justify-center gap-3 h-[80vh] ">
+    <div className="flex flex-col md:flex-row justify-center gap-3 h-[80vh]">
       <div
         className={`${selectedDocument ? "hidden md:flex md:w-[45vw]" : "w-full md:w-[45vw] md:flex"}`}
       >

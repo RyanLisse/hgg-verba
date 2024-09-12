@@ -138,7 +138,8 @@ export default function Home() {
       connect();
     }
   }, [isHealthy]);
-   const isValidTheme = (theme: Theme): boolean => {
+
+  const isValidTheme = (theme: Theme): boolean => {
     const requiredAttributes = [
       "primary_color",
       "secondary_color",
@@ -158,7 +159,6 @@ export default function Home() {
         "color" in (theme[attr as keyof Theme] as object)
     );
   };
-
 
   // Function to update CSS variables based on the selected theme
   const updateCSSVariables = useCallback(() => {
@@ -186,11 +186,11 @@ export default function Home() {
   }, [selectedTheme]);
 
   return (
-    <main className={`min-h-screen bg-bg-verba text-text-verba min-w-screen ${fontClassName}`} data-theme={selectedTheme.theme}>
+    <main className={`min-h-screen bg-bg-verba text-text-verba ${fontClassName}`} data-theme={selectedTheme.theme}>
       {gtag !== "" && <GoogleAnalytics gaId={gtag} />}
       <StatusMessengerComponent status_messages={statusMessages} set_status_messages={setStatusMessages} />
       {isLoggedIn && isHealthy && (
-        <div className={`transition-opacity duration-1000 ${isLoaded ? "opacity-100" : "opacity-0"} flex flex-col gap-2 p-5`}>
+        <div className={`transition-opacity duration-1000 ${isLoaded ? "opacity-100" : "opacity-0"} flex flex-col gap-2 p-5 md:p-10`}>
           <Navbar
             production={production}
             title={selectedTheme.title.text}
@@ -200,7 +200,8 @@ export default function Home() {
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
           />
-          <div className={`${currentPage === "CHAT" ? "" : "hidden"}`}>
+          {/* Render components based on currentPage */}
+          <div className={`flex flex-col ${currentPage === "CHAT" ? "" : "hidden"}`}>
             <ChatView
               addStatusMessage={addStatusMessage}
               credentials={credentials}
@@ -213,17 +214,34 @@ export default function Home() {
               setDocumentFilter={setDocumentFilter}
             />
           </div>
-          <div className={`${currentPage === "SETTINGS" ? "" : "hidden"}`}>
+          <div className={`flex flex-col ${currentPage === "SETTINGS" ? "" : "hidden"}`}>
             <SettingsView
-              selectedTheme={selectedTheme} // Pass selectedTheme
-              setSelectedTheme={setSelectedTheme} // Pass setSelectedTheme
-              themes={themes} // Pass themes
-              setThemes={setThemes} // Pass setThemes
-              credentials={credentials} // Pass credentials
-              addStatusMessage={addStatusMessage} // Pass addStatusMessage
+              selectedTheme={selectedTheme}
+              setSelectedTheme={setSelectedTheme}
+              themes={themes}
+              setThemes={setThemes}
+              credentials={credentials}
+              addStatusMessage={addStatusMessage}
             />
           </div>
-          {/* Other page components */}
+          <div className={`flex flex-col ${currentPage === "IMPORT_DATA" ? "" : "hidden"}`}>
+            <IngestionView
+              credentials={credentials}
+              RAGConfig={RAGConfig}
+              setRAGConfig={setRAGConfig}
+              addStatusMessage={addStatusMessage}
+            />
+          </div>
+          <div className={`flex flex-col ${currentPage === "DOCUMENTS" ? "" : "hidden"}`}>
+            <DocumentView
+              selectedTheme={selectedTheme}
+              production={production}
+              credentials={credentials}
+              documentFilter={documentFilter}
+              setDocumentFilter={setDocumentFilter}
+              addStatusMessage={addStatusMessage}
+            />
+          </div>
         </div>
       )}
     </main>
