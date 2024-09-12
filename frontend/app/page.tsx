@@ -71,33 +71,39 @@ export default function Home() {
     setStatusMessages((prevMessages) => [...prevMessages, newMessage]);
   };
 
-  const initialFetch = useCallback(async () => {
-    try {
-      const [health_data] = await Promise.all([fetchHealth()]);
+  const initialFetch = useCallback(async (retries: number = 3, delay: number = 1000) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const [health_data] = await Promise.all([fetchHealth()]);
 
-      if (health_data) {
-        setProduction(health_data.production);
-        setGtag(health_data.gtag);
-        setIsHealthy(true);
-        setCredentials({
-          deployment: "Weaviate",
-          url: health_data.deployments.WEAVIATE_URL_VERBA,
-          key: health_data.deployments.WEAVIATE_API_KEY_VERBA,
-        });
-      } else {
-        console.warn("Could not retrieve health data");
-        setIsHealthy(false);
-        setIsLoggedIn(false);
+        if (health_data) {
+          setProduction(health_data.production);
+          setGtag(health_data.gtag);
+          setIsHealthy(true);
+          setCredentials({
+            deployment: "Weaviate",
+            url: health_data.deployments.WEAVIATE_URL_VERBA,
+            key: health_data.deployments.WEAVIATE_API_KEY_VERBA,
+          });
+          return; // Exit if successful
+        } else {
+          console.warn("Could not retrieve health data");
+        }
+      } catch (error) {
+        console.error("Error during initial fetch:", error);
       }
-    } catch (error) {
-      console.error("Error during initial fetch:", error);
-      setIsHealthy(false);
-      setIsLoggedIn(false);
+
+      // Wait before retrying
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
+
+    // If all retries fail
+    setIsHealthy(false);
+    setIsLoggedIn(false);
   }, []);
 
   useEffect(() => {
-    initialFetch();
+    initialFetch(); // Call the function without parameters
   }, []);
 
   useEffect(() => {
