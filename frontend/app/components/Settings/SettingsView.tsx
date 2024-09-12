@@ -42,6 +42,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     "INFO" | "ADMIN" | "THEME" | "SUGGESTIONS" | "CACHE"
   >("INFO");
 
+  console.log("Selected Theme in SettingsView:", selectedTheme);
+  console.log("Available Themes:", themes);
+
   return (
     <div className="flex justify-center gap-3 h-[80vh] ">
       <div className={`w-1/3 flex`}>
