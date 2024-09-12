@@ -4,6 +4,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 import asyncio
+import logging
+
+
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 from goldenverba.server.helpers import LoggerManager, BatchManager
 

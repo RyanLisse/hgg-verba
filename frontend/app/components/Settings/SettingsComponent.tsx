@@ -242,6 +242,11 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
     );
   };
 
+  const handleThemeChange = (newTheme: Theme) => {
+    setSelectedTheme(newTheme);
+    addStatusMessage(`Theme changed to ${newTheme.theme_name}`, "SUCCESS");
+  };
+
   return (
     <div className="flex flex-col w-full h-full p-4">
       <div className="flex justify-between items-center mb-4">
