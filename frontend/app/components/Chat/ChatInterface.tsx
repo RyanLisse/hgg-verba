@@ -401,7 +401,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <div className="flex flex-col gap-2 w-full">
       {/* Header */}
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-6 items-center justify-between h-min w-full">
+      <div className="bg-bg-alt-verba rounded-2xl flex flex-col md:flex-row gap-2 p-4 md:p-6 items-center justify-between h-min w-full">
         <div className="hidden md:flex gap-2 justify-start items-center">
           <InfoComponent
             tooltip_text="Use the Chat interface to interact with your data and perform Retrieval Augmented Generation (RAG). This interface allows you to ask questions, analyze sources, and generate responses based on your stored documents."
@@ -434,7 +434,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
       </div>
 
-      <div className="bg-bg-alt-verba rounded-2xl flex flex-col h-[50vh] md:h-full w-full overflow-y-auto overflow-x-hidden relative">
+      <div className="bg-bg-alt-verba rounded-2xl flex flex-col h-[50vh] md:h-full w-full overflow-y-auto overflow-x-hidden relative p-2 md:p-4">
         {/* New fixed tab */}
         {selectedSetting == "Chat" && (
           <div className="sticky flex flex-col gap-2 top-0 z-9 p-4 backdrop-blur-sm bg-opacity-30 bg-bg-alt-verba rounded-lg">
@@ -603,7 +603,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         )}
       </div>
 
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-6 items-center justify-end h-min w-full">
+      <div className="bg-bg-alt-verba rounded-2xl flex flex-col md:flex-row gap-2 p-4 md:p-6 items-center justify-end h-min w-full">
         {socketStatus === "ONLINE" ? (
           <div className="flex gap-2 items-center justify-end w-full relative">
             <div className="relative w-full">
