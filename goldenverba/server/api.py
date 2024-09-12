@@ -98,8 +98,8 @@ async def check_same_origin(request: Request, call_next):
     allowed_origins = [
         str(request.base_url).rstrip("/"),
         "http://localhost:3000",  # Local development
-        "https://hgg-verba-production.up.railway.app"  # Add your Railway URL here
-    ]
+        "https://hgg-verba-production.up.railway.app",
+        "hgg-verba.railway.internal" 
 
     if origin in allowed_origins:
         return await call_next(request)
