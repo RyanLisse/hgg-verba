@@ -35,7 +35,7 @@ class OpenAIGenerator(Generator):
         self.description = "Using OpenAI LLM models with LangSmith and Instructor to generate answers to queries"
         self.context_window = 10000
 
-        models = ["gpt-4o-mini", "gpt-4o"]
+        models = ["gpt-4o-mini", "gpt-4o","01-preview"]
 
         self.config["Model"] = InputConfig(
             type="dropdown",
