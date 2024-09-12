@@ -46,8 +46,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   console.log("Available Themes:", themes);
 
   return (
-    <div className="flex justify-center gap-3 h-[80vh] ">
-      <div className={`w-1/3 flex`}>
+    <div className="flex flex-col md:flex-row justify-center gap-3 h-[80vh]">
+      <div className="w-full md:w-1/3 flex">
         <div className="flex flex-col gap-2 w-full">
           <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-6 items-center justify-between h-min w-full">
             <div className="flex gap-2 justify-start ">
@@ -100,7 +100,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      <div className={`w-2/3 flex`}>
+      <div className="w-full md:w-2/3 flex">
         <div className="flex flex-col gap-2 w-full">
           <div className="bg-bg-alt-verba gap-2 rounded-2xl flex flex-col p-6 h-full w-full overflow-y-auto overflow-x-hidden">
             {settingMode === "THEME" && (
