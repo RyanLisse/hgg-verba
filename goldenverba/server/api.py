@@ -95,11 +95,13 @@ async def check_same_origin(request: Request, call_next):
         return await call_next(request)
 
     origin = request.headers.get("origin")
-    if origin == str(request.base_url).rstrip("/") or (
-        origin
-        and origin.startswith("http://localhost:")
-        and request.base_url.hostname == "localhost"
-    ):
+    allowed_origins = [
+        str(request.base_url).rstrip("/"),
+        "http://localhost:3000",  # Local development
+        "https://hgg-verba-production.up.railway.app"  # Add your Railway URL here
+    ]
+
+    if origin in allowed_origins:
         return await call_next(request)
     else:
         # Only apply restrictions to /api/ routes (except /api/health)
@@ -110,16 +112,10 @@ async def check_same_origin(request: Request, call_next):
                     "error": "Not allowed",
                     "details": {
                         "request_origin": origin,
-                        "expected_origin": str(request.base_url),
-                        "request_method": request.method,
-                        "request_url": str(request.url),
-                        "request_headers": dict(request.headers),
-                        "expected_header": "Origin header matching the server's base URL or localhost",
+                        "expected_origin": allowed_origins,
                     },
                 },
             )
-
-        # Allow non-API routes to pass through
         return await call_next(request)
 
 
