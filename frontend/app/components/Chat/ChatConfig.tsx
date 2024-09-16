@@ -119,8 +119,14 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
             saveComponentConfig={saveComponentConfig}
             blocked={production == "Demo"}
           />
-          {/* Remove the Generator ComponentView */}
-          <ComponentView
+  <ComponentView
+            RAGConfig={RAGConfig}
+            component_name="Generator"
+            selectComponent={selectComponent}
+            updateConfig={updateConfig}
+            saveComponentConfig={saveComponentConfig}
+            blocked={production == "Demo"}
+          />          <ComponentView
             RAGConfig={RAGConfig}
             component_name="Retriever"
             selectComponent={selectComponent}
