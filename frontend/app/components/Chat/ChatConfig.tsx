@@ -32,6 +32,16 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
 }) => {
   useEffect(() => {
     console.log("RAGConfig in ChatConfig:", RAGConfig);
+    if (RAGConfig && RAGConfig.Generator) {
+      console.log("Available generators:", Object.keys(RAGConfig.Generator.components));
+    }
+  }, [RAGConfig]);
+
+  useEffect(() => {
+    if (RAGConfig && RAGConfig.Generator && RAGConfig.Generator.selected === "OllamaGenerator") {
+      const availableGenerators = Object.keys(RAGConfig.Generator.components).filter(gen => gen !== "OllamaGenerator");
+      selectComponent("Generator", availableGenerators[0]);
+    }
   }, [RAGConfig]);
 
   const updateConfig = (
@@ -61,7 +71,13 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
     setRAGConfig((prevRAGConfig) => {
       if (prevRAGConfig) {
         const newRAGConfig = { ...prevRAGConfig };
-        newRAGConfig[component_n].selected = selected_component;
+        if (component_n === "Generator" && selected_component === "OllamaGenerator") {
+          // If Ollama is somehow selected, default to another generator
+          const availableGenerators = Object.keys(newRAGConfig.Generator.components).filter(gen => gen !== "OllamaGenerator");
+          newRAGConfig[component_n].selected = availableGenerators[0] || selected_component;
+        } else {
+          newRAGConfig[component_n].selected = selected_component;
+        }
         return newRAGConfig;
       }
       return prevRAGConfig;
@@ -93,7 +109,7 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
   const renderGeneratorDropdown = () => {
     if (!RAGConfig || !RAGConfig.Generator) return null;
 
-    const generators = Object.keys(RAGConfig.Generator.components);
+    const generators = Object.keys(RAGConfig.Generator.components).filter(gen => gen !== "OllamaGenerator");
     return (
       <div className="mb-4">
         <label className="block text-sm font-medium text-text-verba mb-2">
