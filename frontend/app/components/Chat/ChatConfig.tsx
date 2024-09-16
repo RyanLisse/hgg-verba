@@ -1,18 +1,19 @@
 "use client";
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback } from "react";
 import { MdCancel } from "react-icons/md";
 import { IoSettingsSharp } from "react-icons/io5";
 import { RAGConfig, RAGComponentConfig, Credentials } from "@/app/types";
 import { updateRAGConfig } from "@/app/api";
 import ComponentView from "../Ingestion/ComponentView";
+
 import VerbaButton from "../Navigation/VerbaButton";
 
 interface ChatConfigProps {
   RAGConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
-  onSave: () => void;
-  onReset: () => void;
+  onSave: () => void; // New parameter for handling save
+  onReset: () => void; // New parameter for handling reset
   addStatusMessage: (
     message: string,
     type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
@@ -30,20 +31,6 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
   onReset,
   production,
 }) => {
-  useEffect(() => {
-    console.log("RAGConfig in ChatConfig:", RAGConfig);
-    if (RAGConfig && RAGConfig.Generator) {
-      console.log("Available generators:", Object.keys(RAGConfig.Generator.components));
-    }
-  }, [RAGConfig]);
-
-  useEffect(() => {
-    if (RAGConfig && RAGConfig.Generator && RAGConfig.Generator.selected === "OllamaGenerator") {
-      const availableGenerators = Object.keys(RAGConfig.Generator.components).filter(gen => gen !== "OllamaGenerator");
-      selectComponent("Generator", availableGenerators[0]);
-    }
-  }, [RAGConfig]);
-
   const updateConfig = (
     component_n: string,
     configTitle: string,
@@ -71,13 +58,7 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
     setRAGConfig((prevRAGConfig) => {
       if (prevRAGConfig) {
         const newRAGConfig = { ...prevRAGConfig };
-        if (component_n === "Generator" && selected_component === "OllamaGenerator") {
-          // If Ollama is somehow selected, default to another generator
-          const availableGenerators = Object.keys(newRAGConfig.Generator.components).filter(gen => gen !== "OllamaGenerator");
-          newRAGConfig[component_n].selected = availableGenerators[0] || selected_component;
-        } else {
-          newRAGConfig[component_n].selected = selected_component;
-        }
+        newRAGConfig[component_n].selected = selected_component;
         return newRAGConfig;
       }
       return prevRAGConfig;
@@ -103,65 +84,40 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
         setRAGConfig(newRAGConfig);
       }
     },
-    [RAGConfig, credentials, addStatusMessage, setRAGConfig]
+    [RAGConfig, credentials]
   );
-
-  const renderGeneratorDropdown = () => {
-    if (!RAGConfig || !RAGConfig.Generator) return null;
-
-    const generators = Object.keys(RAGConfig.Generator.components).filter(gen => gen !== "OllamaGenerator");
-    return (
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-text-verba mb-2">
-          Select Generator
-        </label>
-        <select
-          className="w-full p-2 bg-bg-verba text-text-verba border border-button-verba rounded"
-          value={RAGConfig.Generator.selected}
-          onChange={(e) => selectComponent("Generator", e.target.value)}
-          disabled={production === "Demo"}
-        >
-          {generators.map((gen) => (
-            <option key={gen} value={gen}>
-              {gen}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  };
 
   if (RAGConfig) {
     return (
       <div className="flex flex-col justify-start rounded-2xl w-full p-4 ">
         <div className="sticky flex flex-col gap-2 w-full top-0 z-20 justify-end">
+          {/* Add Save and Reset buttons */}
           <div className="flex justify-end w-full gap-2 p-4 bg-bg-alt-verba rounded-lg">
             <VerbaButton
               Icon={IoSettingsSharp}
               title="Save Config"
               onClick={onSave}
               className="max-w-[150px]"
-              disabled={production === "Demo"}
+              disabled={production == "Demo"}
             />
             <VerbaButton
               Icon={MdCancel}
               title="Reset"
               onClick={onReset}
               className="max-w-[150px]"
-              disabled={production === "Demo"}
+              disabled={production == "Demo"}
             />
           </div>
         </div>
 
         <div className="flex flex-col justify-start gap-3 rounded-2xl w-full p-6 ">
-          {renderGeneratorDropdown()}
           <ComponentView
             RAGConfig={RAGConfig}
             component_name="Embedder"
             selectComponent={selectComponent}
             updateConfig={updateConfig}
             saveComponentConfig={saveComponentConfig}
-            blocked={production === "Demo"}
+            blocked={production == "Demo"}
           />
           <ComponentView
             RAGConfig={RAGConfig}
@@ -169,7 +125,7 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
             selectComponent={selectComponent}
             updateConfig={updateConfig}
             saveComponentConfig={saveComponentConfig}
-            blocked={production === "Demo"}
+            blocked={production == "Demo"}
           />
           <ComponentView
             RAGConfig={RAGConfig}
@@ -177,13 +133,13 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
             selectComponent={selectComponent}
             updateConfig={updateConfig}
             saveComponentConfig={saveComponentConfig}
-            blocked={production === "Demo"}
+            blocked={production == "Demo"}
           />
         </div>
       </div>
     );
   } else {
-    return <div>Loading configuration...</div>;
+    return <div></div>;
   }
 };
 
