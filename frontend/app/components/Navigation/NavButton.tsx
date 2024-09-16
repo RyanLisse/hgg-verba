@@ -3,25 +3,27 @@
 import React from "react";
 import { FaStar } from "react-icons/fa";
 import VerbaButton from "./VerbaButton";
+import { PageType } from "@/app/types"; // Update this import
+
+// Remove this line as we're now importing PageType from types.ts
+// type PageType = "CHAT" | "DOCUMENTS" | "STATUS" | "IMPORT_DATA" | "SETTINGS" | "RAG" | "ADD";
 
 interface NavbarButtonProps {
-  Icon: typeof FaStar;
-  title: string;
-  currentPage: string;
-  setCurrentPage: (
-    page: "CHAT" | "DOCUMENTS" | "STATUS" | "ADD" | "SETTINGS" | "RAG"
-  ) => void;
-  setPage: "CHAT" | "DOCUMENTS" | "STATUS" | "ADD" | "SETTINGS" | "RAG";
   hide: boolean;
+  Icon: React.ComponentType;
+  title: string;
+  currentPage: PageType;
+  setCurrentPage: (page: PageType) => void;
+  setPage: PageType;
 }
 
 const NavbarButton: React.FC<NavbarButtonProps> = ({
+  hide,
   Icon,
   title,
   currentPage,
-  setPage,
   setCurrentPage,
-  hide,
+  setPage,
 }) => {
   return (
     <VerbaButton

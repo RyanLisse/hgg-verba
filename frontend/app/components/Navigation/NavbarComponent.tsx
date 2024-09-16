@@ -1,29 +1,24 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-
-import { IoChatbubbleSharp } from "react-icons/io5";
-import { IoDocumentSharp } from "react-icons/io5";
-import { IoMdAddCircle } from "react-icons/io";
-import { IoSettingsSharp } from "react-icons/io5";
+import React from "react";
+import { IoChatbubbleSharp, IoDocumentSharp, IoAddCircle, IoSettingsSharp } from "react-icons/io5";
 import { TiThMenu } from "react-icons/ti";
-
 import { closeOnClick } from "@/app/util";
-
 import VerbaButton from "./VerbaButton";
-
 import NavbarButton from "./NavButton";
+import { PageType } from "@/app/types"; // Update this import
+
+// Remove this line as we're now importing PageType from types.ts
+// type PageType = "CHAT" | "DOCUMENTS" | "STATUS" | "IMPORT_DATA" | "SETTINGS" | "RAG" | "ADD";
 
 interface NavbarProps {
   imageSrc: string;
   title: string;
   subtitle: string;
   version: string;
-  currentPage: string;
+  currentPage: PageType;
   production: "Local" | "Demo" | "Production";
-  setCurrentPage: (
-    page: "CHAT" | "DOCUMENTS" | "STATUS" | "ADD" | "SETTINGS" | "RAG"
-  ) => void;
+  setCurrentPage: (page: PageType) => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -41,6 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({
         <img
           src={imageSrc}
           className="flex rounded-lg w-[50px] md:w-[80px] md:h-[80px] object-contain"
+          alt="Logo"
         />
         <div className="flex flex-col lg:flex-row lg:items-end justify-center lg:gap-3">
           <p className="text-2xl md:text-3xl text-text-verba">{title}</p>
@@ -77,12 +73,12 @@ const Navbar: React.FC<NavbarProps> = ({
                   Documents
                 </a>
               </li>
-              {production != "Demo" && (
+              {production !== "Demo" && (
                 <li key={"Menu Button4"}>
                   <a
-                    className={currentPage === "ADD" ? "font-bold" : ""}
+                    className={currentPage === "IMPORT_DATA" ? "font-bold" : ""}
                     onClick={() => {
-                      setCurrentPage("ADD");
+                      setCurrentPage("IMPORT_DATA");
                       closeOnClick();
                     }}
                   >
@@ -90,7 +86,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   </a>
                 </li>
               )}
-              {production != "Demo" && (
+              {production !== "Demo" && (
                 <li key={"Menu Button5"}>
                   <a
                     className={currentPage === "SETTINGS" ? "font-bold" : ""}
@@ -119,14 +115,14 @@ const Navbar: React.FC<NavbarProps> = ({
             setCurrentPage={setCurrentPage}
             setPage="CHAT"
           />
-          {production != "Demo" && (
+          {production !== "Demo" && (
             <NavbarButton
               hide={false}
-              Icon={IoMdAddCircle}
+              Icon={IoAddCircle}
               title="Import Data"
               currentPage={currentPage}
               setCurrentPage={setCurrentPage}
-              setPage="ADD"
+              setPage="IMPORT_DATA"
             />
           )}
           <NavbarButton
@@ -137,7 +133,7 @@ const Navbar: React.FC<NavbarProps> = ({
             setCurrentPage={setCurrentPage}
             setPage="DOCUMENTS"
           />
-          {production != "Demo" && (
+          {production !== "Demo" && (
             <NavbarButton
               hide={false}
               Icon={IoSettingsSharp}

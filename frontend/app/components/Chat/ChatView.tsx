@@ -11,6 +11,7 @@ import {
   ChunkScore,
   Theme,
   DocumentFilter,
+  PageType  // Add this import
 } from "@/app/types";
 
 interface ChatViewProps {
@@ -21,7 +22,7 @@ interface ChatViewProps {
     type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
   ) => void;
   production: "Local" | "Demo" | "Production";
-  currentPage: string;
+  currentPage: PageType;  // Update this type
   RAGConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
   documentFilter: DocumentFilter[];

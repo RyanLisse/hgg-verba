@@ -31,6 +31,7 @@ import {
   RAGConfig,
   Theme,
   DocumentFilter,
+  PageType,
 } from "@/app/types";
 
 import InfoComponent from "../Navigation/InfoComponent";
@@ -41,7 +42,7 @@ interface ChatInterfaceProps {
   credentials: Credentials;
   setSelectedDocument: (s: string | null) => void;
   setSelectedChunkScore: (c: ChunkScore[]) => void;
-  currentPage: string;
+  currentPage: PageType;
   RAGConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
   selectedTheme: Theme;
@@ -605,95 +606,85 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       <div className="bg-bg-alt-verba rounded-2xl flex flex-col md:flex-row gap-2 p-4 md:p-6 items-center justify-end h-min w-full">
         {socketStatus === "ONLINE" ? (
-          <div className="flex gap-2 items-center justify-end w-full relative">
-            <div className="flex flex-col w-full gap-2">
-              <div className="flex items-center gap-2">
-                <div className="relative w-full">
-                  <textarea
-                    className="textarea textarea-bordered w-full bg-bg-verba placeholder-text-alt-verb min-h min-h-[40px] max-h-[150px] overflow-y-auto"
-                    placeholder={
-                      currentDatacount > 0
-                        ? currentDatacount >= 100
-                          ? `Chatting with more than 100 documents...`
-                          : `Chatting with ${currentDatacount} documents...`
-                        : `No documents detected...`
+          <div className="flex flex-col w-full gap-2">
+            <div className="flex items-center gap-2">
+              <div className="relative w-full">
+                <textarea
+                  className="textarea textarea-bordered w-full bg-bg-verba placeholder-text-alt-verb min-h min-h-[40px] max-h-[150px] overflow-y-auto"
+                  placeholder={
+                    currentDatacount > 0
+                      ? currentDatacount >= 100
+                        ? `Chatting with more than 100 documents...`
+                        : `Chatting with ${currentDatacount} documents...`
+                      : `No documents detected...`
+                  }
+                  onKeyDown={handleKeyDown}
+                  value={userInput}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setUserInput(newValue);
+                    if ((newValue.length - 1) % 3 === 0) {
+                      handleSuggestions();
                     }
-                    onKeyDown={handleKeyDown}
-                    value={userInput}
-                    onChange={(e) => {
-                      const newValue = e.target.value;
-                      setUserInput(newValue);
-                      if ((newValue.length - 1) % 3 === 0) {
-                        handleSuggestions();
-                      }
-                    }}
-                  />
-                  {currentSuggestions.length > 0 && (
-                    <ul className="absolute flex gap-2 justify-between top-full left-0 w-full mt-2 z-10 max-h-40 overflow-y-auto">
-                      {currentSuggestions.map((suggestion, index) => (
-                        <li
-                          key={index}
-                          className="p-3 bg-button-verba hover:bg-secondary-verba text-text-alt-verba rounded-xl w-full hover:text-text-verba cursor-pointer"
-                          onClick={() => {
-                            setUserInput(suggestion.query);
-                            setCurrentSuggestions([]);
-                          }}
-                        >
-                          <p className="text-xs lg:text-sm">
-                            {suggestion.query.length > 50
-                              ? suggestion.query.substring(0, 50) + "..."
-                              : suggestion.query
-                                  .split(new RegExp(`(${userInput})`, "gi"))
-                                  .map((part, i) =>
-                                    part.toLowerCase() ===
-                                    userInput.toLowerCase() ? (
-                                      <strong key={i}>{part}</strong>
-                                    ) : (
-                                      part
-                                    )
-                                  )}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <VerbaButton
-                  type="button"
-                  Icon={IoIosSend}
-                  onClick={() => {
-                    sendUserMessage();
                   }}
-                  disabled={false}
-                  selected_color="bg-primary-verba"
                 />
               </div>
-              <div className="flex gap-2 items-center justify-end">
-                <VerbaButton
-                  type="button"
-                  Icon={MdOutlineRefresh}
-                  onClick={() => {
-                    setSelectedDocument(null);
-                    setSelectedChunkScore([]);
-                    setUserInput("");
-                    setSelectedDocumentScore(null);
-                    setCurrentSuggestions([]);
-                    setMessages([
-                      {
-                        type: "system",
-                        content: selectedTheme.intro_message.text,
-                      },
-                    ]);
-                  }}
-                  disabled={false}
-                  selected_color="bg-primary-verba"
-                />
-                <SimpleFeedback
-                  runId={getLastRunId()}
-                  onSubmit={handleFeedbackSubmit}
-                />
-              </div>
+              <VerbaButton
+                type="button"
+                Icon={IoIosSend}
+                onClick={() => {
+                  sendUserMessage();
+                }}
+                disabled={false}
+                selected_color="bg-primary-verba"
+              />
             </div>
+            <div className="flex gap-2 items-center justify-end">
+              <VerbaButton
+                type="button"
+                Icon={MdOutlineRefresh}
+                onClick={() => {
+                  setSelectedDocument(null);
+                  setSelectedChunkScore([]);
+                  setUserInput("");
+                  setSelectedDocumentScore(null);
+                  setCurrentSuggestions([]);
+                  setMessages([
+                    {
+                      type: "system",
+                      content: selectedTheme.intro_message.text,
+                    },
+                  ]);
+                }}
+                disabled={false}
+                selected_color="bg-primary-verba"
+              />
+              <SimpleFeedback
+                runId={getLastRunId()}
+                onSubmit={handleFeedbackSubmit}
+              />
+            </div>
+            {currentSuggestions.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm text-text-alt-verba mb-1">Suggestions:</p>
+                <ul className="flex flex-wrap gap-2 w-full">
+                  {currentSuggestions.map((suggestion, index) => (
+                    <li
+                      key={index}
+                      className="p-2 bg-button-verba hover:bg-secondary-verba text-text-alt-verba rounded-xl hover:text-text-verba cursor-pointer text-xs lg:text-sm"
+                      onClick={() => {
+                        setUserInput(suggestion.query);
+                        setCurrentSuggestions([]);
+                      }}
+                    >
+                      {suggestion.query.length > 50
+                        ? suggestion.query.substring(0, 50) + "..."
+                        : suggestion.query}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex gap-2 items-center justify-end w-full">
