@@ -194,7 +194,7 @@ export default function Home() {
             setCurrentPage={setCurrentPage}
           />
           {/* Render components based on currentPage */}
-          <div className={`flex flex-col ${currentPage === "CHAT" ? "" : "hidden"}`}>
+          {currentPage === "CHAT" && (
             <ChatView
               addStatusMessage={addStatusMessage}
               credentials={credentials}
@@ -206,8 +206,8 @@ export default function Home() {
               documentFilter={documentFilter}
               setDocumentFilter={setDocumentFilter}
             />
-          </div>
-          <div className={`flex flex-col ${currentPage === "SETTINGS" ? "" : "hidden"}`}>
+          )}
+          {currentPage === "SETTINGS" && (
             <SettingsView
               selectedTheme={selectedTheme}
               setSelectedTheme={setSelectedTheme}
@@ -216,16 +216,16 @@ export default function Home() {
               credentials={credentials}
               addStatusMessage={addStatusMessage}
             />
-          </div>
-          <div className={`flex flex-col ${currentPage === "IMPORT_DATA" ? "" : "hidden"}`}>
+          )}
+          {currentPage === "IMPORT_DATA" && (
             <IngestionView
               credentials={credentials}
               RAGConfig={RAGConfig}
               setRAGConfig={setRAGConfig}
               addStatusMessage={addStatusMessage}
             />
-          </div>
-          <div className={`flex flex-col ${currentPage === "DOCUMENTS" ? "" : "hidden"}`}>
+          )}
+          {currentPage === "DOCUMENTS" && (
             <DocumentView
               selectedTheme={selectedTheme}
               production={production}
@@ -234,7 +234,7 @@ export default function Home() {
               setDocumentFilter={setDocumentFilter}
               addStatusMessage={addStatusMessage}
             />
-          </div>
+          )}
         </div>
       )}
     </main>
