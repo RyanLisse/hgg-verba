@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import VerbaButton from "../Navigation/VerbaButton";
 import { ThumbsUp, ThumbsDown, X, MessageSquare } from 'lucide-react';
+import { IconType } from 'react-icons';
 
 interface SimpleFeedbackProps {
   runId: string;
@@ -15,7 +16,7 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
   const handleFeedback = (type: string) => {
     if (type === 'positive') {
       onSubmit(runId, type, '');
-      setIsOpen(false)
+      resetFeedbackState();
     } else {
       setFeedbackType('negative')
     }
@@ -25,14 +26,20 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
     if (feedbackType) {
       onSubmit(runId, feedbackType, additionalFeedback);
     }
-    setIsOpen(false)
+    resetFeedbackState();
+  }
+
+  const resetFeedbackState = () => {
+    setIsOpen(false);
+    setFeedbackType(null);
+    setAdditionalFeedback('');
   }
 
   return (
     <>
       <VerbaButton
         title="Feedback"
-        Icon={MessageSquare}
+        Icon={MessageSquare as IconType}
         onClick={() => setIsOpen(true)}
         selected={false}
         disabled={!runId}
@@ -41,8 +48,8 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-bg-alt-verba rounded-lg p-6 w-96 relative">
             <VerbaButton
-              Icon={X}
-              onClick={() => setIsOpen(false)}
+              Icon={X as IconType}
+              onClick={resetFeedbackState}
               className="absolute right-2 top-2"
               selected={false}
               disabled={false}
@@ -55,7 +62,7 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
               <div className="flex justify-center space-x-4 mt-4">
                 <VerbaButton
                   title="Yes"
-                  Icon={ThumbsUp}
+                  Icon={ThumbsUp as IconType}
                   onClick={() => handleFeedback('positive')}
                   selected={false}
                   disabled={false}
@@ -63,7 +70,7 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
                 />
                 <VerbaButton
                   title="No"
-                  Icon={ThumbsDown}
+                  Icon={ThumbsDown as IconType}
                   onClick={() => handleFeedback('negative')}
                   selected={false}
                   disabled={false}
