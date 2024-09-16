@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { PageType, Credentials, RAGConfig, Theme, StatusMessage, LightTheme, Themes, DarkTheme, DocumentFilter, WCDTheme, WeaviateTheme } from "./types";
 
 // Components
 import Navbar from "./components/Navigation/NavbarComponent";
@@ -11,26 +12,12 @@ import ChatView from "./components/Chat/ChatView";
 import SettingsView from "./components/Settings/SettingsView";
 import StatusMessengerComponent from "./components/Navigation/StatusMessenger";
 
-// Types
-import {
-  Credentials,
-  RAGConfig,
-  Theme,
-  StatusMessage,
-  LightTheme,
-  Themes,
-  DarkTheme,
-  DocumentFilter,
-  WCDTheme,
-  WeaviateTheme,
-} from "./types";
-
 // Utilities
 import { fetchHealth, connectToVerba } from "./api";
 
 export default function Home() {
   // Page States
-  const [currentPage, setCurrentPage] = useState("CHAT");
+  const [currentPage, setCurrentPage] = useState<PageType>("CHAT");
   const [production, setProduction] = useState<"Local" | "Demo" | "Production">("Production");
   const [gtag, setGtag] = useState("");
 

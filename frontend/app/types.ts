@@ -648,3 +648,5 @@ export const WeaviateTheme: Theme = {
 export interface Themes {
   [key: string]: Theme;
 }
+
+export type PageType = "CHAT" | "DOCUMENTS" | "STATUS" | "IMPORT_DATA" | "SETTINGS" | "RAG" | "ADD";
