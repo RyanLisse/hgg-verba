@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { FaStar } from "react-icons/fa";
 import VerbaButton from "./VerbaButton";
 import { PageType } from "@/app/types"; // Update this import
 
