@@ -36,21 +36,20 @@ const checkUrl = async (url: string): Promise<boolean> => {
 };
 
 export const detectHost = async (): Promise<string> => {
-  const localUrl = "http://localhost:8000/api/health";
-  const rootUrl = "/api/health";
+  // For production, always use the same origin
+  if (window.location.hostname !== "localhost") {
+    return window.location.origin;
+  }
 
+  // For local development, try localhost:8000 first
+  const localUrl = "http://localhost:8000/api/health";
   const isLocalHealthy = await checkUrl(localUrl);
   if (isLocalHealthy) {
     return "http://localhost:8000";
   }
 
-  const isRootHealthy = await checkUrl(rootUrl);
-  if (isRootHealthy) {
-    const root = window.location.origin;
-    return root;
-  }
-
-  throw new Error("Both health checks failed, please check the Verba Server");
+  // If local API is not available, fall back to same origin
+  return window.location.origin;
 };
 
 export const fetchData = async <T>(endpoint: string): Promise<T | null> => {

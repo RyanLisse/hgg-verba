@@ -77,10 +77,13 @@ async def lifespan(app: FastAPI):
 # FastAPI App
 app = FastAPI(lifespan=lifespan)
 
-# Allow requests only from the same origin
+# Update the CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # This will be restricted by the custom middleware
+    allow_origins=[
+        "https://hgg-verba-production.up.railway.app",
+        "http://localhost:3000",  # Keep this for local development
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

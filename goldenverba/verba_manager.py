@@ -121,9 +121,12 @@ class VerbaManager:
                     took=0,
                 )
 
-            documents = await self.reader_manager.load(
-                fileConfig.rag_config["Reader"].selected, fileConfig, logger
-            )
+            if fileConfig.extension == 'json':
+                documents = await self.reader_manager.load("JSONReader", fileConfig, logger)
+            else:
+                documents = await self.reader_manager.load(
+                    fileConfig.rag_config["Reader"].selected, fileConfig, logger
+                )
 
             tasks = [
                 self.process_single_document(client, doc, fileConfig, logger)
@@ -747,11 +750,28 @@ class VerbaManager:
             yield result
 
 
+import json
+from goldenverba.components.document import Document
+from goldenverba.components.interfaces import Reader
+from goldenverba.server.types import FileConfig
+
+class JSONReader(Reader):
+    def __init__(self):
+        super().__init__()
+        self.type = "FILE"
+        self.extension = ["json"]
+
+    async def load(self, config: dict, fileConfig: FileConfig) -> list[Document]:
+        with open(fileConfig.filepath, 'r') as file:
+            json_data = json.load(file)
+            document = Document(content=json.dumps(json_data))
+            return [document]
+
 class ClientManager:
     def __init__(self) -> None:
         self.clients: dict[str, dict] = {}
         self.manager: VerbaManager = VerbaManager()
-        self.max_time: int = 1
+        self.max_time: int = 5
 
     def hash_credentials(self, credentials: Credentials) -> str:
         return f"{credentials.deployment}:{credentials.url}:{credentials.key}"
