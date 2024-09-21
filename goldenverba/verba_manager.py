@@ -394,7 +394,6 @@ class VerbaManager:
         return loaded_config
 
     def verify_config(self, a: dict, b: dict) -> bool:
-        # Check Settings ( RAG & Settings )
         try:
             if os.getenv("VERBA_PRODUCTION") == "Demo":
                 return True
@@ -450,11 +449,11 @@ class VerbaManager:
                             )
                             return False
 
-                        if sorted(a_setting["values"]) != sorted(b_setting["values"]):
-                            msg.fail(
-                                f"Config Validation Failed, values mismatch: {a_setting['values']} != {b_setting['values']}"
+                        # Allow new values to be added
+                        if not set(a_setting["values"]).issubset(set(b_setting["values"])):
+                            msg.warn(
+                                f"Config Validation Warning: New values added for {a_config_key}: {set(b_setting['values']) - set(a_setting['values'])}"
                             )
-                            return False
 
             return True
 
