@@ -175,7 +175,7 @@ export default function Home() {
   }, [selectedTheme]);
 
   useEffect(() => {
-    updateCSSVariables(); // Call to update CSS variables when selectedTheme changes
+    updateCSSVariables(); 
   }, [selectedTheme]);
 
   return (

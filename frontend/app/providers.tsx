@@ -7,6 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { onCLS, onFID, onLCP } from 'web-vitals'
 
+
 if (typeof window !== 'undefined') {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -31,7 +32,12 @@ if (typeof window !== 'undefined') {
   })
 
   onCLS((metric) => posthog.capture('Web Vital', { name: 'CLS', value: metric.value }))
-  onFID((metric) => posthog.capture('Web Vital', { name: 'FID', value: metric.value }))
+  
+  // Updated onFID to capture the FID metric with the relevant entry
+  onFID((metric) => {
+    posthog.capture('Web Vital', { name: 'FID', value: metric.value, entry: metric });
+  });
+
   onLCP((metric) => posthog.capture('Web Vital', { name: 'LCP', value: metric.value }))
 }
 
