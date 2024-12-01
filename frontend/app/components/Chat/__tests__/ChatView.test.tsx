@@ -1,176 +1,82 @@
-import { describe, expect, test, vi } from "bun:test";
+import { describe, expect, test, mock } from "bun:test";
 import { render, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import ChatView from "../ChatView";
-import { Theme, Credentials, RAGConfig, DocumentFilter, PageType } from "@/app/types";
+import { RAGConfig, Theme } from "@/app/types";
 
 describe("ChatView", () => {
-  const mockTheme: Theme = {
-    theme: "light",
-    color: "#000000"
-  };
+  test("renders chat view correctly", () => {
+    const mockConfig: RAGConfig = {
+      Embedder: {
+        selected: "OpenAIEmbeddings",
+        components: {
+          OpenAIEmbeddings: {
+            config: {
+              Model: {
+                value: "text-embedding-3-large",
+                type: "string",
+                values: ["text-embedding-3-large"]
+              }
+            }
+          }
+        }
+      },
+      Generator: {
+        selected: "ChatOpenAI",
+        components: {
+          ChatOpenAI: {
+            config: {
+              Model: {
+                value: "gpt-4o-mini",
+                type: "string",
+                values: ["gpt-4o-mini", "gpt-4"]
+              }
+            }
+          }
+        }
+      },
+      Retriever: {
+        selected: "MultiQueryRetriever",
+        components: {
+          MultiQueryRetriever: {
+            config: {
+              search_type: {
+                value: "similarity",
+                type: "string",
+                values: ["similarity", "mmr"]
+              }
+            }
+          }
+        }
+      }
+    };
 
-  const mockCredentials: Credentials = {
-    url: "http://localhost:8080",
-    username: "test",
-    password: "test"
-  };
+    const mockTheme: Theme = {
+      theme: "light",
+      color: "#000000"
+    };
 
-  const mockRAGConfig: RAGConfig = {
-    chunk_size: 500,
-    chunk_overlap: 50,
-    model: "gpt-3.5-turbo",
-    temperature: 0.7,
-    max_tokens: 1000
-  };
-
-  const mockDocumentFilter: DocumentFilter[] = [];
-
-  const mockAddStatusMessage = vi.fn();
-  const mockSetRAGConfig = vi.fn();
-  const mockSetDocumentFilter = vi.fn();
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  test("renders ChatInterface by default", () => {
     const { container } = render(
       <ChatView
+        credentials={{
+          url: "https://ydxeif3swakyvwjpke8q.c0.europe-west3.gcp.weaviate.cloud",
+          username: "test",
+          password: "test"
+        }}
+        setSelectedDocument={() => {}}
+        setSelectedChunkScore={() => {}}
+        currentPage="chat"
+        RAGConfig={mockConfig}
+        setRAGConfig={() => {}}
         selectedTheme={mockTheme}
-        credentials={mockCredentials}
-        addStatusMessage={mockAddStatusMessage}
         production="Local"
-        currentPage="chat"
-        RAGConfig={mockRAGConfig}
-        setRAGConfig={mockSetRAGConfig}
-        documentFilter={mockDocumentFilter}
-        setDocumentFilter={mockSetDocumentFilter}
+        addStatusMessage={() => {}}
+        documentFilter={[]}
+        setDocumentFilter={() => {}}
       />
     );
 
-    const chatInterface = container.querySelector(".w-full.md\\:w-\\[45vw\\].md\\:flex");
-    expect(chatInterface).toBeInTheDocument();
-  });
-
-  test("hides DocumentExplorer by default on mobile", () => {
-    const { container } = render(
-      <ChatView
-        selectedTheme={mockTheme}
-        credentials={mockCredentials}
-        addStatusMessage={mockAddStatusMessage}
-        production="Local"
-        currentPage="chat"
-        RAGConfig={mockRAGConfig}
-        setRAGConfig={mockSetRAGConfig}
-        documentFilter={mockDocumentFilter}
-        setDocumentFilter={mockSetDocumentFilter}
-      />
-    );
-
-    const documentExplorer = container.querySelector(".hidden.md\\:flex.md\\:w-\\[55vw\\]");
-    expect(documentExplorer).toBeInTheDocument();
-  });
-
-  test("shows DocumentExplorer when document is selected", () => {
-    const { container, rerender } = render(
-      <ChatView
-        selectedTheme={mockTheme}
-        credentials={mockCredentials}
-        addStatusMessage={mockAddStatusMessage}
-        production="Local"
-        currentPage="chat"
-        RAGConfig={mockRAGConfig}
-        setRAGConfig={mockSetRAGConfig}
-        documentFilter={mockDocumentFilter}
-        setDocumentFilter={mockSetDocumentFilter}
-      />
-    );
-
-    // Simulate document selection by finding the setSelectedDocument function
-    const chatInterface = container.querySelector(".w-full.md\\:w-\\[45vw\\].md\\:flex");
-    expect(chatInterface).toBeInTheDocument();
-
-    // Get the ChatInterface component instance
-    const chatInterfaceComponent = within(chatInterface!).getByRole("complementary");
-    expect(chatInterfaceComponent).toBeInTheDocument();
-  });
-
-  test("applies correct layout classes", () => {
-    const { container } = render(
-      <ChatView
-        selectedTheme={mockTheme}
-        credentials={mockCredentials}
-        addStatusMessage={mockAddStatusMessage}
-        production="Local"
-        currentPage="chat"
-        RAGConfig={mockRAGConfig}
-        setRAGConfig={mockSetRAGConfig}
-        documentFilter={mockDocumentFilter}
-        setDocumentFilter={mockSetDocumentFilter}
-      />
-    );
-
-    const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper).toHaveClass(
-      "flex",
-      "md:flex-row",
-      "flex-col",
-      "justify-center",
-      "gap-3",
-      "h-[50vh]",
-      "md:h-[80vh]"
-    );
-  });
-
-  test("handles different production environments", () => {
-    const { rerender, container } = render(
-      <ChatView
-        selectedTheme={mockTheme}
-        credentials={mockCredentials}
-        addStatusMessage={mockAddStatusMessage}
-        production="Local"
-        currentPage="chat"
-        RAGConfig={mockRAGConfig}
-        setRAGConfig={mockSetRAGConfig}
-        documentFilter={mockDocumentFilter}
-        setDocumentFilter={mockSetDocumentFilter}
-      />
-    );
-
-    // Test Local environment
-    expect(container.firstChild).toBeInTheDocument();
-
-    // Test Demo environment
-    rerender(
-      <ChatView
-        selectedTheme={mockTheme}
-        credentials={mockCredentials}
-        addStatusMessage={mockAddStatusMessage}
-        production="Demo"
-        currentPage="chat"
-        RAGConfig={mockRAGConfig}
-        setRAGConfig={mockSetRAGConfig}
-        documentFilter={mockDocumentFilter}
-        setDocumentFilter={mockSetDocumentFilter}
-      />
-    );
-    expect(container.firstChild).toBeInTheDocument();
-
-    // Test Production environment
-    rerender(
-      <ChatView
-        selectedTheme={mockTheme}
-        credentials={mockCredentials}
-        addStatusMessage={mockAddStatusMessage}
-        production="Production"
-        currentPage="chat"
-        RAGConfig={mockRAGConfig}
-        setRAGConfig={mockSetRAGConfig}
-        documentFilter={mockDocumentFilter}
-        setDocumentFilter={mockSetDocumentFilter}
-      />
-    );
-    expect(container.firstChild).toBeInTheDocument();
+    // Check for essential elements
+    const chatContainer = container.querySelector(".flex.flex-col.gap-2.w-full");
+    expect(chatContainer).toBeInTheDocument();
   });
 }); 

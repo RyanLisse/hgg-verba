@@ -609,3 +609,9 @@ yt-dlp==2023.12.30
 zipp==3.20.1
 zope.interface==6.4.post2
 zstandard==0.22.0
+
+# Testing dependencies
+pytest==7.4.4
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0
+pytest-mock==3.12.0

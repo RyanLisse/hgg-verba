@@ -751,7 +751,9 @@ class ClientManager:
     def __init__(self) -> None:
         self.clients: dict[str, dict] = {}
         self.manager: VerbaManager = VerbaManager()
-        self.max_time: int = 1
+        self.max_time: int = 30  # Increased to 30 minutes
+        self.last_cleanup: datetime = datetime.now()
+        self.cleanup_interval: int = 5  # Cleanup every 5 minutes
 
     def hash_credentials(self, credentials: Credentials) -> str:
         return f"{credentials.deployment}:{credentials.url}:{credentials.key}"
@@ -786,8 +788,13 @@ class ClientManager:
             await self.manager.disconnect(client["client"])
 
     async def clean_up(self):
-        msg.info("Cleaning Clients Cache")
         current_time = datetime.now()
+        time_since_cleanup = (current_time - self.last_cleanup).total_seconds() / 60
+        
+        if time_since_cleanup < self.cleanup_interval:
+            return
+            
+        msg.info("Cleaning Clients Cache")
         clients_to_remove = []
 
         for cred_hash, client_data in self.clients.items():
@@ -804,3 +811,4 @@ class ClientManager:
             msg.warn(f"Removed client: {cred_hash}")
 
         msg.info(f"Cleaned up {len(clients_to_remove)} clients")
+        self.last_cleanup = current_time

@@ -89,8 +89,25 @@ export default function Home() {
     setIsLoggedIn(false);
   }, []);
 
+  // Health check interval
   useEffect(() => {
+    const healthCheck = async () => {
+      const health_data = await fetchHealth();
+      if (health_data) {
+        setIsHealthy(true);
+      } else {
+        setIsHealthy(false);
+        setIsLoggedIn(false);
+      }
+    };
+
+    // Initial health check
     initialFetch();
+
+    // Set up periodic health checks every 30 seconds
+    const interval = setInterval(healthCheck, 30000);
+
+    return () => clearInterval(interval);
   }, [initialFetch]);
 
   useEffect(() => {

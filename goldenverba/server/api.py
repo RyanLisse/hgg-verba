@@ -803,7 +803,10 @@ async def delete_suggestion(payload: DeleteSuggestionPayload):
 async def submit_feedback(payload: FeedbackPayload):
     logger.info(f"Received feedback request: runId={payload.runId}, feedbackType={payload.feedbackType}")
     try:
-        client = LangSmithClient()
+        client = LangSmithClient(
+            api_url=payload.credentials["url"] if "url" in payload.credentials else None,
+            api_key=payload.credentials["key"] if "key" in payload.credentials else None
+        )
         
         feedback_score = 1 if payload.feedbackType == 'positive' else 0
         
