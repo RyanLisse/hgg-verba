@@ -14,9 +14,9 @@ describe("ChunkView", () => {
   test("renders chunk content correctly", () => {
     const { container } = render(<ChunkView chunk={mockChunk} />);
     
-    const content = within(container).getByText("This is a test chunk content\nwith multiple lines");
+    const content = container.querySelector(".whitespace-pre-wrap");
     expect(content).toBeInTheDocument();
-    expect(content.className).toContain("whitespace-pre-wrap");
+    expect(content?.textContent).toBe(mockChunk.content);
   });
 
   test("displays source and score information", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "bun:test";
+import { describe, expect, test, vi, beforeEach } from "bun:test";
 import { render, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ChatMessage from "../ChatMessage";
