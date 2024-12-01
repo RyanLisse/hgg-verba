@@ -46,7 +46,12 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
       />
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-bg-alt-verba rounded-lg p-6 w-96 relative">
+          <div 
+            className="bg-bg-alt-verba rounded-lg p-6 w-96 relative"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="feedback-title"
+          >
             <VerbaButton
               Icon={X as IconType}
               onClick={resetFeedbackState}
@@ -54,7 +59,10 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
               selected={false}
               disabled={false}
             />
-            <h2 className="text-xl font-bold mb-4">
+            <h2 
+              id="feedback-title"
+              className="text-xl font-bold mb-4"
+            >
               {feedbackType === null ? "Was this helpful?" : "What could we improve?"}
             </h2>
             

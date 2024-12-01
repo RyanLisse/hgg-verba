@@ -5,13 +5,7 @@ import { ChunkScore, Message } from "@/app/types";
 import ReactMarkdown from "react-markdown";
 import { FaDatabase } from "react-icons/fa";
 import { BiError } from "react-icons/bi";
-import { IoNewspaper } from "react-icons/io5";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { IoDocumentAttach } from "react-icons/io5";
-import {
-  oneDark,
-  oneLight,
-} from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { IoNewspaper, IoDocumentAttach } from "react-icons/io5";
 
 import VerbaButton from "../Navigation/VerbaButton";
 
@@ -61,22 +55,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 code({ node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || "");
                   return !inline && match ? (
-                    <SyntaxHighlighter
-                      style={
-                        selectedTheme.theme === "dark"
-                          ? (oneDark as any)
-                          : (oneLight as any)
-                      }
-                      language={match[1]}
-                      PreTag="div"
-                      {...props}
-                    >
-                      {String(children).replace(/\n$/, "")}
-                    </SyntaxHighlighter>
+                    <pre className={`language-${match[1]} p-4 rounded-lg overflow-x-auto ${selectedTheme.theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
+                      <code className={`language-${match[1]}`}>
+                        {String(children).replace(/\n$/, "")}
+                      </code>
+                    </pre>
                   ) : (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
+                    <code className={className}>{children}</code>
                   );
                 },
               }}

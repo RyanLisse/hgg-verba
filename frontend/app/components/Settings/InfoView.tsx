@@ -39,10 +39,8 @@ const InfoView: React.FC<InfoViewProps> = ({
   };
 
   useEffect(() => {
-    setIsLoading(true);
     fetchMetadata();
-    setIsLoading(false);
-  }, []);
+  }, [fetchMetadata]);
 
   const resetDocuments = async () => {
     const response = await deleteAllDocuments("DOCUMENTS", credentials);

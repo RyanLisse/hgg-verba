@@ -52,9 +52,9 @@ const VerbaButton: React.FC<VerbaButtonProps> = ({
       key={key}
       className={
         className +
-        ` btn rounded-lg flex-grow items-center justify-center border-none ${circle ? "btn-circle" : ""} ${button_size} hover:bg-button-hover-verba hover:text-text-verba-button ${selected ? selected_color + " shadow-md " + selected_text_color : " bg-button-verba shadow-none text-text-alt-verba-button"} `
+        ` btn rounded-lg flex-grow items-center justify-center border-none ${circle ? "btn-circle" : ""} ${button_size} hover:bg-button-hover-verba hover:text-text-verba-button ${selected ? selected_color + " shadow-md " + selected_text_color : " bg-button-verba shadow-none text-text-alt-verba-button"} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`
       }
-      onClick={(e) => onClick(e, ...onClickParams)}
+      onClick={(e) => !disabled && onClick(e, ...onClickParams)}
       disabled={disabled}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

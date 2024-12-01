@@ -3,13 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { VerbaChunk, ChunksPayload, Theme } from "@/app/types";
 import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import {
-  oneDark,
-  oneLight,
-} from "react-syntax-highlighter/dist/cjs/styles/prism";
-import { IoNewspaper } from "react-icons/io5";
-import { FaArrowAltCircleRight, FaArrowAltCircleLeft } from "react-icons/fa";
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 
 import { fetch_chunks } from "@/app/api";
 import { Credentials } from "@/app/types";
@@ -139,7 +133,7 @@ const ChunkView: React.FC<ChunkViewProps> = ({
             <div className="flex justify-between mb-2">
               <div className="flex gap-2">
                 <div className="flex gap-2 items-center p-3 bg-secondary-verba rounded-full w-fit">
-                  <IoNewspaper size={12} />
+                  <IoChevronBack size={12} />
                   <p className="text-xs flex text-text-verba">
                     Chunk {chunks[currentChunkIndex].chunk_id}
                   </p>
@@ -153,22 +147,13 @@ const ChunkView: React.FC<ChunkViewProps> = ({
                   code({ node, inline, className, children, ...props }) {
                     const match = /language-(\w+)/.exec(className || "");
                     return !inline && match ? (
-                      <SyntaxHighlighter
-                        style={
-                          selectedTheme.theme === "dark"
-                            ? (oneDark as any)
-                            : (oneLight as any)
-                        }
-                        language={match[1]}
-                        PreTag="div"
-                        {...props}
-                      >
-                        {String(children).replace(/\n$/, "")}
-                      </SyntaxHighlighter>
+                      <pre className={`language-${match[1]} p-4 rounded-lg overflow-x-auto ${selectedTheme.theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
+                        <code className={`language-${match[1]}`}>
+                          {String(children).replace(/\n$/, "")}
+                        </code>
+                      </pre>
                     ) : (
-                      <code className={className} {...props}>
-                        {children}
-                      </code>
+                      <code className={className}>{children}</code>
                     );
                   },
                 }}
@@ -187,14 +172,14 @@ const ChunkView: React.FC<ChunkViewProps> = ({
                 className="btn-sm min-w-min max-w-[200px]"
                 text_class_name="text-xs"
                 disabled={isPreviousDisabled}
-                Icon={FaArrowAltCircleLeft}
+                Icon={IoChevronBack}
               />
               <VerbaButton
                 title={"Next Chunk"}
                 onClick={nextChunk}
                 className="btn-sm min-w-min max-w-[200px]"
                 text_class_name="text-xs"
-                Icon={FaArrowAltCircleRight}
+                Icon={IoChevronForward}
               />
             </div>
           )}

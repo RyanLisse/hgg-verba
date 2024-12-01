@@ -90,8 +90,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    initialFetch(); // Call the function without parameters
-  }, []);
+    initialFetch();
+  }, [initialFetch]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -130,7 +130,7 @@ export default function Home() {
     if (isHealthy) {
       connect();
     }
-  }, [isHealthy]);
+  }, [connect, isHealthy]);
 
   const isValidTheme = (theme: Theme): boolean => {
     const requiredAttributes = [
@@ -175,8 +175,8 @@ export default function Home() {
   }, [selectedTheme]);
 
   useEffect(() => {
-    updateCSSVariables(); // Call to update CSS variables when selectedTheme changes
-  }, [selectedTheme]);
+    updateCSSVariables();
+  }, [updateCSSVariables]);
 
   return (
     <main className={`min-h-screen bg-bg-verba text-text-verba ${fontClassName}`} data-theme={selectedTheme.theme}>

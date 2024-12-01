@@ -2,11 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import {
-  oneDark,
-  oneLight,
-} from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
 import { HiSparkles } from "react-icons/hi2";
 import { IoNewspaper } from "react-icons/io5";
@@ -132,22 +127,19 @@ const ContentView: React.FC<ContentViewProps> = ({
               code({ node, inline, className, children, ...props }) {
                 const match = /language-(\w+)/.exec(className || "");
                 return !inline && match ? (
-                  <SyntaxHighlighter
-                    style={
+                  <pre
+                    className={`language-${match[1]} p-4 rounded-lg overflow-x-auto ${
                       selectedTheme.theme === "dark"
-                        ? (oneDark as any)
-                        : (oneLight as any)
-                    }
-                    language={match[1]}
-                    PreTag="div"
-                    {...props}
+                        ? "bg-gray-800"
+                        : "bg-gray-100"
+                    }`}
                   >
-                    {String(children).replace(/\n$/, "")}
-                  </SyntaxHighlighter>
+                    <code className={`language-${match[1]}`}>
+                      {String(children).replace(/\n$/, "")}
+                    </code>
+                  </pre>
                 ) : (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
+                  <code className={className}>{children}</code>
                 );
               },
             }}
@@ -188,22 +180,19 @@ const ContentView: React.FC<ContentViewProps> = ({
               code({ node, inline, className, children, ...props }) {
                 const match = /language-(\w+)/.exec(className || "");
                 return !inline && match ? (
-                  <SyntaxHighlighter
-                    style={
+                  <pre
+                    className={`language-${match[1]} p-4 rounded-lg overflow-x-auto ${
                       selectedTheme.theme === "dark"
-                        ? (oneDark as any)
-                        : (oneLight as any)
-                    }
-                    language={match[1]}
-                    PreTag="div"
-                    {...props}
+                        ? "bg-gray-800"
+                        : "bg-gray-100"
+                    }`}
                   >
-                    {String(children).replace(/\n$/, "")}
-                  </SyntaxHighlighter>
+                    <code className={`language-${match[1]}`}>
+                      {String(children).replace(/\n$/, "")}
+                    </code>
+                  </pre>
                 ) : (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
+                  <code className={className}>{children}</code>
                 );
               },
             }}

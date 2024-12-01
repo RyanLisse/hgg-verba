@@ -25,6 +25,7 @@ import { FaCheckCircle } from "react-icons/fa";
 import { MdCancel } from "react-icons/md";
 
 import { updateThemeConfig } from "@/app/api";
+import Image from 'next/image';
 
 interface SettingsComponentProps {
   selectedTheme: Theme;
@@ -90,7 +91,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
       newThemes[selectedTheme.theme_name] = selectedTheme;
       return newThemes as Themes;
     });
-  }, [selectedTheme]);
+  }, [selectedTheme, setThemes]);
 
   const handleImageChange = (
     title: keyof Theme,
@@ -228,9 +229,11 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
                   />
                 </div>
                 {(selectedTheme as any)[title].src && (
-                  <img
+                  <Image
                     src={(selectedTheme as any)[title].src}
                     alt={`${title} preview`}
+                    width={200}
+                    height={150}
                     className="max-w-full max-h-32 rounded-xl"
                   />
                 )}

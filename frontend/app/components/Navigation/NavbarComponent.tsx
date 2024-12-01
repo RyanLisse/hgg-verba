@@ -6,10 +6,8 @@ import { TiThMenu } from "react-icons/ti";
 import { closeOnClick } from "@/app/util";
 import VerbaButton from "./VerbaButton";
 import NavbarButton from "./NavButton";
-import { PageType } from "@/app/types"; // Update this import
-
-// Remove this line as we're now importing PageType from types.ts
-// type PageType = "CHAT" | "DOCUMENTS" | "STATUS" | "IMPORT_DATA" | "SETTINGS" | "RAG" | "ADD";
+import { PageType } from "@/app/types"; 
+import Image from 'next/image';
 
 interface NavbarProps {
   imageSrc: string;
@@ -33,10 +31,12 @@ const Navbar: React.FC<NavbarProps> = ({
     <div className="flex justify-between items-center mb-10">
       {/* Logo, Title, Subtitle */}
       <div className="flex flex-row items-center gap-5">
-        <img
+        <Image
           src={imageSrc}
-          className="flex rounded-lg w-[50px] md:w-[80px] md:h-[80px] object-contain"
           alt="Logo"
+          width={50}
+          height={50}
+          className="flex rounded-lg w-[50px] md:w-[80px] md:h-[80px] object-contain"
         />
         <div className="flex flex-col lg:flex-row lg:items-end justify-center lg:gap-3">
           <p className="text-2xl md:text-3xl text-text-verba">{title}</p>

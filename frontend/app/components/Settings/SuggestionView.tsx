@@ -37,11 +37,11 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
   };
   useEffect(() => {
     handleSuggestionFetch();
-  }, []);
+  }, [handleSuggestionFetch]);
 
   useEffect(() => {
     handleSuggestionFetch();
-  }, [page]);
+  }, [handleSuggestionFetch, page]);
 
   const nextPage = () => {
     if (page * pageSize <= totalCount) {
