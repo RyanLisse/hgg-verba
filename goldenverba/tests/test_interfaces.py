@@ -1,8 +1,7 @@
 import pytest
-from goldenverba.components.interfaces import SomeInterface
+from goldenverba.components.interfaces import Retriever
 
-class TestSomeInterface:
-    def test_interface_method(self):
-        interface = SomeInterface()
-        result = interface.some_method()
-        assert result == "expected result"
+def test_retriever_interface():
+    # Test that Retriever is properly defined
+    assert hasattr(Retriever, 'name')
+    assert hasattr(Retriever, 'retrieve')
