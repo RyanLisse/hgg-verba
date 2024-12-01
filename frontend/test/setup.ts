@@ -1,4 +1,4 @@
-import { beforeAll, expect } from "bun:test";
+import { beforeAll, expect } from "@jest/globals";
 import { JSDOM } from 'jsdom';
 
 // Set up DOM environment
@@ -7,12 +7,13 @@ const dom = new JSDOM('<!doctype html><html><body></body></html>', {
   pretendToBeVisual: true,
 });
 
-global.document = dom.window.document;
-global.window = dom.window;
-global.navigator = dom.window.navigator;
-global.HTMLElement = dom.window.HTMLElement;
-global.Element = dom.window.Element;
-global.getComputedStyle = dom.window.getComputedStyle;
+// Set up global DOM environment
+(global as any).document = dom.window.document;
+(global as any).window = dom.window;
+(global as any).navigator = dom.window.navigator;
+(global as any).HTMLElement = dom.window.HTMLElement;
+(global as any).Element = dom.window.Element;
+(global as any).getComputedStyle = dom.window.getComputedStyle;
 
 // Mock Next.js font
 const mockFont = () => ({
@@ -20,7 +21,7 @@ const mockFont = () => ({
   style: { fontFamily: 'Plus_Jakarta_Sans' },
 });
 
-require.cache[require.resolve('next/font/google')] = {
+(require.cache as any)[require.resolve('next/font/google')] = {
   id: 'next/font/google',
   filename: 'next/font/google',
   loaded: true,
@@ -30,7 +31,7 @@ require.cache[require.resolve('next/font/google')] = {
 };
 
 // Mock router
-require.cache[require.resolve('next/router')] = {
+(require.cache as any)[require.resolve('next/router')] = {
   id: 'next/router',
   filename: 'next/router',
   loaded: true,
@@ -52,7 +53,7 @@ require.cache[require.resolve('next/router')] = {
 };
 
 // Mock navigation
-require.cache[require.resolve('next/navigation')] = {
+(require.cache as any)[require.resolve('next/navigation')] = {
   id: 'next/navigation',
   filename: 'next/navigation',
   loaded: true,
@@ -69,164 +70,84 @@ require.cache[require.resolve('next/navigation')] = {
   }
 };
 
-// Add custom matchers
-const originalExpect = expect;
-
-function extendExpect(actual: any) {
-  const expectResult = originalExpect(actual);
-
-  // Add custom matchers
-  expectResult.toBeInTheDocument = () => {
-    return originalExpect(actual !== null && actual !== undefined).toBe(true);
-  };
-
-  expectResult.toHaveClass = (...args: string[]) => {
-    const classList = actual.className?.split(' ') || [];
-    return originalExpect(args.every(cls => classList.includes(cls))).toBe(true);
-  };
-
-  expectResult.toHaveAttribute = (attr: string, value?: string) => {
-    const hasAttr = actual.hasAttribute(attr);
-    if (value === undefined) {
-      return originalExpect(hasAttr).toBe(true);
-    }
-    return originalExpect(actual.getAttribute(attr)).toBe(value);
-  };
-
-  expectResult.toHaveTextContent = (text: string) => {
-    return originalExpect(actual.textContent).toBe(text);
-  };
-
-  expectResult.toBeDisabled = () => {
-    return originalExpect(actual.disabled).toBe(true);
-  };
-
-  expectResult.toHaveLength = (length: number) => {
-    return originalExpect(actual.length).toBe(length);
-  };
-
-  expectResult.toHaveBeenCalledWith = (...args: any[]) => {
-    return originalExpect(actual.mock.calls[0]).toEqual(args);
-  };
-
-  expectResult.toHaveBeenCalledTimes = (times: number) => {
-    return originalExpect(actual.mock.calls.length).toBe(times);
-  };
-
-  expectResult.toHaveBeenLastCalledWith = (...args: any[]) => {
-    const lastCall = actual.mock.calls[actual.mock.calls.length - 1];
-    return originalExpect(lastCall).toEqual(args);
-  };
-
-  // Add negated matchers
-  expectResult.not = {
-    ...expectResult.not,
-    toBeDisabled: () => {
-      return originalExpect(actual.disabled).toBe(false);
-    },
-    toBeInTheDocument: () => {
-      return originalExpect(actual === null || actual === undefined).toBe(true);
-    },
-    toHaveClass: (...args: string[]) => {
-      const classList = actual.className?.split(' ') || [];
-      return originalExpect(args.some(cls => !classList.includes(cls))).toBe(true);
-    },
-  };
-
-  return expectResult;
+interface CustomMatchers {
+  toBeInTheDocument(): { pass: boolean; message: () => string };
+  toHaveClass(...args: string[]): { pass: boolean; message: () => string };
+  toHaveAttribute(attr: string, value?: string): { pass: boolean; message: () => string };
+  toHaveTextContent(text: string): { pass: boolean; message: () => string };
+  toBeDisabled(): { pass: boolean; message: () => string };
+  toHaveLength(length: number): { pass: boolean; message: () => string };
+  toHaveBeenCalledWith(...args: any[]): { pass: boolean; message: () => string };
+  toHaveBeenCalledTimes(times: number): { pass: boolean; message: () => string };
+  toHaveBeenLastCalledWith(...args: any[]): { pass: boolean; message: () => string };
 }
 
-// Create a proxy to handle property access
-const expectProxy = new Proxy(extendExpect, {
-  get(target, prop) {
-    if (prop === 'extend') {
-      return target.extend;
-    }
-    return originalExpect[prop];
+// Add custom matchers
+const customMatchers: CustomMatchers = {
+  toBeInTheDocument(): { pass: boolean; message: () => string } {
+    return {
+      pass: this.actual !== null && this.actual !== undefined,
+      message: () => `expected ${this.actual} to be in the document`,
+    };
   },
-  apply(target, thisArg, args) {
-    return target.apply(thisArg, args);
+  toHaveClass(...args: string[]): { pass: boolean; message: () => string } {
+    const classList = this.actual.className?.split(' ') || [];
+    return {
+      pass: args.every(cls => classList.includes(cls)),
+      message: () => `expected ${this.actual} to have classes ${args.join(', ')}`,
+    };
   },
-});
-
-// Add static properties from original expect
-Object.entries(originalExpect).forEach(([key, value]) => {
-  if (typeof value === 'function') {
-    expectProxy[key] = value.bind(originalExpect);
-  } else {
-    expectProxy[key] = value;
-  }
-});
-
-// Add custom matchers to expect prototype
-const customMatchers = {
-  toBeInTheDocument() {
-    return originalExpect(this !== null && this !== undefined).toBe(true);
-  },
-  toHaveClass(...args: string[]) {
-    const classList = this.className?.split(' ') || [];
-    return originalExpect(args.every(cls => classList.includes(cls))).toBe(true);
-  },
-  toHaveAttribute(attr: string, value?: string) {
-    const hasAttr = this.hasAttribute(attr);
+  toHaveAttribute(attr: string, value?: string): { pass: boolean; message: () => string } {
+    const hasAttr = this.actual.hasAttribute(attr);
     if (value === undefined) {
-      return originalExpect(hasAttr).toBe(true);
+      return {
+        pass: hasAttr,
+        message: () => `expected ${this.actual} to have attribute ${attr}`,
+      };
     }
-    return originalExpect(this.getAttribute(attr)).toBe(value);
+    return {
+      pass: this.actual.getAttribute(attr) === value,
+      message: () => `expected ${this.actual} to have attribute ${attr} with value ${value}`,
+    };
   },
-  toHaveTextContent(text: string) {
-    return originalExpect(this.textContent).toBe(text);
+  toHaveTextContent(text: string): { pass: boolean; message: () => string } {
+    return {
+      pass: this.actual.textContent === text,
+      message: () => `expected ${this.actual} to have text content ${text}`,
+    };
   },
-  toBeDisabled() {
-    return originalExpect(this.disabled).toBe(true);
+  toBeDisabled(): { pass: boolean; message: () => string } {
+    return {
+      pass: this.actual.disabled,
+      message: () => `expected ${this.actual} to be disabled`,
+    };
   },
-  toHaveLength(length: number) {
-    return originalExpect(this.length).toBe(length);
+  toHaveLength(length: number): { pass: boolean; message: () => string } {
+    return {
+      pass: this.actual.length === length,
+      message: () => `expected ${this.actual} to have length ${length}`,
+    };
   },
-  toHaveBeenCalledWith(...args: any[]) {
-    return originalExpect(this.mock.calls[0]).toEqual(args);
+  toHaveBeenCalledWith(...args: any[]): { pass: boolean; message: () => string } {
+    return {
+      pass: this.actual.mock.calls[0] === args,
+      message: () => `expected ${this.actual} to have been called with ${args}`,
+    };
   },
-  toHaveBeenCalledTimes(times: number) {
-    return originalExpect(this.mock.calls.length).toBe(times);
+  toHaveBeenCalledTimes(times: number): { pass: boolean; message: () => string } {
+    return {
+      pass: this.actual.mock.calls.length === times,
+      message: () => `expected ${this.actual} to have been called ${times} times`,
+    };
   },
-  toHaveBeenLastCalledWith(...args: any[]) {
-    const lastCall = this.mock.calls[this.mock.calls.length - 1];
-    return originalExpect(lastCall).toEqual(args);
-  },
-};
-
-// Add custom matchers to expect prototype
-Object.entries(customMatchers).forEach(([key, value]) => {
-  Object.defineProperty(expectProxy.prototype, key, {
-    value,
-    configurable: true,
-    writable: true,
-    enumerable: true,
-  });
-});
-
-// Add negated matchers to expect prototype
-const negatedMatchers = {
-  toBeDisabled() {
-    return originalExpect(this.disabled).toBe(false);
-  },
-  toBeInTheDocument() {
-    return originalExpect(this === null || this === undefined).toBe(true);
-  },
-  toHaveClass(...args: string[]) {
-    const classList = this.className?.split(' ') || [];
-    return originalExpect(args.some(cls => !classList.includes(cls))).toBe(true);
+  toHaveBeenLastCalledWith(...args: any[]): { pass: boolean; message: () => string } {
+    const lastCall = this.actual.mock.calls[this.actual.mock.calls.length - 1];
+    return {
+      pass: lastCall === args,
+      message: () => `expected ${this.actual} to have been last called with ${args}`,
+    };
   },
 };
 
-// Add negated matchers to expect prototype
-Object.entries(negatedMatchers).forEach(([key, value]) => {
-  Object.defineProperty(expectProxy.prototype.not, key, {
-    value,
-    configurable: true,
-    writable: true,
-    enumerable: true,
-  });
-});
-
-(global as any).expect = expectProxy;
+// Add custom matchers to expect
+(expect as any).extend(customMatchers);
