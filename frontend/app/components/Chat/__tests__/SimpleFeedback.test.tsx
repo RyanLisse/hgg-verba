@@ -53,6 +53,7 @@ describe("SimpleFeedback", () => {
   });
 
   test("handles negative feedback submission", () => {
+    mockOnSubmit.mockClear();
     const { container } = render(
       <SimpleFeedback runId={mockRunId} onSubmit={mockOnSubmit} />
     );
@@ -64,6 +65,7 @@ describe("SimpleFeedback", () => {
     fireEvent.change(textarea, { target: { value: "Test feedback" } });
     fireEvent.click(within(container).getByRole("button", { name: /submit feedback/i }));
 
-    expect(mockOnSubmit).toHaveBeenCalledWith(mockRunId, "negative", "Test feedback");
+    expect(mockOnSubmit).toHaveBeenCalledTimes(1);
+    expect(mockOnSubmit).toHaveBeenLastCalledWith(mockRunId, "negative", "Test feedback");
   });
 }); 
