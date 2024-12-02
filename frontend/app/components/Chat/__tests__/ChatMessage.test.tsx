@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { render } from "@testing-library/react";
+import { render, within } from "@testing-library/react";
 import ChatMessage from "../ChatMessage";
-import { Theme } from "@/app/types";
+import { Message, Theme } from "@/app/types";
 
 describe("ChatMessage", () => {
   const mockTheme: Theme = {
@@ -9,156 +9,122 @@ describe("ChatMessage", () => {
     color: "#000000"
   };
 
+  const defaultProps = {
+    message_index: 0,
+    selectedTheme: mockTheme,
+    selectedDocument: null,
+    setSelectedDocument: () => {},
+    setSelectedDocumentScore: () => {},
+    setSelectedChunkScore: () => {}
+  };
+
   test("renders user message correctly", () => {
+    const message: Message = {
+      role: "user",
+      content: "Hello, world!",
+      type: "user"
+    };
+
     const { container } = render(
-      <ChatMessage
-        message={{
-          type: "user",
-          content: "Test user message",
-          role: "user"
-        }}
-        message_index={0}
-        selectedTheme={mockTheme}
-        selectedDocument={null}
-        setSelectedDocument={() => {}}
-        setSelectedDocumentScore={() => {}}
-        setSelectedChunkScore={() => {}}
-      />
+      <ChatMessage message={message} {...defaultProps} />
     );
 
-    expect(container.textContent).toContain("Test user message");
+    const messageDiv = container.querySelector(".whitespace-pre-wrap");
+    expect(messageDiv).toBeInTheDocument();
+    expect(messageDiv?.textContent).toBe("Hello, world!");
   });
 
   test("renders system message with markdown correctly", () => {
+    const message: Message = {
+      role: "assistant",
+      content: "**Hello**, *world*!",
+      type: "system"
+    };
+
     const { container } = render(
-      <ChatMessage
-        message={{
-          type: "system",
-          content: "**Test** system message",
-          role: "system"
-        }}
-        message_index={0}
-        selectedTheme={mockTheme}
-        selectedDocument={null}
-        setSelectedDocument={() => {}}
-        setSelectedDocumentScore={() => {}}
-        setSelectedChunkScore={() => {}}
-      />
+      <ChatMessage message={message} {...defaultProps} />
     );
 
-    const boldText = container.querySelector("strong");
-    expect(boldText).toBeInTheDocument();
-    expect(boldText?.textContent).toBe("Test");
-    expect(container.textContent).toContain("system message");
+    const markdownContent = container.querySelector(".prose");
+    expect(markdownContent).toBeInTheDocument();
+    const strongElement = container.querySelector("strong");
+    expect(strongElement).toBeInTheDocument();
+    expect(strongElement?.textContent).toBe("Hello");
   });
 
   test("renders error message correctly", () => {
+    const message: Message = {
+      role: "assistant",
+      content: "Error occurred",
+      type: "error"
+    };
+
     const { container } = render(
-      <ChatMessage
-        message={{
-          type: "error",
-          content: "Test error message",
-          role: "system"
-        }}
-        message_index={0}
-        selectedTheme={mockTheme}
-        selectedDocument={null}
-        setSelectedDocument={() => {}}
-        setSelectedDocumentScore={() => {}}
-        setSelectedChunkScore={() => {}}
-      />
+      <ChatMessage message={message} {...defaultProps} />
     );
 
-    expect(container.textContent).toContain("Test error message");
-  });
-
-  test.skip("shows database icon for cached messages", () => {
-    const { container } = render(
-      <ChatMessage
-        message={{
-          type: "system",
-          content: "Test cached message",
-          role: "system",
-          cached: true
-        }}
-        message_index={0}
-        selectedTheme={mockTheme}
-        selectedDocument={null}
-        setSelectedDocument={() => {}}
-        setSelectedDocumentScore={() => {}}
-        setSelectedChunkScore={() => {}}
-      />
-    );
-
-    expect(container.querySelector(".fa-database")).toBeInTheDocument();
+    const errorDiv = container.querySelector(".text-text-verba");
+    expect(errorDiv).toBeInTheDocument();
+    expect(errorDiv?.textContent).toContain("Error occurred");
   });
 
   test("renders retrieval message correctly", () => {
-    const { container } = render(
-      <ChatMessage
-        message={{
-          type: "retrieval",
-          content: [
+    const message: Message = {
+      role: "assistant",
+      content: [
+        {
+          title: "test.pdf",
+          uuid: "test-uuid",
+          score: 0.8,
+          chunks: [
             {
-              title: "test.pdf",
-              uuid: "test-uuid",
+              source: "test.pdf",
               score: 0.8,
-              chunks: [
-                {
-                  source: "test.pdf",
-                  score: 0.8,
-                  content: "Test chunk content",
-                  page: 1
-                }
-              ]
+              content: "Test chunk content",
+              page: 1
             }
-          ],
-          role: "system"
-        }}
-        message_index={0}
-        selectedTheme={mockTheme}
-        selectedDocument={null}
-        setSelectedDocument={() => {}}
-        setSelectedDocumentScore={() => {}}
-        setSelectedChunkScore={() => {}}
-      />
+          ]
+        }
+      ],
+      type: "retrieval"
+    };
+
+    const { container } = render(
+      <ChatMessage message={message} {...defaultProps} />
     );
 
-    expect(container.textContent).toContain("test.pdf");
+    const documentTitle = container.querySelector(".truncate");
+    expect(documentTitle).toBeInTheDocument();
+    expect(documentTitle?.textContent).toBe("test.pdf");
   });
 
   test("renders context information", () => {
-    const { container } = render(
-      <ChatMessage
-        message={{
-          type: "retrieval",
-          content: [
+    const message: Message = {
+      role: "assistant",
+      content: [
+        {
+          title: "test.pdf",
+          uuid: "test-uuid",
+          score: 0.8,
+          chunks: [
             {
-              title: "test.pdf",
-              uuid: "test-uuid",
+              source: "test.pdf",
               score: 0.8,
-              chunks: [
-                {
-                  source: "test.pdf",
-                  score: 0.8,
-                  content: "Test chunk content",
-                  page: 1
-                }
-              ]
+              content: "Test chunk content",
+              page: 1
             }
-          ],
-          role: "system",
-          context: "Test context"
-        }}
-        message_index={0}
-        selectedTheme={mockTheme}
-        selectedDocument={null}
-        setSelectedDocument={() => {}}
-        setSelectedDocumentScore={() => {}}
-        setSelectedChunkScore={() => {}}
-      />
+          ]
+        }
+      ],
+      type: "retrieval",
+      context: "Test context"
+    };
+
+    const { container } = render(
+      <ChatMessage message={message} {...defaultProps} />
     );
 
-    expect(container.textContent).toContain("test.pdf");
+    const contextButton = container.querySelector(".btn-square");
+    expect(contextButton).toBeInTheDocument();
   });
 }); 
