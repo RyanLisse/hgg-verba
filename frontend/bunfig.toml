@@ -1,3 +1,6 @@
 [test]
 preload = ["./test/setup.ts"]
 environment = ["NEXT_PUBLIC_VERBA_API_URL"]
+
+[test.mocks]
+"next/font/google" = "./test/next/font/google.ts"
