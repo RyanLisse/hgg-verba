@@ -1,4 +1,3 @@
 [test]
 preload = ["./test/setup.ts"]
-coverage = true
-environment = ["NODE_ENV=test"]
+environment = ["NEXT_PUBLIC_VERBA_API_URL"]
