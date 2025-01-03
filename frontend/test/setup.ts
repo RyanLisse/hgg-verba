@@ -3,17 +3,7 @@ import { configure } from "@testing-library/react";
 import * as matchers from "@testing-library/jest-dom/matchers";
 import { expect, mock } from "bun:test";
 
-// Extend HTMLElement interface
-declare global {
-  interface HTMLElement {
-    attachEvent(event: string, handler: Function): void;
-    detachEvent(event: string, handler: Function): void;
-  }
-}
-
-expect.extend(matchers);
-
-// Set up DOM environment
+// Set up DOM environment first
 const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
   url: "http://localhost",
   pretendToBeVisual: true,
@@ -28,6 +18,8 @@ const { document } = window;
 (global as any).window = window;
 (global as any).document = document;
 (global as any).navigator = window.navigator;
+(global as any).HTMLElement = window.HTMLElement;
+(global as any).HTMLInputElement = window.HTMLInputElement;
 
 // Add all the window properties to the global scope
 Object.keys(window).forEach((property) => {
@@ -35,6 +27,16 @@ Object.keys(window).forEach((property) => {
     (global as any)[property] = (window as any)[property];
   }
 });
+
+// Extend HTMLElement interface
+declare global {
+  interface HTMLElement {
+    attachEvent(event: string, handler: Function): void;
+    detachEvent(event: string, handler: Function): void;
+  }
+}
+
+expect.extend(matchers);
 
 // Configure testing library
 configure({
@@ -77,20 +79,6 @@ class MockCanvas {
 (global as any).requestAnimationFrame = (callback: FrameRequestCallback) => setTimeout(callback, 0);
 (global as any).cancelAnimationFrame = (id: number) => clearTimeout(id);
 
-// Mock modules
-const mockModule = (id: string, exports: any): NodeModule => ({
-  id,
-  path: id,
-  exports,
-  filename: id,
-  loaded: true,
-  children: [],
-  paths: [],
-  require: require,
-  parent: null,
-  isPreloading: false,
-});
-
 // Mock Next.js font modules
 mock.module("next/font/google", () => ({
   Plus_Jakarta_Sans: () => ({
@@ -121,34 +109,6 @@ mock.module("next/font/google", () => ({
   addEventListener: () => {},
   removeEventListener: () => {}
 };
-
-require.cache[require.resolve("next/router")] = mockModule("next/router", {
-  useRouter: () => ({
-    route: "/",
-    pathname: "",
-    query: "",
-    asPath: "",
-    push: () => {},
-    events: {
-      on: () => {},
-      off: () => {},
-    },
-    beforePopState: () => {},
-    prefetch: () => {},
-  }),
-});
-
-require.cache[require.resolve("next/navigation")] = mockModule("next/navigation", {
-  useRouter: () => ({
-    push: () => {},
-    replace: () => {},
-    prefetch: () => {},
-  }),
-  useSearchParams: () => ({
-    get: () => {},
-  }),
-  usePathname: () => "",
-});
 
 // Mock event handling
 const eventHandlers = new WeakMap();

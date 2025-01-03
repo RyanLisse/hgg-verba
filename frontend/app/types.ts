@@ -108,6 +108,7 @@ export type ThemeConfigResponse = {
 export type DatacountResponse = {
   datacount: number;
 };
+
 export type LabelsResponse = {
   labels: string[];
 };
@@ -142,14 +143,14 @@ export type RAGComponentConfig = {
   selected: string;
   config: RAGSetting;
   type: string;
-  available: boolean;
+  available: boolean | string;
 };
 
 export type ConfigSetting = {
   type: string;
   value: string | number | boolean;
   description: string;
-  values: string[];
+  values?: string[];
 };
 
 export type RAGSetting = {
@@ -268,6 +269,12 @@ export type DocumentPayload = {
   document: VerbaDocument;
 };
 
+export type NodePayload = {
+  node_count: number;
+  weaviate_version: string;
+  nodes: NodeInfo[];
+};
+
 type NodeInfo = {
   status: string;
   shards: number;
@@ -275,13 +282,6 @@ type NodeInfo = {
   name: string;
 };
 
-export type NodePayload = {
-  node_count: number;
-  weaviate_version: string;
-  nodes: NodeInfo[];
-};
-
-// Collection payload types
 type CollectionInfo = {
   name: string;
   count: number;
@@ -444,20 +444,6 @@ export interface SelectSetting {
 
 // Base Settings
 
-const AvailableFonts: string[] = [
-  "Inter",
-  "Plus_Jakarta_Sans",
-  "Open_Sans",
-  "PT_Mono",
-];
-
-const BaseFonts: SelectSetting = {
-  value: "Plus_Jakarta_Sans",
-  type: "select",
-  options: AvailableFonts,
-  description: "Text Font",
-};
-
 export interface Theme {
   theme_name: string;
   title: TextFieldSetting;
@@ -479,174 +465,28 @@ export interface Theme {
   theme: "light" | "dark";
 }
 
-export const LightTheme: Theme = {
-  theme_name: "Light",
-  title: { text: "Verba", type: "text", description: "Title" },
-  subtitle: {
-    text: "The Golden RAGtriever",
-    type: "text",
-    description: "Subtitle",
-  },
-  intro_message: {
-    text: "Welcome to Verba, your open-source RAG application!",
-    type: "text",
-    description: "First Message",
-  },
-  image: {
-    src: "https://github.com/weaviate/Verba/blob/main/img/verba_icon.png?raw=true",
-    type: "image",
-    description: "Logo",
-  },
-  primary_color: {
-    color: "#FDFF91",
-    type: "color",
-    description: "Primary",
-  },
-  secondary_color: {
-    color: "#90FFA8",
-    type: "color",
-    description: "Secondary",
-  },
-  warning_color: {
-    color: "#FF8399",
-    type: "color",
-    description: "Warning",
-  },
-  bg_color: {
-    color: "#FEF7F7",
-    type: "color",
-    description: "Background",
-  },
-  bg_alt_color: {
-    color: "#FFFFFF",
-    type: "color",
-    description: "Alt. Background",
-  },
-  text_color: { color: "#161616", type: "color", description: "Text" },
-  text_alt_color: {
-    color: "#8E8E8E",
-    type: "color",
-    description: "Alt. Text",
-  },
-  button_text_color: {
-    color: "#161616",
-    type: "color",
-    description: "Button Text",
-  },
-  button_text_alt_color: {
-    color: "#8E8E8E",
-    type: "color",
-    description: "Button Alt. Text",
-  },
-  button_color: {
-    color: "#EFEFEF",
-    type: "color",
-    description: "Button",
-  },
-  button_hover_color: {
-    color: "#DCDCDC",
-    type: "color",
-    description: "Button Hover",
-  },
-  font: BaseFonts,
-  theme: "light",
-};
-
-export const DarkTheme: Theme = {
-  ...LightTheme,
-  theme_name: "Dark",
-  title: { ...LightTheme.title, text: "Verba" },
-  subtitle: { ...LightTheme.subtitle, text: "The Dark RAGtriever" },
-  intro_message: {
-    ...LightTheme.intro_message,
-    text: "Welcome to Verba, your open-source RAG application!",
-  },
-  image: {
-    ...LightTheme.image,
-    src: "https://github.com/weaviate/Verba/blob/main/img/verba_icon.png?raw=true",
-  },
-  primary_color: { ...LightTheme.primary_color, color: "#BB86FC" },
-  secondary_color: { ...LightTheme.secondary_color, color: "#008F82" },
-  warning_color: { ...LightTheme.warning_color, color: "#FF8399" },
-  bg_color: { ...LightTheme.bg_color, color: "#202020" },
-  bg_alt_color: { ...LightTheme.bg_alt_color, color: "#2F2929" },
-  text_color: { ...LightTheme.text_color, color: "#ffffff" },
-  text_alt_color: { ...LightTheme.text_alt_color, color: "#999999" },
-  button_text_color: { ...LightTheme.button_text_color, color: "#ffffff" },
-  button_text_alt_color: {
-    ...LightTheme.button_text_alt_color,
-    color: "#999999",
-  },
-  button_color: { ...LightTheme.button_color, color: "#3C3C3C" },
-  button_hover_color: { ...LightTheme.button_hover_color, color: "#2C2C2C" },
-  font: { ...LightTheme.font, value: "Open_Sans" },
-  theme: "dark",
-};
-
-export const WCDTheme: Theme = {
-  ...LightTheme,
-  theme_name: "WCD",
-  title: { ...LightTheme.title, text: "Verba" },
-  subtitle: { ...LightTheme.subtitle, text: "Weaviate Chatbot" },
-  intro_message: {
-    ...LightTheme.intro_message,
-    text: "Welcome to Verba, your open-source RAG application!",
-  },
-  image: {
-    ...LightTheme.image,
-    src: "https://github.com/weaviate/Verba/blob/1.0.0/frontend/public/weaviate.png?raw=true",
-  },
-  primary_color: { ...LightTheme.primary_color, color: "#BF40C5" },
-  secondary_color: { ...LightTheme.secondary_color, color: "#28395B" },
-  warning_color: { ...LightTheme.warning_color, color: "#EA3A31" },
-  bg_color: { ...LightTheme.bg_color, color: "#0C1428" },
-  bg_alt_color: { ...LightTheme.bg_alt_color, color: "#192136" },
-  text_color: { ...LightTheme.text_color, color: "#ffffff" },
-  text_alt_color: { ...LightTheme.text_alt_color, color: "#AAAAAA" },
-  button_text_color: { ...LightTheme.button_text_color, color: "#ffffff" },
-  button_text_alt_color: {
-    ...LightTheme.button_text_alt_color,
-    color: "#AAAAAA",
-  },
-  button_color: { ...LightTheme.button_color, color: "#1D253A" },
-  button_hover_color: { ...LightTheme.button_hover_color, color: "#313749" },
-  font: { ...LightTheme.font, value: "Open_Sans" },
-  theme: "dark",
-};
-
-export const WeaviateTheme: Theme = {
-  ...LightTheme,
-  theme_name: "Weaviate",
-  title: { ...LightTheme.title, text: "Verba" },
-  subtitle: { ...LightTheme.subtitle, text: "Weaviate Chatbot" },
-  intro_message: {
-    ...LightTheme.intro_message,
-    text: "Welcome to Verba, your open-source RAG application!",
-  },
-  image: {
-    ...LightTheme.image,
-    src: "https://github.com/weaviate/Verba/blob/1.0.0/frontend/public/weaviate.png?raw=true",
-  },
-  primary_color: { ...LightTheme.primary_color, color: "#9bfc88" },
-  secondary_color: { ...LightTheme.secondary_color, color: "#8bffe7" },
-  warning_color: { ...LightTheme.warning_color, color: "#f77579" },
-  bg_color: { ...LightTheme.bg_color, color: "#FEF7F7" },
-  bg_alt_color: { ...LightTheme.bg_alt_color, color: "#ffffff" },
-  text_color: { ...LightTheme.text_color, color: "#130C49" },
-  text_alt_color: { ...LightTheme.text_alt_color, color: "#929292" },
-  button_text_color: { ...LightTheme.button_text_color, color: "#130C49" },
-  button_text_alt_color: {
-    ...LightTheme.button_text_alt_color,
-    color: "#929292",
-  },
-  button_color: { ...LightTheme.button_color, color: "#eeeeee" },
-  button_hover_color: { ...LightTheme.button_hover_color, color: "#7dfffb" },
-  font: { ...LightTheme.font, value: "Plus_Jakarta_Sans" },
-  theme: "light",
-};
-
 export interface Themes {
   [key: string]: Theme;
 }
+declare module "bun:test" {
+  interface Matchers<R> {
+    toBeInTheDocument(): R;
+    toBeDisabled(): R;
+    toHaveClass(className: string): R;
+    toHaveAttribute(attr: string, value?: string): R;
+    toHaveTextContent(text: string): R;
+    toHaveLength(length: number): R;
+    toHaveBeenCalledWith(...args: any[]): R;
+    toHaveBeenCalledTimes(times: number): R;
+    toHaveBeenLastCalledWith(...args: any[]): R;
+  }
+} 
 
-export type PageType = "CHAT" | "DOCUMENTS" | "STATUS" | "IMPORT_DATA" | "SETTINGS" | "RAG" | "ADD";
+export type PageType =
+  | "CHAT"
+  | "DOCUMENTS"
+  | "STATUS"
+  | "IMPORT_DATA"
+  | "SETTINGS"
+  | "RAG"
+  | "ADD";

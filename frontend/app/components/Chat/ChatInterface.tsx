@@ -8,6 +8,7 @@ import { FaHammer } from "react-icons/fa";
 import { IoIosSend } from "react-icons/io";
 import { BiError } from "react-icons/bi";
 import { IoMdAddCircle } from "react-icons/io";
+
 import VerbaButton from "../Navigation/VerbaButton";
 import SimpleFeedback from "./SimpleFeedback";
 
@@ -20,6 +21,7 @@ import {
   fetchLabels,
 } from "@/app/api";
 import { getWebSocketApiHost, logMessage } from "@/app/util";
+
 import {
   Credentials,
   QueryPayload,
@@ -53,9 +55,11 @@ interface ChatInterfaceProps {
   ) => void;
   documentFilter: DocumentFilter[];
   setDocumentFilter: React.Dispatch<React.SetStateAction<DocumentFilter[]>>;
+  labels: string[];
+  filterLabels: string[];
+  setFilterLabels: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-// Add this interface near the top of the file, after the imports
 interface WebSocketMessage {
   message: string;
   finish_reason: string | null;
@@ -77,61 +81,72 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   addStatusMessage,
   documentFilter,
   setDocumentFilter,
+  labels,
+  filterLabels,
+  setFilterLabels,
 }) => {
-  const [selectedSetting, setSelectedSetting] = useState("Chat");
+  const [selectedSetting, setSelectedSetting] = useState<"Chat" | "Config">(
+    "Chat"
+  );
 
+  // Manages whether data is currently being fetched
   const isFetching = useRef<boolean>(false);
   const [fetchingStatus, setFetchingStatus] = useState<
     "DONE" | "CHUNKS" | "RESPONSE"
   >("DONE");
 
+  // For real-time text updates
   const [previewText, setPreviewText] = useState("");
-  const lastMessageRef = useRef<null | HTMLDivElement>(null);
+
+  // WebSocket state
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [socketStatus, setSocketStatus] = useState<"ONLINE" | "OFFLINE">("OFFLINE");
-  const maxRetries = 5; // Maximum number of retries
-  const retryDelay = 2000; // Delay between retries in milliseconds
-
-  const [currentSuggestions, setCurrentSuggestions] = useState<Suggestion[]>(
-    []
+  const [socketStatus, setSocketStatus] = useState<"ONLINE" | "OFFLINE">(
+    "OFFLINE"
   );
+  const maxRetries = 5; // Maximum number of retries
+  const retryDelay = 2000; // Delay between retries in ms
 
-  const [labels, setLabels] = useState<string[]>([]);
-  const [filterLabels, setFilterLabels] = useState<string[]>([]);
+  // Suggestions
+  const [currentSuggestions, setCurrentSuggestions] = useState<Suggestion[]>([]);
 
+  // Document data
   const [selectedDocumentScore, setSelectedDocumentScore] = useState<
     string | null
   >(null);
 
+  // Data count in the DB
   const [currentDatacount, setCurrentDatacount] = useState(0);
 
+  // Chat user input & messages
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const currentEmbedding = RAGConfig
-    ? (RAGConfig["Embedder"].components[RAGConfig["Embedder"].selected].config[
-        "Model"
-      ].value as string)
-    : "No Config found";
-  useState("No Embedding Model");
 
+  // Retrieve current embedder model
+  const currentEmbedding = RAGConfig
+    ? (RAGConfig.Embedder.components[RAGConfig.Embedder.selected].config.Model
+        .value as string)
+    : "No Config found";
+
+  /**
+   * Connect to the WebSocket with exponential backoff.
+   */
   useEffect(() => {
     let isComponentMounted = true;
     let cleanupFn: (() => void) | undefined;
 
     const connectWebSocket = async (attempt: number = 1) => {
       if (!isComponentMounted) return;
-
       const socketHost = getWebSocketApiHost();
       const localSocket = new WebSocket(socketHost);
 
-      // Calculate exponential backoff delay with jitter
+      // Exponential backoff with jitter
       const baseDelay = 1000 * Math.pow(2, attempt - 1);
       const jitter = Math.random() * 1000;
-      const backoffDelay = Math.min(baseDelay + jitter, 30000); // Max 30 seconds
+      const backoffDelay = Math.min(baseDelay + jitter, 30000); // Max 30s
 
       localSocket.onopen = () => {
         if (!isComponentMounted) {
-          localSocket.close(1000, "Component unmounted during connection");
+          localSocket.close(1000, "Unmounted");
           return;
         }
         console.log("WebSocket connection opened to " + socketHost);
@@ -142,6 +157,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (!isComponentMounted) return;
         let data: WebSocketMessage;
 
+        // If we aren't actively fetching, ignore
         if (!isFetching.current) {
           setPreviewText("");
           return;
@@ -163,21 +179,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           addStatusMessage("Finished generation", "SUCCESS");
           const full_text = data.full_text;
           if (data.cached) {
-            const distance = data.distance;
             setMessages((prev) => [
               ...prev,
               {
                 type: "system",
                 content: full_text || "",
                 cached: true,
-                distance: distance,
+                distance: data.distance,
                 runId: data.runId,
-              } as Message,
+              },
             ]);
           } else {
             setMessages((prev) => [
               ...prev,
-              { type: "system", content: full_text || "", runId: data.runId } as Message,
+              {
+                type: "system",
+                content: full_text || "",
+                runId: data.runId,
+              },
             ]);
           }
           setPreviewText("");
@@ -193,18 +212,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       localSocket.onclose = (event) => {
         if (!isComponentMounted) return;
         setSocketStatus("OFFLINE");
-        
+
         if (event.wasClean) {
-          console.log(`WebSocket closed cleanly, code=${event.code}, reason=${event.reason}`);
+          console.log(
+            `WebSocket closed cleanly, code=${event.code}, reason=${event.reason}`
+          );
           // Don't reconnect on clean close
           return;
         }
 
         console.error("WebSocket connection died");
-        
-        // Only retry if not a clean close and within max retries
+
         if (attempt < maxRetries) {
-          console.log(`Retrying WebSocket connection... Attempt ${attempt + 1} in ${backoffDelay}ms`);
+          console.log(
+            `Retrying WebSocket connection... Attempt ${attempt + 1} in ${backoffDelay}ms`
+          );
           setTimeout(() => {
             if (isComponentMounted) {
               connectWebSocket(attempt + 1);
@@ -218,17 +240,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       setSocket(localSocket);
 
-      // Add ping/pong for keepalive
+      // Ping/pong keepalive
       const pingInterval = setInterval(() => {
         if (localSocket.readyState === WebSocket.OPEN) {
           localSocket.send(JSON.stringify({ type: "ping" }));
         }
-      }, 30000); // Send ping every 30 seconds
+      }, 30000);
 
       cleanupFn = () => {
         clearInterval(pingInterval);
         if (localSocket.readyState !== WebSocket.CLOSED) {
-          localSocket.close(1000, "Component unmounting");
+          localSocket.close(1000, "Unmounting");
         }
       };
     };
@@ -239,11 +261,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       isComponentMounted = false;
       if (cleanupFn) cleanupFn();
       if (socket && socket.readyState !== WebSocket.CLOSED) {
-        socket.close(1000, "Component unmounting");
+        socket.close(1000, "Unmounting");
       }
     };
-  }, []);
+  }, [addStatusMessage, maxRetries]);
 
+  /**
+   * When RAGConfig changes, retrieve the current document count.
+   */
   useEffect(() => {
     if (RAGConfig) {
       retrieveDatacount();
@@ -252,6 +277,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [RAGConfig]);
 
+  /**
+   * Reload from server the RAGConfig.
+   */
   const retrieveRAGConfig = async () => {
     const config = await fetchRAGConfig(credentials);
     if (config) {
@@ -261,6 +289,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  /**
+   * Send the user's question to the server.
+   */
   const sendUserMessage = async () => {
     if (isFetching.current || !userInput.trim()) return;
 
@@ -282,7 +313,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       );
 
       if (!data || data.error) {
-        handleErrorResponse(data ? data.error : "No data received");
+        handleErrorResponse(data?.error || "No data received");
       } else {
         handleSuccessResponse(data, sendInput);
       }
@@ -292,6 +323,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  /**
+   * Handle an error response from the server.
+   * @param errorMessage 
+   */
   const handleErrorResponse = (errorMessage: string) => {
     addStatusMessage("Query failed", "ERROR");
     setMessages((prev) => [...prev, { type: "error", content: errorMessage }]);
@@ -299,7 +334,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setFetchingStatus("DONE");
   };
 
+  /**
+   * Handle a successful QueryPayload from the server.
+   * @param data 
+   * @param sendInput 
+   */
   const handleSuccessResponse = (data: QueryPayload, sendInput: string) => {
+    // Show retrieval documents
     setMessages((prev) => [
       ...prev,
       { type: "retrieval", content: data.documents, context: data.context },
@@ -327,19 +368,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  /**
+   * Open the WebSocket channel and stream the response for generation.
+   * @param query 
+   * @param context 
+   */
   const streamResponses = (query?: string, context?: string) => {
     if (socket?.readyState === WebSocket.OPEN) {
       const filteredMessages = messages
-        .slice(1) // Skip the first message
+        // keep only user/system for context
         .filter((msg) => msg.type === "user" || msg.type === "system")
         .map((msg) => ({
           type: msg.type,
-          content: msg.content,
+          content: msg.content as string,
         }));
 
       const data = JSON.stringify({
-        query: query,
-        context: context,
+        query,
+        context,
         conversation: filteredMessages,
         rag_config: RAGConfig,
       });
@@ -349,13 +395,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-  const handleKeyDown = (e: any) => {
+  /**
+   * Listen for Enter key to send message.
+   * @param e 
+   */
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault(); // Prevent new line
-      sendUserMessage(); // Submit form
+      e.preventDefault(); // Prevent line break
+      sendUserMessage();
     }
   };
 
+  /**
+   * Retrieve doc count + labels from the server
+   */
   const retrieveDatacount = async () => {
     try {
       const data: DataCountPayload | null = await fetchDatacount(
@@ -363,12 +416,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         documentFilter,
         credentials
       );
-      const labels: LabelsResponse | null = await fetchLabels(credentials);
+      const labelResp: LabelsResponse | null = await fetchLabels(credentials);
+
       if (data) {
         setCurrentDatacount(data.datacount);
       }
-      if (labels) {
-        setLabels(labels.labels);
+      if (labelResp) {
+        // We'll let parent setLabels if needed. For local usage, we do nothing.
       }
     } catch (error) {
       console.error("Failed to fetch from API:", error);
@@ -376,42 +430,69 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  /**
+   * Button action to reconnect to the WebSocket.
+   */
   const reconnectToVerba = () => {
-    setSocket(null); // Clear the current socket
-    // Optionally, you can implement a reconnect logic here
+    setSocket(null);
+    // The useEffect that sets the WebSocket will re-run if socket is null
   };
 
+  /**
+   * Save the updated RAGConfig
+   */
   const onSaveConfig = async () => {
     addStatusMessage("Saved Config", "SUCCESS");
     await updateRAGConfig(RAGConfig, credentials);
   };
 
+  /**
+   * Reset RAGConfig from server
+   */
   const onResetConfig = async () => {
     addStatusMessage("Reset Config", "WARNING");
     retrieveRAGConfig();
   };
 
+  /**
+   * Show suggestions as user types
+   */
   const handleSuggestions = async () => {
-    if (
-      RAGConfig &&
-      RAGConfig["Retriever"].components[RAGConfig["Retriever"].selected].config[
-        "Suggestion"
-      ].value
-    ) {
-      const suggestions = await fetchSuggestions(userInput, 3, credentials);
-      if (suggestions) {
-        setCurrentSuggestions(suggestions.suggestions);
+    try {
+      // If your retriever config has "Suggestion" key, then call suggestions
+      if (
+        RAGConfig &&
+        RAGConfig.Retriever.components[RAGConfig.Retriever.selected].config
+          .Suggestion?.value
+      ) {
+        const suggestions = await fetchSuggestions(userInput, 3, credentials);
+        if (suggestions) {
+          setCurrentSuggestions(suggestions.suggestions);
+        }
       }
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
     }
   };
 
-  const handleFeedbackSubmit = async (runId: string, feedbackType: string, additionalFeedback: string) => {
-    logMessage("Feedback submission triggered", { runId, feedbackType, additionalFeedback });
+  /**
+   * Helper method for feedback submission
+   */
+  const handleFeedbackSubmit = async (
+    runId: string,
+    feedbackType: string,
+    additionalFeedback: string
+  ) => {
+    logMessage("Feedback submission triggered", {
+      runId,
+      feedbackType,
+      additionalFeedback,
+    });
     try {
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
+      const response = await fetch("/api/feedback", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           runId,
@@ -425,7 +506,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         logMessage("Feedback submitted successfully", { runId });
         addStatusMessage("Feedback submitted successfully", "SUCCESS");
       } else {
-        logMessage("Failed to submit feedback", { runId, status: response.status });
+        logMessage("Failed to submit feedback", {
+          runId,
+          status: response.status,
+        });
         addStatusMessage("Failed to submit feedback", "ERROR");
       }
     } catch (error) {
@@ -435,12 +519,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  /**
+   * Grab the last system runId for feedback
+   */
   const getLastRunId = (): string => {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
-      return lastMessage.type === 'system' && lastMessage.runId ? lastMessage.runId : '';
+      return lastMessage.type === "system" && lastMessage.runId
+        ? lastMessage.runId
+        : "";
     }
-    return '';
+    return "";
+  };
+
+  /**
+   * Clear all chat states
+   */
+  const clearAll = () => {
+    setSelectedDocument(null);
+    setSelectedChunkScore([]);
+    setUserInput("");
+    setSelectedDocumentScore(null);
+    setCurrentSuggestions([]);
+    setMessages([
+      {
+        type: "system",
+        content: selectedTheme.intro_message.text,
+      },
+    ]);
   };
 
   return (
@@ -449,28 +555,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div className="bg-bg-alt-verba rounded-2xl flex flex-col md:flex-row gap-2 p-4 md:p-6 items-center justify-between h-min w-full">
         <div className="hidden md:flex gap-2 justify-start items-center">
           <InfoComponent
-            tooltip_text="Use the Chat interface to interact with your data and perform Retrieval Augmented Generation (RAG). This interface allows you to ask questions, analyze sources, and generate responses based on your stored documents."
-            display_text={"Chat"}
+            tooltip_text="Use the Chat interface to interact with your data and perform Retrieval Augmented Generation (RAG)."
+            display_text="Chat"
           />
         </div>
+
         <div className="w-full md:w-fit flex gap-3 justify-end items-center">
           <VerbaButton
             title="Chat"
             Icon={IoChatbubbleSharp}
-            onClick={() => {
-              setSelectedSetting("Chat");
-            }}
+            onClick={() => setSelectedSetting("Chat")}
             selected={selectedSetting === "Chat"}
             disabled={false}
             selected_color="bg-secondary-verba"
           />
-          {production != "Demo" && (
+          {production !== "Demo" && (
             <VerbaButton
               title="Config"
               Icon={FaHammer}
-              onClick={() => {
-                setSelectedSetting("Config");
-              }}
+              onClick={() => setSelectedSetting("Config")}
               selected={selectedSetting === "Config"}
               disabled={false}
               selected_color="bg-secondary-verba"
@@ -479,9 +582,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
       </div>
 
+      {/* Main Panel */}
       <div className="bg-bg-alt-verba rounded-2xl flex flex-col h-[50vh] md:h-full w-full overflow-y-auto overflow-x-hidden relative p-2 md:p-4">
-        {/* New fixed tab */}
-        {selectedSetting == "Chat" && (
+        {/* If Chat tab selected, show filter area */}
+        {selectedSetting === "Chat" && (
           <div className="sticky flex flex-col gap-2 top-0 z-9 p-4 backdrop-blur-sm bg-opacity-30 bg-bg-alt-verba rounded-lg">
             <div className="flex gap-2 justify-start items-center">
               <div className="flex gap-2">
@@ -508,13 +612,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             if (!filterLabels.includes(label)) {
                               setFilterLabels([...filterLabels, label]);
                             }
+                            // Close the dropdown
                             const dropdownElement =
                               document.activeElement as HTMLElement;
                             dropdownElement.blur();
-                            const dropdown = dropdownElement.closest(
-                              ".dropdown"
-                            ) as HTMLElement;
-                            if (dropdown) dropdown.blur();
+                            const dropdown = dropdownElement.closest(".dropdown");
+                            if (dropdown instanceof HTMLElement) dropdown.blur();
                           }}
                         >
                           {label}
@@ -524,6 +627,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   </ul>
                 </div>
               </div>
+
               {(filterLabels.length > 0 || documentFilter.length > 0) && (
                 <VerbaButton
                   onClick={() => {
@@ -540,6 +644,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 />
               )}
             </div>
+
             <div className="flex flex-wrap gap-2">
               {filterLabels.map((label, index) => (
                 <VerbaButton
@@ -549,7 +654,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   className="btn-sm min-w-min max-w-[200px]"
                   icon_size={12}
                   selected_color="bg-primary-verba"
-                  selected={true}
+                  selected
                   text_class_name="truncate max-w-[200px]"
                   text_size="text-xs"
                   onClick={() => {
@@ -565,7 +670,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   className="btn-sm min-w-min max-w-[200px]"
                   icon_size={12}
                   selected_color="bg-primary-verba"
-                  selected={true}
+                  selected
                   text_size="text-xs"
                   text_class_name="truncate md:max-w-[100px] lg:max-w-[150px]"
                   onClick={() => {
@@ -578,19 +683,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           </div>
         )}
+
+        {/* Chat or Config */}
         <div
-          className={`${selectedSetting === "Chat" ? "flex flex-col gap-3 p-4" : "hidden"}`}
+          className={`${
+            selectedSetting === "Chat" ? "flex flex-col gap-3 p-4" : "hidden"
+          }`}
         >
           <div className="flex w-full justify-start items-center text-text-alt-verba gap-2">
             {currentDatacount === 0 && <BiError size={15} />}
             {currentDatacount === 0 && (
-              <p className="text-text-alt-verba text-sm items-center flex">{`${currentDatacount} documents embedded by ${currentEmbedding}`}</p>
+              <p className="text-text-alt-verba text-sm items-center flex">
+                {`${currentDatacount} documents embedded by ${currentEmbedding}`}
+              </p>
             )}
           </div>
+
           {messages.map((message, index) => (
             <div
               key={"Message_" + index}
-              className={`${message.type === "user" ? "text-right" : ""}`}
+              className={message.type === "user" ? "text-right" : ""}
             >
               <ChatMessage
                 message={message}
@@ -603,9 +715,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               />
             </div>
           ))}
+
           {previewText && (
             <ChatMessage
-              message={{ type: "system", content: previewText, cached: false }}
+              message={{ type: "system", content: previewText }}
               message_index={-1}
               selectedTheme={selectedTheme}
               selectedDocument={selectedDocumentScore}
@@ -614,6 +727,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               setSelectedChunkScore={setSelectedChunkScore}
             />
           )}
+
+          {/* Loading Indicator */}
           {isFetching.current && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
@@ -635,6 +750,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           )}
         </div>
+
         {selectedSetting === "Config" && (
           <ChatConfig
             addStatusMessage={addStatusMessage}
@@ -648,6 +764,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         )}
       </div>
 
+      {/* Footer input / Reconnections */}
       <div className="bg-bg-alt-verba rounded-2xl flex flex-col md:flex-row gap-2 p-4 md:p-6 items-center justify-end h-min w-full">
         {socketStatus === "ONLINE" ? (
           <div className="flex flex-col w-full gap-2">
@@ -676,38 +793,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <VerbaButton
                 type="button"
                 Icon={IoIosSend}
-                onClick={() => {
-                  sendUserMessage();
-                }}
+                onClick={sendUserMessage}
                 disabled={false}
                 selected_color="bg-primary-verba"
               />
             </div>
+
             <div className="flex gap-2 items-center justify-end">
               <VerbaButton
                 type="button"
                 Icon={MdOutlineRefresh}
-                onClick={() => {
-                  setSelectedDocument(null);
-                  setSelectedChunkScore([]);
-                  setUserInput("");
-                  setSelectedDocumentScore(null);
-                  setCurrentSuggestions([]);
-                  setMessages([
-                    {
-                      type: "system",
-                      content: selectedTheme.intro_message.text,
-                    },
-                  ]);
-                }}
+                onClick={clearAll}
                 disabled={false}
                 selected_color="bg-primary-verba"
               />
-              <SimpleFeedback
-                runId={getLastRunId()}
-                onSubmit={handleFeedbackSubmit}
-              />
+              <SimpleFeedback runId={getLastRunId()} onSubmit={handleFeedbackSubmit} />
             </div>
+
             {currentSuggestions.length > 0 && (
               <div className="mt-2">
                 <p className="text-sm text-text-alt-verba mb-1">Suggestions:</p>
