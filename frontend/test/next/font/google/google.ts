@@ -24,4 +24,11 @@ export function PT_Mono() {
     className: 'mock-pt-mono',
     style: { fontFamily: 'PT Mono' }
   };
-} 
+}
+
+export default {
+  Plus_Jakarta_Sans,
+  Inter,
+  Open_Sans,
+  PT_Mono
+}; 

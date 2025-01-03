@@ -1,5 +1,17 @@
 import { JSDOM } from "jsdom";
 import { configure } from "@testing-library/react";
+import * as matchers from "@testing-library/jest-dom/matchers";
+import { expect, mock } from "bun:test";
+
+// Extend HTMLElement interface
+declare global {
+  interface HTMLElement {
+    attachEvent(event: string, handler: Function): void;
+    detachEvent(event: string, handler: Function): void;
+  }
+}
+
+expect.extend(matchers);
 
 // Set up DOM environment
 const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
@@ -79,14 +91,17 @@ const mockModule = (id: string, exports: any): NodeModule => ({
   isPreloading: false,
 });
 
-// Mock Next.js modules
-const { Plus_Jakarta_Sans, Inter, Open_Sans, PT_Mono } = require("./next/font/google/google.ts");
+// Import font mocks from the dedicated mock file
+const fontMocks = require("./next/font/google/google");
 
-require.cache[require.resolve("next/font/google")] = mockModule("next/font/google", {
-  Plus_Jakarta_Sans,
-  Inter,
-  Open_Sans,
-  PT_Mono,
+// Mock Next.js font module
+require.cache[require.resolve("next/font/google")] = mockModule("next/font/google", fontMocks);
+
+// Mock individual font exports
+Object.entries(fontMocks).forEach(([name, fn]) => {
+  if (name !== "default") {
+    require.cache[require.resolve(`next/font/google/${name}`)] = mockModule(`next/font/google/${name}`, { default: fn });
+  }
 });
 
 require.cache[require.resolve("next/router")] = mockModule("next/router", {
@@ -115,4 +130,53 @@ require.cache[require.resolve("next/navigation")] = mockModule("next/navigation"
     get: () => {},
   }),
   usePathname: () => "",
+});
+
+// Mock event handling
+const eventHandlers = new WeakMap();
+
+// Add event handling methods to HTMLElement prototype
+HTMLElement.prototype.attachEvent = function(event: string, handler: Function) {
+  const normalizedEvent = event.replace(/^on/, '');
+  if (!eventHandlers.has(this)) {
+    eventHandlers.set(this, new Map());
+  }
+  eventHandlers.get(this).set(normalizedEvent, handler);
+  this.addEventListener(normalizedEvent, handler as EventListener);
+};
+
+HTMLElement.prototype.detachEvent = function(event: string, handler: Function) {
+  const normalizedEvent = event.replace(/^on/, '');
+  if (eventHandlers.has(this)) {
+    eventHandlers.get(this).delete(normalizedEvent);
+  }
+  this.removeEventListener(normalizedEvent, handler as EventListener);
+};
+
+// Create a custom event for propertychange
+class PropertyChangeEvent extends Event {
+  constructor(propertyName: string, oldValue: any, newValue: any) {
+    super('propertychange');
+    Object.defineProperties(this, {
+      propertyName: { value: propertyName },
+      oldValue: { value: oldValue },
+      newValue: { value: newValue }
+    });
+  }
+}
+
+// Override value setter for input elements
+const originalDescriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+Object.defineProperty(HTMLInputElement.prototype, 'value', {
+  get: function() {
+    return originalDescriptor?.get?.call(this);
+  },
+  set: function(newValue) {
+    const oldValue = this.value;
+    originalDescriptor?.set?.call(this, newValue);
+    const event = new PropertyChangeEvent('value', oldValue, newValue);
+    this.dispatchEvent(event);
+  },
+  configurable: true,
+  enumerable: true,
 });
