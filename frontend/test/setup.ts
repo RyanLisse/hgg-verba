@@ -91,18 +91,36 @@ const mockModule = (id: string, exports: any): NodeModule => ({
   isPreloading: false,
 });
 
-// Import font mocks from the dedicated mock file
-const fontMocks = require("./next/font/google/google");
+// Mock Next.js font modules
+mock.module("next/font/google", () => ({
+  Plus_Jakarta_Sans: () => ({
+    className: 'mock-plus-jakarta-sans',
+    style: { fontFamily: 'Plus Jakarta Sans' },
+    variable: '--font-plus-jakarta-sans'
+  }),
+  Inter: () => ({
+    className: 'mock-inter',
+    style: { fontFamily: 'Inter' },
+    variable: '--font-inter'
+  }),
+  Open_Sans: () => ({
+    className: 'mock-open-sans',
+    style: { fontFamily: 'Open Sans' },
+    variable: '--font-open-sans'
+  }),
+  PT_Mono: () => ({
+    className: 'mock-pt-mono',
+    style: { fontFamily: 'PT Mono' },
+    variable: '--font-pt-mono'
+  })
+}));
 
-// Mock Next.js font module
-require.cache[require.resolve("next/font/google")] = mockModule("next/font/google", fontMocks);
-
-// Mock individual font exports
-Object.entries(fontMocks).forEach(([name, fn]) => {
-  if (name !== "default") {
-    require.cache[require.resolve(`next/font/google/${name}`)] = mockModule(`next/font/google/${name}`, { default: fn });
-  }
-});
+// Mock document.fonts API
+(global as any).document.fonts = {
+  ready: Promise.resolve(),
+  addEventListener: () => {},
+  removeEventListener: () => {}
+};
 
 require.cache[require.resolve("next/router")] = mockModule("next/router", {
   useRouter: () => ({
