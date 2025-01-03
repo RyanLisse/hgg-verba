@@ -44,6 +44,8 @@ export default function Home() {
   const [RAGConfig, setRAGConfig] = useState<null | RAGConfig>(null);
   const [documentFilter, setDocumentFilter] = useState<DocumentFilter[]>([]);
   const [statusMessages, setStatusMessages] = useState<StatusMessage[]>([]);
+  const [labels, setLabels] = useState<string[]>([]);
+  const [filterLabels, setFilterLabels] = useState<string[]>([]);
 
   // Define fontClassName
   const fontClassName = "default-font-class"; // Set your desired default class name
@@ -225,6 +227,9 @@ export default function Home() {
               currentPage={currentPage}
               documentFilter={documentFilter}
               setDocumentFilter={setDocumentFilter}
+              labels={labels}
+              filterLabels={filterLabels}
+              setFilterLabels={setFilterLabels}
             />
           )}
           {currentPage === "SETTINGS" && (
