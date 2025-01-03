@@ -140,7 +140,7 @@ export type RAGComponentConfig = {
   variables: string[];
   library: string[];
   description: string[];
-  selected: string;
+  selected:boolean | string;
   config: RAGSetting;
   type: string;
   available: boolean | string;
@@ -446,47 +446,222 @@ export interface SelectSetting {
 
 export interface Theme {
   theme_name: string;
-  title: TextFieldSetting;
-  subtitle: TextFieldSetting;
-  intro_message: TextFieldSetting;
-  image: ImageFieldSetting;
-  primary_color: ColorSetting;
-  secondary_color: ColorSetting;
-  warning_color: ColorSetting;
-  bg_color: ColorSetting;
-  bg_alt_color: ColorSetting;
-  text_color: ColorSetting;
-  text_alt_color: ColorSetting;
-  button_text_color: ColorSetting;
-  button_text_alt_color: ColorSetting;
-  button_color: ColorSetting;
-  button_hover_color: ColorSetting;
-  font: SelectSetting;
+  title: {
+    text: string;
+    type: "text";
+    description: string;
+  };
+  subtitle: {
+    text: string;
+    type: "text";
+    description: string;
+  };
+  intro_message: {
+    text: string;
+    type: "text";
+    description: string;
+  };
+  image: {
+    src: string;
+    type: "image";
+    description: string;
+  };
+  primary_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  secondary_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  warning_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  bg_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  bg_alt_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  text_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  text_alt_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  button_text_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  button_text_alt_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  button_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  button_hover_color: {
+    color: string;
+    type: "color";
+    description: string;
+  };
+  font: {
+    type: "select";
+    value: string;
+    description: string;
+    options: string[];
+  };
   theme: "light" | "dark";
 }
 
-export interface Themes {
+export type Themes = {
   [key: string]: Theme;
-}
-declare module "bun:test" {
-  interface Matchers<R> {
-    toBeInTheDocument(): R;
-    toBeDisabled(): R;
-    toHaveClass(className: string): R;
-    toHaveAttribute(attr: string, value?: string): R;
-    toHaveTextContent(text: string): R;
-    toHaveLength(length: number): R;
-    toHaveBeenCalledWith(...args: any[]): R;
-    toHaveBeenCalledTimes(times: number): R;
-    toHaveBeenLastCalledWith(...args: any[]): R;
-  }
-} 
+};
 
-export type PageType =
-  | "CHAT"
-  | "DOCUMENTS"
-  | "STATUS"
-  | "IMPORT_DATA"
-  | "SETTINGS"
-  | "RAG"
-  | "ADD";
+export const LightTheme: Theme = {
+  theme_name: "light",
+  title: {
+    text: "Verba",
+    type: "text",
+    description: "Application title"
+  },
+  subtitle: {
+    text: "Your AI-powered document assistant",
+    type: "text",
+    description: "Application subtitle"
+  },
+  intro_message: {
+    text: "Ask me anything about your documents",
+    type: "text",
+    description: "Introduction message"
+  },
+  image: {
+    src: "/verba.png",
+    type: "image",
+    description: "Application logo"
+  },
+  primary_color: {
+    color: "#000000",
+    type: "color",
+    description: "Primary color"
+  },
+  secondary_color: {
+    color: "#ffffff",
+    type: "color",
+    description: "Secondary color"
+  },
+  warning_color: {
+    color: "#ff0000",
+    type: "color",
+    description: "Warning color"
+  },
+  bg_color: {
+    color: "#ffffff",
+    type: "color",
+    description: "Background color"
+  },
+  bg_alt_color: {
+    color: "#f0f0f0",
+    type: "color",
+    description: "Alternate background color"
+  },
+  text_color: {
+    color: "#111111",
+    type: "color",
+    description: "Text color"
+  },
+  text_alt_color: {
+    color: "#222222",
+    type: "color",
+    description: "Alternate text color"
+  },
+  button_text_color: {
+    color: "#333333",
+    type: "color",
+    description: "Button text color"
+  },
+  button_text_alt_color: {
+    color: "#444444",
+    type: "color",
+    description: "Alternate button text color"
+  },
+  button_color: {
+    color: "#555555",
+    type: "color",
+    description: "Button color"
+  },
+  button_hover_color: {
+    color: "#666666",
+    type: "color",
+    description: "Button hover color"
+  },
+  font: {
+    type: "select",
+    value: "Plus_Jakarta_Sans",
+    description: "Text Font",
+    options: ["Inter", "Plus_Jakarta_Sans", "Open_Sans", "PT_Mono"]
+  },
+  theme: "light"
+};
+
+export const DarkTheme: Theme = {
+  ...LightTheme,
+  theme_name: "dark",
+  theme: "dark",
+  bg_color: {
+    color: "#111111",
+    type: "color",
+    description: "Background color"
+  },
+  bg_alt_color: {
+    color: "#222222",
+    type: "color",
+    description: "Alternate background color"
+  },
+  text_color: {
+    color: "#ffffff",
+    type: "color",
+    description: "Text color"
+  },
+  text_alt_color: {
+    color: "#eeeeee",
+    type: "color",
+    description: "Alternate text color"
+  }
+};
+
+export const WeaviateTheme: Theme = {
+  ...LightTheme,
+  theme_name: "weaviate",
+  primary_color: {
+    color: "#FF6D85",
+    type: "color",
+    description: "Primary color"
+  }
+};
+
+export const WCDTheme: Theme = {
+  ...LightTheme,
+  theme_name: "wcd",
+  primary_color: {
+    color: "#00A6D6",
+    type: "color",
+    description: "Primary color"
+  }
+};

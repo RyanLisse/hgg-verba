@@ -145,9 +145,15 @@ const ComponentView: React.FC<ComponentViewProps> = ({
       ));
   }
   function renderConfigOptions(rag_config: RAGConfig, configKey: string) {
-    return rag_config[component_name].components[
-      rag_config[component_name].selected
-    ].config[configKey].values.map((configValue) => (
+    const selectedComponentName = rag_config[component_name]?.selected;
+    if (!selectedComponentName) return [];
+
+    const selectedComponent = rag_config[component_name]?.components[selectedComponentName];
+    if (!selectedComponent?.config[configKey]?.values) return [];
+
+    const configValues = selectedComponent.config[configKey].values as string[];
+    
+    return configValues.map((configValue) => (
       <li
         key={"ConfigValue" + configValue}
         className="lg:text-base text-sm"
