@@ -293,7 +293,7 @@ const ComponentView: React.FC<ComponentViewProps> = ({
             {typeof config.value != "boolean" && config.type == "multi" && (
               <MultiInput
                 component_name={component_name}
-                values={config.values}
+                values={config.values || []}
                 config_title={configTitle}
                 updateConfig={updateConfig}
                 blocked={blocked}

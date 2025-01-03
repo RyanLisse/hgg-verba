@@ -665,3 +665,5 @@ export const WCDTheme: Theme = {
     description: "Primary color"
   }
 };
+
+export type PageType = "CHAT" | "DOCUMENTS" | "STATUS" | "IMPORT_DATA" | "SETTINGS" | "RAG" | "ADD";

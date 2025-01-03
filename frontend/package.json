@@ -7,7 +7,7 @@
     "build": "next build && cp -r out/* ../goldenverba/server/frontend/out/ && rm -r out",
     "start": "next start -H 0.0.0.0 -p 8080",
     "lint": "next lint",
-    "test": "bun test"
+    "test": "bun test --preload ./test/setup.ts"
   },
   "dependencies": {
     "@mdx-js/mdx": "^2.3.0",
