@@ -1,19 +1,63 @@
 import { beforeAll, expect } from "bun:test";
 import { JSDOM } from 'jsdom';
+import { configure } from '@testing-library/react';
 
 // Set up DOM environment
 const dom = new JSDOM('<!doctype html><html><body></body></html>', {
   url: 'http://localhost',
   pretendToBeVisual: true,
+  runScripts: 'dangerously',
 });
 
 // Set up global DOM environment
-(global as any).document = dom.window.document;
 (global as any).window = dom.window;
+(global as any).document = dom.window.document;
 (global as any).navigator = dom.window.navigator;
 (global as any).HTMLElement = dom.window.HTMLElement;
 (global as any).Element = dom.window.Element;
 (global as any).getComputedStyle = dom.window.getComputedStyle;
+(global as any).MutationObserver = dom.window.MutationObserver;
+
+// Configure testing library
+configure({
+  testIdAttribute: 'data-testid',
+});
+
+// Mock window properties
+Object.defineProperty(dom.window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => {},
+  }),
+});
+
+Object.defineProperty(dom.window, 'ResizeObserver', {
+  writable: true,
+  value: class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+});
+
+// Mock canvas for Three.js
+class MockCanvas {
+  getContext() { return null; }
+  addEventListener() {}
+  removeEventListener() {}
+}
+(global as any).HTMLCanvasElement = MockCanvas;
+
+// Mock requestAnimationFrame for Three.js
+(global as any).requestAnimationFrame = (callback: FrameRequestCallback) => setTimeout(callback, 0);
+(global as any).cancelAnimationFrame = (id: number) => clearTimeout(id);
 
 // Mock Next.js font
 const mockFont = () => ({
@@ -37,7 +81,10 @@ const mockModule = (id: string, exports: any): NodeModule => ({
 
 // Mock Next.js modules
 require.cache[require.resolve('next/font/google')] = mockModule('next/font/google', {
-  Plus_Jakarta_Sans: mockFont
+  Plus_Jakarta_Sans: mockFont,
+  Inter: mockFont,
+  Open_Sans: mockFont,
+  PT_Mono: mockFont
 });
 
 require.cache[require.resolve('next/router')] = mockModule('next/router', {
