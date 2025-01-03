@@ -1,91 +1,124 @@
 # Test-Driven Development (TDD) Workflow Instructions
 
-## Overview
+This document outlines our **TDD workflow** for the **Verba** project, incorporating **feature branches** for new features and emphasizing **frontend** and **backend** testing practices.
 
-This document outlines our TDD workflow for the Verba project, focusing on both frontend and backend testing practices.
+---
 
-## TDD Workflow
+## 1. Feature Branch & Test-First Approach
 
-### 1. Write Test First
-```bash
-# Create test file before implementation
-touch __tests__/[ComponentName].test.tsx  # For frontend
-touch tests/test_[module_name].py         # For backend
-```
+1. **Create a Feature Branch**  
+   ```bash
+   git checkout main
+   git pull
+   git checkout -b feat/my-new-feature
 
-### 2. Red-Green-Refactor Cycle
+	2.	Write Failing Test
+	•	Create a test file before writing the actual feature code:
 
-#### Red: Write Failing Test
-```typescript
-// Example: Frontend Component Test
-describe('ComponentName', () => {
-  test('should render with expected props', () => {
-    const props = { /* required props */ };
-    render(<ComponentName {...props} />);
-    expect(screen.getByRole('button')).toBeInTheDocument();
-  });
-});
-```
+# Frontend
+touch __tests__/MyFeature.test.tsx
 
-#### Green: Make Test Pass
-- Implement minimal code to make test pass
-- Commit working code:
-```bash
+# Backend
+touch tests/test_my_feature.py
+
+
+	3.	Commit Tests
+
 git add .
-git commit -m "feat: implement [ComponentName] with basic functionality"
-```
+git commit -m "test: add failing test for MyFeature"
 
-#### Refactor: Improve Code
-- Improve code structure while keeping tests green
-- Commit refactored code:
-```bash
-git commit -m "refactor: improve [ComponentName] structure"
-```
+2. Red-Green-Refactor Cycle
+	1.	Red (Failing Test)
+	•	Write the minimal test case to define expected behavior.
+	•	Example (Frontend):
 
-### 3. Testing Guidelines
+describe('MyFeature', () => {
+  test('should render with expected props', () => {
+    // Test will fail because the component doesn't exist yet
+    render(<MyFeature someProp="test" />)
+    expect(screen.getByRole('button')).toBeInTheDocument()
+  })
+})
 
-#### Frontend Tests (React + Bun)
 
-1. **Component Setup**
-```typescript
-import { describe, expect, test, vi } from "bun:test";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+	2.	Green (Make Test Pass)
+	•	Implement the minimal code for the new feature or function:
 
-describe('ComponentName', () => {
-  // Mock props and functions
-  const mockProps = {
-    onSubmit: vi.fn()
-  };
+export function MyFeature({ someProp }: { someProp: string }) {
+  return <button>{someProp}</button>
+}
+
+
+	•	Confirm test passes locally:
+
+bun test  # Frontend
+pytest    # Backend
+
+
+	•	Commit working code:
+
+git add .
+git commit -m "feat: implement MyFeature to pass initial tests"
+
+
+	3.	Refactor
+	•	Improve code structure while keeping tests green:
+
+git commit -m "refactor: improve MyFeature structure"
+
+3. Merging to Main
+	1.	Push Feature Branch
+
+git push -u origin feat/my-new-feature
+
+
+	2.	Open Pull Request
+	•	Ensure all tests pass in CI.
+	•	Team members review code.
+	3.	Merge to Main
+	•	Once approved and CI is green, merge.
+	•	This ensures main always has fully tested, stable code.
+
+4. Testing Guidelines
+
+4.1 Frontend Tests (React + Bun)
+	1.	Component Setup
+
+import { describe, expect, test, vi } from "bun:test"
+import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+
+describe('MyFeature', () => {
+  const mockProps = { onSubmit: vi.fn() }
 
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
-});
-```
+    vi.clearAllMocks()
+  })
+})
 
-2. **Testing Patterns**
-- Test rendering:
-```typescript
+
+	2.	Testing Patterns
+	•	Render Test
+
 test('renders without crashing', () => {
-  render(<Component {...mockProps} />);
-  expect(screen.getByRole('button')).toBeInTheDocument();
-});
-```
+  render(<MyFeature {...mockProps} />)
+  expect(screen.getByRole('button')).toBeInTheDocument()
+})
 
-- Test user interactions:
-```typescript
-test('handles user interaction', async () => {
-  render(<Component {...mockProps} />);
-  await userEvent.click(screen.getByRole('button'));
-  expect(mockProps.onSubmit).toHaveBeenCalled();
-});
-```
 
-#### Backend Tests (Python + pytest)
+	•	User Interaction
 
-1. **Test Setup**
-```python
+test('handles user click', async () => {
+  render(<MyFeature {...mockProps} />)
+  await userEvent.click(screen.getByRole('button'))
+  expect(mockProps.onSubmit).toHaveBeenCalled()
+})
+
+
+
+4.2 Backend Tests (Python + pytest)
+	1.	Test Setup
+
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
@@ -97,89 +130,82 @@ def client():
 def test_endpoint(client):
     response = client.get("/api/endpoint")
     assert response.status_code == 200
-```
 
-### 4. Git Commit Guidelines
 
-Follow semantic commit messages:
+	2.	Edge Cases & Mocks
+	•	Use fixtures for test data.
+	•	Mock external services (e.g., S3, Stripe, etc.).
+	•	Parameterized tests for multiple scenarios.
 
-- `feat:` New feature
-- `fix:` Bug fix
-- `test:` Adding or updating tests
-- `refactor:` Code refactoring
-- `docs:` Documentation updates
+5. Git Commit Guidelines
+	•	Semantic Commits
+	•	feat: New feature
+	•	fix: Bug fix
+	•	test: Adding or updating tests
+	•	refactor: Code refactoring
+	•	docs: Documentation updates
+	•	Example Commits
 
-Example commits:
-```bash
-git commit -m "test: add SimpleFeedback component tests"
-git commit -m "feat: implement SimpleFeedback component"
-git commit -m "refactor: improve SimpleFeedback props handling"
-```
+git commit -m "test: add MyFeature component tests"
+git commit -m "feat: implement MyFeature component"
+git commit -m "refactor: refactor MyFeature logic"
 
-### 5. Testing Best Practices
+6. Testing Best Practices
 
-#### Frontend
-- Use React Testing Library's queries in this order:
-  1. getByRole
-  2. getByLabelText
-  3. getByPlaceholderText
-  4. getByText
-  5. getByDisplayValue
-  6. getByTestId
+Frontend
+	•	React Testing Library Queries (preferred order):
+	1.	getByRole
+	2.	getByLabelText
+	3.	getByPlaceholderText
+	4.	getByText
+	5.	getByDisplayValue
+	6.	getByTestId
+	•	User Interactions over implementation details.
+	•	Mock network/API calls (e.g., Mock Service Worker).
 
-- Test user interactions over implementation details
-- Use `userEvent` over `fireEvent` when possible
-- Mock API calls using Mock Service Worker (MSW)
+Backend
+	•	Fixtures for test data setup.
+	•	Mock external calls/services.
+	•	Cover edge cases & handle exceptions properly.
 
-#### Backend
-- Use fixtures for test data
-- Mock external services
-- Test edge cases and error conditions
-- Use parameterized tests for multiple scenarios
+7. Continuous Integration
+	•	All tests must pass before merging to main.
+	•	Local Test:
 
-### 6. Continuous Integration
-
-- All tests must pass before merging
-- Run tests locally before pushing:
-```bash
 # Frontend
 bun test
 
 # Backend
 pytest
-```
 
-### 7. Documentation
+8. Documentation
+	•	Document test scenarios in each test file.
+	•	Update README with any new testing or setup requirements.
 
-- Document test scenarios in test files
-- Update README with new testing requirements
-- Document any testing utilities or helpers
+9. Troubleshooting
+	1.	Test Environment Setup
 
-### 8. Troubleshooting
-
-Common issues and solutions:
-
-1. **Test Environment Setup**
-```typescript
 // frontend/test/setup.ts
-import { afterEach, beforeAll } from "bun:test";
-import { cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom/matchers';
+import { afterEach, beforeAll } from "bun:test"
+import { cleanup } from '@testing-library/react'
+import '@testing-library/jest-dom/matchers'
 
 beforeAll(() => {
-  // Setup test environment
-});
+  // Global test setup
+})
 
 afterEach(() => {
-  cleanup();
-});
-```
+  cleanup()
+})
 
-2. **Mock Implementation**
-```typescript
-const mockFunction = vi.fn().mockImplementation(() => {
-  return Promise.resolve({ data: 'test' });
-});
-```
 
-Remember: The key to successful TDD is writing tests first, making them fail, implementing the minimum code to make them pass, and then refactoring while keeping the tests green.
+	2.	Mock Implementations
+
+const mockFunction = vi.fn(() => Promise.resolve({ data: 'test' }))
+
+10. Key Takeaways
+	1.	Create a feature branch for new functionality.
+	2.	Write tests first (Red-Green-Refactor).
+	3.	Commit regularly with semantic commit messages.
+	4.	Merge back to main only when all tests pass.
+	5.	Keep tests clean, focused, and maintainable.

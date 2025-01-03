@@ -96,19 +96,22 @@ export default function Home() {
       if (health_data) {
         setIsHealthy(true);
       } else {
-        setIsHealthy(false);
-        setIsLoggedIn(false);
+        // Only set unhealthy if we were previously healthy to avoid unnecessary re-renders
+        if (isHealthy) {
+          setIsHealthy(false);
+          setIsLoggedIn(false);
+        }
       }
     };
 
     // Initial health check
     initialFetch();
 
-    // Set up periodic health checks every 30 seconds
-    const interval = setInterval(healthCheck, 30000);
+    // Set up periodic health checks every 2 minutes instead of 30 seconds
+    const interval = setInterval(healthCheck, 120000);
 
     return () => clearInterval(interval);
-  }, [initialFetch]);
+  }, [initialFetch, isHealthy]);
 
   useEffect(() => {
     if (isLoggedIn) {

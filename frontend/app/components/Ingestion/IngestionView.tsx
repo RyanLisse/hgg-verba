@@ -44,63 +44,114 @@ const IngestionView: React.FC<IngestionViewProps> = ({
 
   // Setup Import WebSocket and messages
   useEffect(() => {
-    const socketHost = getImportWebSocketApiHost();
-    const localSocket = new WebSocket(socketHost);
+    let isComponentMounted = true;
+    let cleanupFn: (() => void) | undefined;
 
-    localSocket.onopen = () => {
-      console.log("Import WebSocket connection opened to " + socketHost);
-      setSocketStatus("ONLINE");
-    };
+    const connectWebSocket = async (attempt: number = 1) => {
+      if (!isComponentMounted) return;
 
-    localSocket.onmessage = (event) => {
-      setSocketStatus("ONLINE");
-      try {
-        const data: StatusReport | CreateNewDocument = JSON.parse(event.data);
-        if ("new_file_id" in data) {
-          setFileMap((prevFileMap) => {
-            const newFileMap: FileMap = { ...prevFileMap };
-            newFileMap[data.new_file_id] = {
-              ...newFileMap[data.original_file_id],
-              fileID: data.new_file_id,
-              filename: data.filename,
-              block: true,
-            };
-            return newFileMap;
-          });
-        } else {
-          updateStatus(data);
+      const socketHost = getImportWebSocketApiHost();
+      const localSocket = new WebSocket(socketHost);
+
+      // Calculate exponential backoff delay with jitter
+      const baseDelay = 1000 * Math.pow(2, attempt - 1);
+      const jitter = Math.random() * 1000;
+      const backoffDelay = Math.min(baseDelay + jitter, 30000); // Max 30 seconds
+      const maxRetries = 5;
+
+      localSocket.onopen = () => {
+        if (!isComponentMounted) {
+          localSocket.close(1000, "Component unmounted during connection");
+          return;
         }
-      } catch (e) {
-        console.error("Received data is not valid JSON:", event.data);
-        return;
-      }
-    };
+        console.log("Import WebSocket connection opened to " + socketHost);
+        setSocketStatus("ONLINE");
+      };
 
-    localSocket.onerror = (error) => {
-      console.error("Import WebSocket Error:", error);
-      setSocketStatus("OFFLINE");
-      setSocketErrorStatus();
-      setReconnect((prev) => !prev);
-    };
+      localSocket.onmessage = (event) => {
+        if (!isComponentMounted) return;
+        setSocketStatus("ONLINE");
+        try {
+          const data: StatusReport | CreateNewDocument = JSON.parse(event.data);
+          if ("new_file_id" in data) {
+            setFileMap((prevFileMap) => {
+              const newFileMap: FileMap = { ...prevFileMap };
+              newFileMap[data.new_file_id] = {
+                ...newFileMap[data.original_file_id],
+                fileID: data.new_file_id,
+                filename: data.filename,
+                block: true,
+              };
+              return newFileMap;
+            });
+          } else {
+            updateStatus(data);
+          }
+        } catch (e) {
+          console.error("Received data is not valid JSON:", event.data);
+          return;
+        }
+      };
 
-    localSocket.onclose = (event) => {
-      setSocketStatus("OFFLINE");
-      setSocketErrorStatus();
-      if (event.wasClean) {
-        console.log(
-          `Import WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`
-        );
-      } else {
+      localSocket.onerror = (error) => {
+        if (!isComponentMounted) return;
+        console.error("Import WebSocket Error:", error);
+        setSocketStatus("OFFLINE");
+      };
+
+      localSocket.onclose = (event) => {
+        if (!isComponentMounted) return;
+        setSocketStatus("OFFLINE");
+        setSocketErrorStatus();
+        
+        if (event.wasClean) {
+          console.log(
+            `Import WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`
+          );
+          // Don't reconnect on clean close
+          return;
+        }
+
         console.error("WebSocket connection died");
-      }
-      setReconnect((prev) => !prev);
+        
+        // Only retry if within max retries
+        if (attempt < maxRetries) {
+          console.log(`Retrying WebSocket connection... Attempt ${attempt + 1} in ${backoffDelay}ms`);
+          setTimeout(() => {
+            if (isComponentMounted) {
+              connectWebSocket(attempt + 1);
+            }
+          }, backoffDelay);
+        } else {
+          console.log("Max retry attempts reached. Please check your connection.");
+          addStatusMessage("Connection lost. Please refresh the page.", "ERROR");
+        }
+      };
+
+      setSocket(localSocket);
+
+      // Add ping/pong for keepalive
+      const pingInterval = setInterval(() => {
+        if (localSocket.readyState === WebSocket.OPEN) {
+          localSocket.send(JSON.stringify({ type: "ping" }));
+        }
+      }, 30000); // Send ping every 30 seconds
+
+      cleanupFn = () => {
+        clearInterval(pingInterval);
+        if (localSocket.readyState !== WebSocket.CLOSED) {
+          localSocket.close(1000, "Component unmounting");
+        }
+      };
     };
 
-    setSocket(localSocket);
+    connectWebSocket();
 
     return () => {
-      if (localSocket.readyState !== WebSocket.CLOSED) {
-        localSocket.close();
+      isComponentMounted = false;
+      if (cleanupFn) cleanupFn();
+      if (socket && socket.readyState !== WebSocket.CLOSED) {
+        socket.close(1000, "Component unmounting");
       }
     };
   }, [reconnect]);

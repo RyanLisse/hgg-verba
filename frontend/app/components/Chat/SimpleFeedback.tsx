@@ -23,6 +23,7 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
   }
 
   const handleSubmitFeedback = () => {
+    console.log('Submitting feedback:', { feedbackType, additionalFeedback });
     if (feedbackType) {
       onSubmit(runId, feedbackType, additionalFeedback);
     }
@@ -90,7 +91,10 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
                 <textarea 
                   placeholder="Please provide your feedback..." 
                   value={additionalFeedback}
-                  onChange={(e) => setAdditionalFeedback(e.target.value)}
+                  onChange={(e) => {
+                    console.log('Setting feedback:', e.target.value);
+                    setAdditionalFeedback(e.target.value);
+                  }}
                   className="w-full p-2 rounded bg-bg-verba text-text-verba mt-4"
                 />
                 <VerbaButton

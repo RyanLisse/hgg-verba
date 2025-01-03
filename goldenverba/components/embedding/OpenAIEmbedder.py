@@ -14,27 +14,27 @@ from goldenverba.components.util import get_environment
 class OpenAIEmbedder(Embedding):
     """OpenAIEmbedder for Verba."""
 
+    DEFAULT_MODELS = ["text-embedding-3-small", "text-embedding-3-large"]
+
     def __init__(self):
         super().__init__()
         self.name = "OpenAI"
         self.description = "Vectorizes documents and queries using OpenAI"
 
-        # Fetch available models
-        api_key = os.getenv("OPENAI_API_KEY")
-        base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-        models = self.get_models(api_key, base_url)
-
-        # Set up configuration
+        # Set up configuration with default models
         self.config = {
             "Model": InputConfig(
                 type="dropdown",
                 value="text-embedding-3-small",
                 description="Select an OpenAI Embedding Model",
-                values=models,
+                values=self.DEFAULT_MODELS,
             )
         }
 
         # Add API Key and URL configs if not set in environment
+        api_key = os.getenv("OPENAI_API_KEY")
+        base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+
         if api_key is None:
             self.config["API Key"] = InputConfig(
                 type="password",
@@ -49,6 +49,14 @@ class OpenAIEmbedder(Embedding):
                 description="OpenAI API Base URL (if different from default)",
                 values=[],
             )
+
+        # Try to fetch available models if possible
+        try:
+            models = self.get_models(api_key, base_url)
+            if models:
+                self.config["Model"].values = models
+        except Exception as e:
+            msg.warn(f"Could not fetch OpenAI models: {e}. Using default models.")
 
     async def vectorize(self, config: dict, content: List[str]) -> List[List[float]]:
         """Vectorize the input content using OpenAI's API."""

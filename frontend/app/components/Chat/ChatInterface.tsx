@@ -115,16 +115,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useState("No Embedding Model");
 
   useEffect(() => {
+    let isComponentMounted = true;
+    let cleanupFn: (() => void) | undefined;
+
     const connectWebSocket = async (attempt: number = 1) => {
+      if (!isComponentMounted) return;
+
       const socketHost = getWebSocketApiHost();
       const localSocket = new WebSocket(socketHost);
 
+      // Calculate exponential backoff delay with jitter
+      const baseDelay = 1000 * Math.pow(2, attempt - 1);
+      const jitter = Math.random() * 1000;
+      const backoffDelay = Math.min(baseDelay + jitter, 30000); // Max 30 seconds
+
       localSocket.onopen = () => {
+        if (!isComponentMounted) {
+          localSocket.close(1000, "Component unmounted during connection");
+          return;
+        }
         console.log("WebSocket connection opened to " + socketHost);
         setSocketStatus("ONLINE");
       };
 
       localSocket.onmessage = (event) => {
+        if (!isComponentMounted) return;
         let data: WebSocketMessage;
 
         if (!isFetching.current) {
@@ -136,7 +151,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           data = JSON.parse(event.data);
         } catch (e) {
           console.error("Received data is not valid JSON:", event.data);
-          return; // Exit early if data isn't valid JSON
+          return;
         }
 
         const newMessageContent = data.message;
@@ -170,32 +185,61 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       };
 
       localSocket.onerror = (error) => {
+        if (!isComponentMounted) return;
         console.error("WebSocket Error:", error);
         setSocketStatus("OFFLINE");
       };
 
       localSocket.onclose = (event) => {
+        if (!isComponentMounted) return;
         setSocketStatus("OFFLINE");
+        
         if (event.wasClean) {
           console.log(`WebSocket closed cleanly, code=${event.code}, reason=${event.reason}`);
-        } else {
-          console.error("WebSocket connection died");
+          // Don't reconnect on clean close
+          return;
         }
-        // Retry logic
+
+        console.error("WebSocket connection died");
+        
+        // Only retry if not a clean close and within max retries
         if (attempt < maxRetries) {
-          console.log(`Retrying WebSocket connection... Attempt ${attempt + 1}`);
-          setTimeout(() => connectWebSocket(attempt + 1), retryDelay);
+          console.log(`Retrying WebSocket connection... Attempt ${attempt + 1} in ${backoffDelay}ms`);
+          setTimeout(() => {
+            if (isComponentMounted) {
+              connectWebSocket(attempt + 1);
+            }
+          }, backoffDelay);
+        } else {
+          console.log("Max retry attempts reached. Please check your connection.");
+          addStatusMessage("Connection lost. Please refresh the page.", "ERROR");
         }
       };
 
       setSocket(localSocket);
+
+      // Add ping/pong for keepalive
+      const pingInterval = setInterval(() => {
+        if (localSocket.readyState === WebSocket.OPEN) {
+          localSocket.send(JSON.stringify({ type: "ping" }));
+        }
+      }, 30000); // Send ping every 30 seconds
+
+      cleanupFn = () => {
+        clearInterval(pingInterval);
+        if (localSocket.readyState !== WebSocket.CLOSED) {
+          localSocket.close(1000, "Component unmounting");
+        }
+      };
     };
 
     connectWebSocket();
 
     return () => {
+      isComponentMounted = false;
+      if (cleanupFn) cleanupFn();
       if (socket && socket.readyState !== WebSocket.CLOSED) {
-        socket.close();
+        socket.close(1000, "Component unmounting");
       }
     };
   }, []);
