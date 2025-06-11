@@ -17,11 +17,21 @@ class CohereGenerator(Generator):
     def __init__(self):
         super().__init__()
         self.name = "Cohere"
-        self.description = "Generator using Cohere's command-r-plus model"
+        self.description = "Generator using Cohere's latest Command models"
         self.url = os.getenv("COHERE_BASE_URL", "https://api.cohere.com/v1")
-        self.context_window = 10000
-
-        models = get_models(self.url, os.getenv("COHERE_API_KEY", None), "chat")
+        self.context_window = 256000  # Command A supports 256K context
+        
+        # Try to get models dynamically, with June 2025 defaults as fallback
+        try:
+            models = get_models(self.url, os.getenv("COHERE_API_KEY", None), "chat")
+        except:
+            # June 2025 models as fallback
+            models = [
+                "command-a-03-2025",      # Latest flagship model (111B params, 256K context)
+                "command-r-plus-08-2024", # Previous flagship for complex RAG
+                "command-r-08-2024",      # Simpler RAG, faster and cheaper
+                "command-r7b-arabic",     # Specialized for Arabic and English
+            ]
 
         self.config["Model"] = InputConfig(
             type="dropdown",

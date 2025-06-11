@@ -442,8 +442,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
    * Save the updated RAGConfig
    */
   const onSaveConfig = async () => {
-    addStatusMessage("Saved Config", "SUCCESS");
-    await updateRAGConfig(RAGConfig, credentials);
+    try {
+      const response = await updateRAGConfig(RAGConfig, credentials);
+      if (response) {
+        addStatusMessage("Config saved successfully", "SUCCESS");
+        // Refresh the config from server to ensure it's persisted
+        await retrieveRAGConfig();
+      } else {
+        addStatusMessage("Failed to save config", "ERROR");
+      }
+    } catch (error) {
+      console.error("Error saving config:", error);
+      addStatusMessage("Error saving config", "ERROR");
+    }
   };
 
   /**

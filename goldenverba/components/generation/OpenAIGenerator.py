@@ -33,9 +33,21 @@ class OpenAIGenerator(Generator):
         super().__init__()
         self.name = "OpenAI"
         self.description = "Using OpenAI LLM models with LangSmith and Instructor to generate answers to queries"
-        self.context_window = 10000
+        # Set context window based on model capabilities
+        # GPT-4.1 models support 1M tokens, o4/o3 models support various context windows
+        self.context_window = 1000000  # 1M tokens for GPT-4.1 family
 
-        models = ["gpt-4o-mini", "gpt-4o","01-preview"]
+        # Updated models for June 2025
+        models = [
+            "gpt-4.1-nano",      # Cheapest: $0.10/1M input tokens
+            "gpt-4.1-mini",      # Fast and affordable: 5x cheaper than GPT-4.1
+            "gpt-4.1",           # Flagship multimodal model
+            "o4-mini",           # Reasoning model
+            "o3-mini",           # Smaller reasoning model  
+            "o3",                # Advanced reasoning model
+            "gpt-4o-mini",       # Legacy model (still available)
+            "gpt-4o",            # Legacy model (still available)
+        ]
 
         self.config["Model"] = InputConfig(
             type="dropdown",
@@ -61,6 +73,21 @@ class OpenAIGenerator(Generator):
 
         # Initialize OpenAI client
         self.client = None
+        
+        # Add configuration for Responses API features
+        self.config["Enable Web Search"] = InputConfig(
+            type="bool",
+            value=False,
+            description="Enable web search for more up-to-date information",
+            values=[],
+        )
+        
+        self.config["Enable File Search"] = InputConfig(
+            type="bool",
+            value=False,
+            description="Enable file search for document-based queries",
+            values=[],
+        )
 
     async def initialize_client(self, config):
         openai_key = get_environment(
@@ -78,12 +105,15 @@ class OpenAIGenerator(Generator):
         # Log the model being used for answer generation
         logger.info(f"Generating answer with model: {model}")
 
-        # Create the chat completion request
-        response = await self.client.chat.completions.create(
+        # Create the responses API request
+        # The responses API provides built-in tools and better state management
+        response = await self.client.responses.create(
             model=model,
             response_model=AnswerResponse,
             max_retries=2,
             messages=messages,
+            tools=[],  # Can add web_search, file_search, etc. if needed
+            store=True,  # Enable state management
         )
 
         # Retrieve the current run details
@@ -113,10 +143,33 @@ class OpenAIGenerator(Generator):
 
         try:
             logger.info(f"Generating stream response for query: {query[:50]}...")
-            response, run_id = await self.generate_answer(messages, model)
-            logger.info(f"Stream response generated, run_id: {run_id}")
-            yield {"message": response.answer, "finish_reason": None, "runId": run_id}
-            yield {"message": f"\n\nReasoning: {response.reasoning}", "finish_reason": "stop", "runId": run_id}
+            
+            # Configure tools based on settings
+            tools = []
+            if config.get("Enable Web Search", {}).get("value", False):
+                tools.append({"type": "web_search"})
+            if config.get("Enable File Search", {}).get("value", False):
+                tools.append({"type": "file_search"})
+            
+            # Use the Responses API with streaming
+            response_stream = await self.client.responses.create(
+                model=model,
+                messages=messages,
+                tools=tools,
+                stream=True,
+                store=True,
+            )
+            
+            run_id = "unknown"
+            async for chunk in response_stream:
+                if hasattr(chunk, 'choices') and chunk.choices:
+                    delta = chunk.choices[0].delta
+                    if hasattr(delta, 'content') and delta.content:
+                        yield {"message": delta.content, "finish_reason": None, "runId": run_id}
+                    if hasattr(chunk.choices[0], 'finish_reason') and chunk.choices[0].finish_reason:
+                        yield {"message": "", "finish_reason": chunk.choices[0].finish_reason, "runId": run_id}
+                if hasattr(chunk, 'id'):
+                    run_id = chunk.id
         except Exception as e:
             logger.error(f"Error generating stream response: {str(e)}")
             yield {"message": f"Error: {str(e)}", "finish_reason": "error", "runId": ""}

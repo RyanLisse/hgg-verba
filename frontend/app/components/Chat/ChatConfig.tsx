@@ -38,7 +38,8 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
   ) => {
     setRAGConfig((prevRAGConfig) => {
       if (prevRAGConfig) {
-        const newRAGConfig = { ...prevRAGConfig };
+        // Deep clone to ensure state update is detected
+        const newRAGConfig = JSON.parse(JSON.stringify(prevRAGConfig));
         if (typeof value === "string" || typeof value === "boolean") {
           newRAGConfig[component_n].components[
             newRAGConfig[component_n].selected
@@ -57,8 +58,10 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
   const selectComponent = (component_n: string, selected_component: string) => {
     setRAGConfig((prevRAGConfig) => {
       if (prevRAGConfig) {
-        const newRAGConfig = { ...prevRAGConfig };
+        // Deep clone to ensure state update is detected
+        const newRAGConfig = JSON.parse(JSON.stringify(prevRAGConfig));
         newRAGConfig[component_n].selected = selected_component;
+        console.log(`Selected ${component_n}: ${selected_component}`);
         return newRAGConfig;
       }
       return prevRAGConfig;
