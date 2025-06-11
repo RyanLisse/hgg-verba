@@ -23,3 +23,15 @@ cache.txt
 ollama
 .aider*
 hgg-verba-roborail-assistant-f452787db7cc.json
+
+venv/*
+.venv/*
+
+# Agent-specific files
+.agents/
+.mcp/
+.copilot/
+.cursor/
+.codewhisperer/
+agent_*.log
+*.agent.json
