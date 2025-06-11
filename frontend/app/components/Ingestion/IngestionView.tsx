@@ -12,6 +12,7 @@ import {
 } from "@/app/types";
 import { RAGConfig } from "@/app/types";
 import { getImportWebSocketApiHost } from "@/app/util";
+import { ReconnectingWebSocket, ConnectionState } from "@/app/utils/websocket";
 
 interface IngestionViewProps {
   credentials: Credentials;
@@ -32,11 +33,11 @@ const IngestionView: React.FC<IngestionViewProps> = ({
   const [fileMap, setFileMap] = useState<FileMap>({});
   const [selectedFileData, setSelectedFileData] = useState<string | null>(null);
   const [reconnect, setReconnect] = useState(false);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-
-  const [socketStatus, setSocketStatus] = useState<"ONLINE" | "OFFLINE">(
-    "OFFLINE"
+  const [socket, setSocket] = useState<ReconnectingWebSocket | null>(null);
+  const [socketStatus, setSocketStatus] = useState<ConnectionState>(
+    "DISCONNECTED"
   );
+  const [messageQueueSize, setMessageQueueSize] = useState(0);
 
   useEffect(() => {
     setReconnect(true);
@@ -72,7 +73,13 @@ const IngestionView: React.FC<IngestionViewProps> = ({
         if (!isComponentMounted) return;
         setSocketStatus("ONLINE");
         try {
-          const data: StatusReport | CreateNewDocument = JSON.parse(event.data);
+          const data: StatusReport | CreateNewDocument | { type: string } = JSON.parse(event.data);
+          
+          // Handle pong messages
+          if ('type' in data && data.type === 'pong') {
+            return; // Pong received, connection is alive
+          }
+          
           if ("new_file_id" in data) {
             setFileMap((prevFileMap) => {
               const newFileMap: FileMap = { ...prevFileMap };
@@ -85,7 +92,7 @@ const IngestionView: React.FC<IngestionViewProps> = ({
               return newFileMap;
             });
           } else {
-            updateStatus(data);
+            updateStatus(data as StatusReport);
           }
         } catch (e) {
           console.error("Received data is not valid JSON:", event.data);

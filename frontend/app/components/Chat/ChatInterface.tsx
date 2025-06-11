@@ -21,6 +21,7 @@ import {
   fetchLabels,
 } from "@/app/api";
 import { getWebSocketApiHost, logMessage } from "@/app/util";
+import { ReconnectingWebSocket, ConnectionState } from "@/app/utils/websocket";
 
 import {
   Credentials,
@@ -99,12 +100,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [previewText, setPreviewText] = useState("");
 
   // WebSocket state
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [socketStatus, setSocketStatus] = useState<"ONLINE" | "OFFLINE">(
-    "OFFLINE"
+  const [socket, setSocket] = useState<ReconnectingWebSocket | null>(null);
+  const [socketStatus, setSocketStatus] = useState<ConnectionState>(
+    "DISCONNECTED"
   );
-  const maxRetries = 5; // Maximum number of retries
-  const retryDelay = 2000; // Delay between retries in ms
+  const [messageQueueSize, setMessageQueueSize] = useState(0);
 
   // Suggestions
   const [currentSuggestions, setCurrentSuggestions] = useState<Suggestion[]>([]);
@@ -128,143 +128,98 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     : "No Config found";
 
   /**
-   * Connect to the WebSocket with exponential backoff.
+   * Connect to the WebSocket with automatic reconnection.
    */
   useEffect(() => {
-    let isComponentMounted = true;
-    let cleanupFn: (() => void) | undefined;
+    const ws = new ReconnectingWebSocket("/ws/generate_stream", {
+      maxRetries: 5,
+      initialRetryDelay: 1000,
+      maxRetryDelay: 30000,
+      heartbeatInterval: 30000,
+      reconnectOnError: true,
+      messageQueueSize: 10,
+    });
 
-    const connectWebSocket = async (attempt: number = 1) => {
-      if (!isComponentMounted) return;
-      const socketHost = getWebSocketApiHost();
-      const localSocket = new WebSocket(socketHost);
-
-      // Exponential backoff with jitter
-      const baseDelay = 1000 * Math.pow(2, attempt - 1);
-      const jitter = Math.random() * 1000;
-      const backoffDelay = Math.min(baseDelay + jitter, 30000); // Max 30s
-
-      localSocket.onopen = () => {
-        if (!isComponentMounted) {
-          localSocket.close(1000, "Unmounted");
-          return;
-        }
-        console.log("WebSocket connection opened to " + socketHost);
-        setSocketStatus("ONLINE");
-      };
-
-      localSocket.onmessage = (event) => {
-        if (!isComponentMounted) return;
-        let data: WebSocketMessage;
-
-        // If we aren't actively fetching, ignore
-        if (!isFetching.current) {
-          setPreviewText("");
-          return;
-        }
-
-        try {
-          data = JSON.parse(event.data);
-        } catch (e) {
-          console.error("Received data is not valid JSON:", event.data);
-          return;
-        }
-
-        const newMessageContent = data.message;
-        setPreviewText((prev) => prev + newMessageContent);
-
-        if (data.finish_reason === "stop") {
-          isFetching.current = false;
-          setFetchingStatus("DONE");
-          addStatusMessage("Finished generation", "SUCCESS");
-          const full_text = data.full_text;
-          if (data.cached) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                type: "system",
-                content: full_text || "",
-                cached: true,
-                distance: data.distance,
-                runId: data.runId,
-              },
-            ]);
-          } else {
-            setMessages((prev) => [
-              ...prev,
-              {
-                type: "system",
-                content: full_text || "",
-                runId: data.runId,
-              },
-            ]);
-          }
-          setPreviewText("");
-        }
-      };
-
-      localSocket.onerror = (error) => {
-        if (!isComponentMounted) return;
-        console.error("WebSocket Error:", error);
-        setSocketStatus("OFFLINE");
-      };
-
-      localSocket.onclose = (event) => {
-        if (!isComponentMounted) return;
-        setSocketStatus("OFFLINE");
-
-        if (event.wasClean) {
-          console.log(
-            `WebSocket closed cleanly, code=${event.code}, reason=${event.reason}`
-          );
-          // Don't reconnect on clean close
-          return;
-        }
-
-        console.error("WebSocket connection died");
-
-        if (attempt < maxRetries) {
-          console.log(
-            `Retrying WebSocket connection... Attempt ${attempt + 1} in ${backoffDelay}ms`
-          );
-          setTimeout(() => {
-            if (isComponentMounted) {
-              connectWebSocket(attempt + 1);
-            }
-          }, backoffDelay);
-        } else {
-          console.log("Max retry attempts reached. Please check your connection.");
-          addStatusMessage("Connection lost. Please refresh the page.", "ERROR");
-        }
-      };
-
-      setSocket(localSocket);
-
-      // Ping/pong keepalive
-      const pingInterval = setInterval(() => {
-        if (localSocket.readyState === WebSocket.OPEN) {
-          localSocket.send(JSON.stringify({ type: "ping" }));
-        }
-      }, 30000);
-
-      cleanupFn = () => {
-        clearInterval(pingInterval);
-        if (localSocket.readyState !== WebSocket.CLOSED) {
-          localSocket.close(1000, "Unmounting");
-        }
-      };
-    };
-
-    connectWebSocket();
-
-    return () => {
-      isComponentMounted = false;
-      if (cleanupFn) cleanupFn();
-      if (socket && socket.readyState !== WebSocket.CLOSED) {
-        socket.close(1000, "Unmounting");
+    // Set up event handlers
+    ws.on("stateChange", (newState: ConnectionState) => {
+      setSocketStatus(newState);
+      if (newState === "DISCONNECTED" || newState === "ERROR") {
+        addStatusMessage("WebSocket disconnected", "WARNING");
+      } else if (newState === "CONNECTED") {
+        addStatusMessage("WebSocket connected", "SUCCESS");
       }
+    });
+
+    ws.on("message", (data: WebSocketMessage | { type: string }) => {
+      // If we aren't actively fetching, ignore messages
+      if (!isFetching.current) {
+        setPreviewText("");
+        return;
+      }
+
+      const wsMessage = data as WebSocketMessage;
+      const newMessageContent = wsMessage.message;
+      setPreviewText((prev) => prev + newMessageContent);
+
+      if (wsMessage.finish_reason === "stop") {
+        isFetching.current = false;
+        setFetchingStatus("DONE");
+        addStatusMessage("Finished generation", "SUCCESS");
+        const full_text = wsMessage.full_text;
+        if (wsMessage.cached) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              type: "system",
+              content: full_text || "",
+              cached: true,
+              distance: wsMessage.distance,
+              runId: wsMessage.runId,
+            },
+          ]);
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            {
+              type: "system",
+              content: full_text || "",
+              runId: wsMessage.runId,
+            },
+          ]);
+        }
+        setPreviewText("");
+      }
+    });
+
+    ws.on("error", (error) => {
+      console.error("WebSocket Error:", error);
+    });
+
+    ws.on("close", (event) => {
+      if (event.wasClean) {
+        console.log(
+          `WebSocket closed cleanly, code=${event.code}, reason=${event.reason}`
+        );
+      }
+    });
+
+    ws.on("messageQueued", () => {
+      setMessageQueueSize(ws.getQueueSize());
+    });
+
+    ws.on("sent", () => {
+      setMessageQueueSize(ws.getQueueSize());
+    });
+
+    // Connect the WebSocket
+    ws.connect();
+    setSocket(ws);
+
+    // Cleanup
+    return () => {
+      ws.disconnect();
     };
-  }, [addStatusMessage, maxRetries]);
+  }, [addStatusMessage]);
 
   /**
    * When RAGConfig changes, retrieve the current document count.
@@ -374,7 +329,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
    * @param context 
    */
   const streamResponses = (query?: string, context?: string) => {
-    if (socket?.readyState === WebSocket.OPEN) {
+    if (socket?.isConnected()) {
       const filteredMessages = messages
         // keep only user/system for context
         .filter((msg) => msg.type === "user" || msg.type === "system")
@@ -383,15 +338,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           content: msg.content as string,
         }));
 
-      const data = JSON.stringify({
+      const data = {
         query,
         context,
         conversation: filteredMessages,
         rag_config: RAGConfig,
-      });
+      };
       socket.send(data);
     } else {
-      console.error("WebSocket is not open. ReadyState:", socket?.readyState);
+      console.error("WebSocket is not connected. State:", socket?.getState());
+      addStatusMessage("WebSocket not connected. Message queued.", "WARNING");
     }
   };
 
@@ -434,8 +390,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
    * Button action to reconnect to the WebSocket.
    */
   const reconnectToVerba = () => {
-    setSocket(null);
-    // The useEffect that sets the WebSocket will re-run if socket is null
+    if (socket) {
+      socket.reconnect();
+    }
   };
 
   /**
@@ -569,6 +526,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             tooltip_text="Use the Chat interface to interact with your data and perform Retrieval Augmented Generation (RAG)."
             display_text="Chat"
           />
+          {/* Connection Status Indicator */}
+          <div className="flex items-center gap-2 ml-4">
+            <div className={`w-2 h-2 rounded-full ${
+              socketStatus === "CONNECTED" ? "bg-green-500" :
+              socketStatus === "CONNECTING" || socketStatus === "RECONNECTING" ? "bg-yellow-500 animate-pulse" :
+              "bg-red-500"
+            }`} />
+            <span className="text-xs text-text-alt-verba">
+              {socketStatus === "CONNECTED" ? "Connected" :
+               socketStatus === "CONNECTING" ? "Connecting..." :
+               socketStatus === "RECONNECTING" ? "Reconnecting..." :
+               "Disconnected"}
+            </span>
+            {messageQueueSize > 0 && (
+              <span className="text-xs text-warning-verba ml-2">
+                ({messageQueueSize} queued)
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="w-full md:w-fit flex gap-3 justify-end items-center">
@@ -777,7 +753,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Footer input / Reconnections */}
       <div className="bg-bg-alt-verba rounded-2xl flex flex-col md:flex-row gap-2 p-4 md:p-6 items-center justify-end h-min w-full">
-        {socketStatus === "ONLINE" ? (
+        {socketStatus === "CONNECTED" ? (
           <div className="flex flex-col w-full gap-2">
             <div className="flex items-center gap-2">
               <div className="relative w-full">
@@ -850,8 +826,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               className="flex btn border-none text-text-verba bg-button-verba hover:bg-button-hover-verba gap-2 items-center"
             >
               <TbPlugConnected size={15} />
-              <p>Reconnecting...</p>
-              <span className="loading loading-spinner loading-xs"></span>
+              <p>{socketStatus === "RECONNECTING" ? "Reconnecting..." : "Reconnect"}</p>
+              {socketStatus === "RECONNECTING" && (
+                <span className="loading loading-spinner loading-xs"></span>
+              )}
             </button>
           </div>
         )}

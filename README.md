@@ -50,8 +50,9 @@ Verba is a fully-customizable personal assistant utilizing [Retrieval Augmented 
 | Ollama (e.g. Llama3)              | ✅          | Local Embedding and Generation Models powered by Ollama |
 | HuggingFace (e.g. MiniLMEmbedder) | ✅          | Local Embedding Models powered by HuggingFace           |
 | Cohere (e.g. Command R+)          | ✅          | Embedding and Generation Models by Cohere               |
-| Anthrophic (e.g. Claude Sonnet)   | ✅          | Embedding and Generation Models by Anthrophic           |
-| OpenAI (e.g. GPT4)                | ✅          | Embedding and Generation Models by OpenAI               |
+| Anthropic (e.g. Claude 4 Opus)    | ✅          | Latest Claude 4 models with 200k context window         |
+| OpenAI (e.g. GPT-4o, o1)          | ✅          | Latest 2025 models with Responses API support           |
+| Google Gemini (e.g. 2.5 Flash)    | ✅          | Latest Gemini models via new genai client               |
 
 | 🤖 Embedding Support | Implemented | Description                              |
 | -------------------- | ----------- | ---------------------------------------- |

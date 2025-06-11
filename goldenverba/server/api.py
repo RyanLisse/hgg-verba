@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 import asyncio
 import logging
+import json
 
 
 
@@ -44,6 +45,7 @@ from goldenverba.server.types import (
     ChunksPayload,
     FeedbackPayload,
 )
+from datetime import datetime
 
 from langsmith import Client as LangSmithClient
 from uuid import UUID
@@ -163,6 +165,21 @@ async def health_check():
     )
 
 
+@app.get("/api/health/websocket")
+async def websocket_health():
+    """Check WebSocket server health."""
+    return JSONResponse(
+        content={
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "websocket_endpoints": [
+                "/ws/generate_stream",
+                "/ws/import_files"
+            ]
+        }
+    )
+
+
 @app.post("/api/connect")
 async def connect_to_verba(payload: ConnectPayload):
     try:
@@ -204,6 +221,17 @@ async def websocket_generate_stream(websocket: WebSocket):
     while True:  # Start a loop to keep the connection alive.
         try:
             data = await websocket.receive_text()
+            
+            # First, try to parse as JSON to check message type
+            try:
+                json_data = json.loads(data)
+                # Handle ping messages
+                if isinstance(json_data, dict) and json_data.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+                    continue
+            except json.JSONDecodeError:
+                pass
+            
             # Parse and validate the JSON string using Pydantic model
             payload = GeneratePayload.model_validate_json(data)
 
@@ -251,6 +279,17 @@ async def websocket_import_files(websocket: WebSocket):
     while True:
         try:
             data = await websocket.receive_text()
+            
+            # First, try to parse as JSON to check message type
+            try:
+                json_data = json.loads(data)
+                # Handle ping messages
+                if isinstance(json_data, dict) and json_data.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+                    continue
+            except json.JSONDecodeError:
+                pass
+            
             batch_data = DataBatchPayload.model_validate_json(data)
             fileConfig = batcher.add_batch(batch_data)
             if fileConfig is not None:
