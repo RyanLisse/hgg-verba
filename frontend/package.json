@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build && cp -r out/* ../goldenverba/server/frontend/out/ && rm -r out",
+    "build:vercel": "next build",
     "start": "next start -H 0.0.0.0 -p 8080",
     "lint": "next lint",
     "test": "bun test --preload ./test/setup.ts"

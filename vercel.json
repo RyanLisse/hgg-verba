@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "buildCommand": "cd frontend && npm install --legacy-peer-deps && npm run build:vercel",
+  "outputDirectory": "frontend/out",
+  "installCommand": "echo 'Skipping root install'"
+}
