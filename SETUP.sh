@@ -142,6 +142,45 @@ setup_venv() {
         print_success "Virtual environment created"
     else
         print_info "Virtual environment already exists"
+        
+        # Check for OS mismatch in pyvenv.cfg
+        if [[ -f ".venv/pyvenv.cfg" ]]; then
+            VENV_HOME=$(grep "^home = " .venv/pyvenv.cfg | cut -d' ' -f3-)
+            OS_MISMATCH=false
+            
+            # Check for cross-platform issues
+            if [[ "$OS" == "linux" ]] && [[ "$VENV_HOME" == *"macos"* || "$VENV_HOME" == "/Users/"* || "$VENV_HOME" == *"Darwin"* ]]; then
+                OS_MISMATCH=true
+                print_warning "Virtual environment was created on macOS but you're on Linux"
+            elif [[ "$OS" == "macos" ]] && [[ "$VENV_HOME" == "/home/"* || "$VENV_HOME" == "/usr/bin/python"* ]]; then
+                OS_MISMATCH=true
+                print_warning "Virtual environment was created on Linux but you're on macOS"
+            elif [[ "$OS" == "windows" ]] && [[ "$VENV_HOME" != *"Scripts"* && "$VENV_HOME" != *"Windows"* ]]; then
+                OS_MISMATCH=true
+                print_warning "Virtual environment was created on Unix but you're on Windows"
+            fi
+            
+            if [[ "$OS_MISMATCH" == true ]]; then
+                print_info "Recreating virtual environment for current OS..."
+                rm -rf .venv
+                
+                # Try using uv if available, otherwise use standard venv
+                if command_exists uv; then
+                    print_info "Using uv to create virtual environment..."
+                    if ! uv venv .venv; then
+                        print_error "Failed to recreate virtual environment with uv"
+                        exit 1
+                    fi
+                else
+                    if ! $PYTHON_CMD -m venv .venv; then
+                        print_error "Failed to recreate virtual environment"
+                        exit 1
+                    fi
+                fi
+                print_success "Virtual environment recreated for $OS"
+            fi
+        fi
+        
         # Check if it's valid
         if [[ "$OS" == "windows" ]]; then
             VENV_PYTHON=".venv/Scripts/python"
