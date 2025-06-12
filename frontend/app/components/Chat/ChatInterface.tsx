@@ -191,11 +191,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
     });
 
-    ws.on("error", (error) => {
+    ws.on("error", (error: Error) => {
       console.error("WebSocket Error:", error);
     });
 
-    ws.on("close", (event) => {
+    ws.on("close", (event: CloseEvent) => {
       if (event.wasClean) {
         console.log(
           `WebSocket closed cleanly, code=${event.code}, reason=${event.reason}`
