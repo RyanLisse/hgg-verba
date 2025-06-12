@@ -111,15 +111,66 @@ check_npm() {
 setup_venv() {
     print_info "Setting up Python virtual environment..."
     
+    # Check if venv module is available
+    if ! $PYTHON_CMD -c "import venv" 2>/dev/null; then
+        print_error "Python venv module is not available"
+        print_info "Try installing python3-venv package:"
+        if [[ "$OS" == "linux" ]]; then
+            print_info "  sudo apt-get install python3-venv  # For Ubuntu/Debian"
+            print_info "  sudo yum install python3-venv      # For RHEL/CentOS"
+        elif [[ "$OS" == "macos" ]]; then
+            print_info "  brew install python@3"
+        fi
+        exit 1
+    fi
+    
     if [[ ! -d ".venv" ]]; then
-        print_info "Creating virtual environment..."
-        $PYTHON_CMD -m venv .venv
+        # Try using uv if available, otherwise use standard venv
+        if command_exists uv; then
+            print_info "Creating virtual environment with uv..."
+            if ! uv venv .venv; then
+                print_error "Failed to create virtual environment with uv"
+                exit 1
+            fi
+        else
+            print_info "Creating virtual environment with $PYTHON_CMD..."
+            if ! $PYTHON_CMD -m venv .venv; then
+                print_error "Failed to create virtual environment"
+                exit 1
+            fi
+        fi
         print_success "Virtual environment created"
     else
         print_info "Virtual environment already exists"
+        # Check if it's valid
+        if [[ "$OS" == "windows" ]]; then
+            VENV_PYTHON=".venv/Scripts/python"
+        else
+            VENV_PYTHON=".venv/bin/python"
+        fi
+        
+        if [[ ! -f "$VENV_PYTHON" ]] && [[ ! -L "$VENV_PYTHON" ]]; then
+            print_warning "Virtual environment seems corrupted, recreating..."
+            rm -rf .venv
+            
+            # Try using uv if available, otherwise use standard venv
+            if command_exists uv; then
+                print_info "Using uv to create virtual environment..."
+                if ! uv venv .venv; then
+                    print_error "Failed to recreate virtual environment with uv"
+                    exit 1
+                fi
+            else
+                if ! $PYTHON_CMD -m venv .venv; then
+                    print_error "Failed to recreate virtual environment"
+                    exit 1
+                fi
+            fi
+            print_success "Virtual environment recreated"
+        fi
     fi
     
-    # Activate virtual environment
+    # Verify activation script exists
     if [[ "$OS" == "windows" ]]; then
         ACTIVATE_SCRIPT=".venv/Scripts/activate"
     else
@@ -130,6 +181,8 @@ setup_venv() {
         print_info "Virtual environment activation script: source $ACTIVATE_SCRIPT"
     else
         print_error "Could not find activation script at $ACTIVATE_SCRIPT"
+        print_info "Virtual environment structure:"
+        ls -la .venv/
         exit 1
     fi
 }
@@ -138,18 +191,62 @@ setup_venv() {
 install_backend() {
     print_info "Installing backend dependencies..."
     
-    # Ensure pip is up to date in the virtual environment
+    # Determine Python executable path
     if [[ "$OS" == "windows" ]]; then
-        .venv/Scripts/python -m pip install --upgrade pip
+        VENV_PYTHON=".venv/Scripts/python"
         PIP_CMD=".venv/Scripts/pip"
     else
-        .venv/bin/python -m pip install --upgrade pip
+        VENV_PYTHON=".venv/bin/python"
         PIP_CMD=".venv/bin/pip"
     fi
     
-    # Install package in development mode with dev extras
-    print_info "Installing Verba package in development mode..."
-    $PIP_CMD install -e ".[dev]"
+    # Check if virtual environment Python exists
+    if [[ ! -f "$VENV_PYTHON" ]] && [[ ! -L "$VENV_PYTHON" ]]; then
+        print_error "Virtual environment Python not found at $VENV_PYTHON"
+        print_info "Attempting to recreate virtual environment..."
+        rm -rf .venv
+        
+        # Try using uv if available, otherwise use standard venv
+        if command_exists uv; then
+            print_info "Using uv to create virtual environment..."
+            uv venv .venv
+        else
+            print_info "Using standard venv to create virtual environment..."
+            $PYTHON_CMD -m venv .venv
+        fi
+        
+        # Check again
+        if [[ ! -f "$VENV_PYTHON" ]] && [[ ! -L "$VENV_PYTHON" ]]; then
+            print_error "Failed to create virtual environment"
+            exit 1
+        fi
+    fi
+    
+    # For uv environments, use uv pip instead of regular pip if available
+    if command_exists uv && [[ -f ".venv/pyvenv.cfg" ]] && grep -q "uv = true" ".venv/pyvenv.cfg" 2>/dev/null; then
+        print_info "Detected uv virtual environment, using uv pip..."
+        print_info "Installing Verba package in development mode..."
+        uv pip install -e ".[dev]"
+    else
+        # Ensure pip is up to date in the virtual environment
+        print_info "Upgrading pip..."
+        $VENV_PYTHON -m pip install --upgrade pip
+        
+        # Check if pip command exists
+        if [[ ! -f "$PIP_CMD" ]] && [[ ! -L "$PIP_CMD" ]]; then
+            print_error "pip not found at $PIP_CMD"
+            print_info "Installing pip in virtual environment..."
+            $VENV_PYTHON -m ensurepip --upgrade
+        fi
+        
+        # Install package in development mode with dev extras
+        print_info "Installing Verba package in development mode..."
+        if [[ -f "$PIP_CMD" ]] || [[ -L "$PIP_CMD" ]]; then
+            $PIP_CMD install -e ".[dev]"
+        else
+            $VENV_PYTHON -m pip install -e ".[dev]"
+        fi
+    fi
     
     print_success "Backend dependencies installed"
 }
