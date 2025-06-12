@@ -2,6 +2,17 @@
 
 # SETUP.sh - Idempotent setup script for Verba project
 # This script can be run multiple times safely
+#
+# Supports multiple environments:
+# - Standard Linux/macOS/Windows development
+# - Docker containers
+# - codex-universal environment (https://github.com/openai/codex-universal)
+#
+# For codex-universal environments, the script will:
+# - Detect and use pyenv for Python version management
+# - Use nvm for Node.js version management
+# - Prefer uv for package management (pre-installed in codex-universal)
+# - Respect CODEX_ENV_* environment variables
 
 set -e  # Exit on error
 set -u  # Exit on undefined variable
@@ -31,7 +42,7 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Detect OS
+# Detect OS and environment
 detect_os() {
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         OS="linux"
@@ -43,6 +54,14 @@ detect_os() {
         OS="unknown"
     fi
     print_info "Detected OS: $OS"
+    
+    # Check if running in codex-universal environment
+    if [[ -n "$CODEX_ENV_PYTHON_VERSION" ]] || [[ -f "/.dockerenv" && -f "/usr/local/bin/setup_universal.sh" ]]; then
+        print_info "Detected codex-universal environment"
+        CODEX_ENV=true
+    else
+        CODEX_ENV=false
+    fi
 }
 
 # Check if command exists
@@ -54,7 +73,16 @@ command_exists() {
 check_python() {
     print_info "Checking Python installation..."
     
-    if command_exists python3; then
+    # In codex-universal, check for pyenv and use it if available
+    if [[ "$CODEX_ENV" == true ]] && command_exists pyenv; then
+        print_info "Using pyenv in codex-universal environment"
+        # Set the Python version if specified
+        if [[ -n "$CODEX_ENV_PYTHON_VERSION" ]]; then
+            print_info "Setting Python version to $CODEX_ENV_PYTHON_VERSION"
+            pyenv global "$CODEX_ENV_PYTHON_VERSION" || true
+        fi
+        PYTHON_CMD="python"
+    elif command_exists python3; then
         PYTHON_CMD="python3"
     elif command_exists python; then
         PYTHON_CMD="python"
@@ -79,6 +107,17 @@ check_python() {
 # Check Node.js version
 check_nodejs() {
     print_info "Checking Node.js installation..."
+    
+    # In codex-universal, check for nvm and use it if available
+    if [[ "$CODEX_ENV" == true ]] && [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+        print_info "Loading nvm in codex-universal environment"
+        source "$HOME/.nvm/nvm.sh"
+        # Set the Node version if specified
+        if [[ -n "$CODEX_ENV_NODE_VERSION" ]]; then
+            print_info "Using Node.js version $CODEX_ENV_NODE_VERSION"
+            nvm use "$CODEX_ENV_NODE_VERSION" || true
+        fi
+    fi
     
     if ! command_exists node; then
         print_error "Node.js is not installed. Please install Node.js 18 or higher."
@@ -116,8 +155,13 @@ setup_venv() {
         print_error "Python venv module is not available"
         print_info "Try installing python3-venv package:"
         if [[ "$OS" == "linux" ]]; then
-            print_info "  sudo apt-get install python3-venv  # For Ubuntu/Debian"
-            print_info "  sudo yum install python3-venv      # For RHEL/CentOS"
+            # In Docker/codex-universal, we might not have sudo
+            if [[ -f "/.dockerenv" ]] || [[ "$CODEX_ENV" == true ]]; then
+                print_info "  apt-get update && apt-get install -y python3-venv"
+            else
+                print_info "  sudo apt-get install python3-venv  # For Ubuntu/Debian"
+                print_info "  sudo yum install python3-venv      # For RHEL/CentOS"
+            fi
         elif [[ "$OS" == "macos" ]]; then
             print_info "  brew install python@3"
         fi
@@ -125,10 +169,14 @@ setup_venv() {
     fi
     
     if [[ ! -d ".venv" ]]; then
-        # Try using uv if available, otherwise use standard venv
+        # Try using uv if available (preferred in codex-universal), otherwise use standard venv
         if command_exists uv; then
             print_info "Creating virtual environment with uv..."
-            if ! uv venv .venv; then
+            # In codex-universal, uv is pre-installed and optimized
+            if [[ "$CODEX_ENV" == true ]]; then
+                print_info "Using uv in codex-universal environment"
+            fi
+            if ! uv venv .venv --python "$PYTHON_CMD"; then
                 print_error "Failed to create virtual environment with uv"
                 exit 1
             fi
@@ -167,7 +215,7 @@ setup_venv() {
                 # Try using uv if available, otherwise use standard venv
                 if command_exists uv; then
                     print_info "Using uv to create virtual environment..."
-                    if ! uv venv .venv; then
+                    if ! uv venv .venv --python "$PYTHON_CMD"; then
                         print_error "Failed to recreate virtual environment with uv"
                         exit 1
                     fi
@@ -195,7 +243,7 @@ setup_venv() {
             # Try using uv if available, otherwise use standard venv
             if command_exists uv; then
                 print_info "Using uv to create virtual environment..."
-                if ! uv venv .venv; then
+                if ! uv venv .venv --python "$PYTHON_CMD"; then
                     print_error "Failed to recreate virtual environment with uv"
                     exit 1
                 fi
@@ -248,7 +296,7 @@ install_backend() {
         # Try using uv if available, otherwise use standard venv
         if command_exists uv; then
             print_info "Using uv to create virtual environment..."
-            uv venv .venv
+            uv venv .venv --python "$PYTHON_CMD"
         else
             print_info "Using standard venv to create virtual environment..."
             $PYTHON_CMD -m venv .venv
@@ -262,9 +310,12 @@ install_backend() {
     fi
     
     # For uv environments, use uv pip instead of regular pip if available
-    if command_exists uv && [[ -f ".venv/pyvenv.cfg" ]] && grep -q "uv = true" ".venv/pyvenv.cfg" 2>/dev/null; then
-        print_info "Detected uv virtual environment, using uv pip..."
+    # Note: In codex-universal, uv is the preferred package manager
+    if command_exists uv && ([[ "$CODEX_ENV" == true ]] || ([[ -f ".venv/pyvenv.cfg" ]] && grep -q "uv = true" ".venv/pyvenv.cfg" 2>/dev/null)); then
+        print_info "Using uv for package installation..."
         print_info "Installing Verba package in development mode..."
+        # Ensure pip is available in the virtual environment first
+        uv pip install --quiet pip setuptools wheel
         uv pip install -e ".[dev]"
     else
         # Ensure pip is up to date in the virtual environment
