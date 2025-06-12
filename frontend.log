@@ -1,0 +1,55 @@
+$ next dev
+ ⚠ Specified "redirects" will not automatically work with "output: export". See more info here: https://nextjs.org/docs/messages/export-no-custom-routes
+ ⚠ Specified "redirects" will not automatically work with "output: export". See more info here: https://nextjs.org/docs/messages/export-no-custom-routes
+  ▲ Next.js 14.2.6
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ⚠ Specified "redirects" will not automatically work with "output: export". See more info here: https://nextjs.org/docs/messages/export-no-custom-routes
+ ⚠ Specified "redirects" will not automatically work with "output: export". See more info here: https://nextjs.org/docs/messages/export-no-custom-routes
+ ✓ Ready in 5.7s
+ ○ Compiling / ...
+The user aborted a request.
+
+Retrying 1/3...
+The user aborted a request.
+
+Retrying 1/3...
+The user aborted a request.
+
+Retrying 1/3...
+The user aborted a request.
+
+Retrying 1/3...
+The user aborted a request.
+
+Retrying 1/3...
+The user aborted a request.
+
+Retrying 1/3...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+warn - The `purge`/`content` options have changed in Tailwind CSS v3.0.
+warn - Update your configuration file to eliminate this warning.
+warn - https://tailwindcss.com/docs/upgrade-guide#configure-content-sources
+
+🌼   daisyUI 4.10.1
+├─ ✔︎ 2 themes added		https://daisyui.com/docs/themes
+╰─ ❤︎ Support daisyUI project:	https://opencollective.com/daisyui
+
+(node:3894) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ Compiled / in 23.5s (2977 modules)
+ GET / 200 in 24577ms
+ ✓ Compiled in 3.1s (1475 modules)
+ GET / 200 in 125ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 3.8s (2930 modules)
+ GET /static/icon.ico 404 in 4001ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 126ms
+ GET /api/health 404 in 159ms
+ ✓ Compiled in 1984ms (2941 modules)
+ ✓ Compiled in 1519ms (2941 modules)
+ ✓ Compiled in 1051ms (2941 modules)

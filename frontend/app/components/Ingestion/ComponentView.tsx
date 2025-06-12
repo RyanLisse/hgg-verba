@@ -127,6 +127,13 @@ const ComponentView: React.FC<ComponentViewProps> = ({
   blocked,
   skip_component,
 }) => {
+  // State to force re-render when RAGConfig changes
+  const [forceRender, setForceRender] = useState(0);
+
+  useEffect(() => {
+    setForceRender((prev) => prev + 1);
+  }, [RAGConfig]);
+
   function renderComponents(rag_config: RAGConfig) {
     return Object.entries(rag_config[component_name].components)
       .filter(([key, component]) => component.available)

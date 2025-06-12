@@ -35,3 +35,4 @@ venv/*
 .codewhisperer/
 agent_*.log
 *.agent.json
+.vercel

@@ -307,7 +307,7 @@ class VerbaManager:
                 )
                 for embedder in embedders
             },
-            "selected": list(embedders.values())[0].name,
+            "selected": "OpenAIEmbedder" if "OpenAIEmbedder" in [e.name for e in embedders.values()] else list(embedders.values())[0].name,
         }
 
         retrievers = self.retriever_manager.retrievers
@@ -329,7 +329,7 @@ class VerbaManager:
                 )
                 for generator in generators
             },
-            "selected": list(generators.values())[0].name,
+            "selected": "OpenAIGenerator" if "OpenAIGenerator" in [g.name for g in generators.values()] else list(generators.values())[0].name,
         }
 
         return {

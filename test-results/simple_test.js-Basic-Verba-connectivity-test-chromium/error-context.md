@@ -1,0 +1,44 @@
+# Page snapshot
+
+```yaml
+- main:
+  - img "Logo"
+  - paragraph: RoboRail Assistant
+  - paragraph: Powered by HGG
+  - button "Chat":
+    - img
+    - paragraph: Chat
+  - button "Import Data":
+    - img
+    - paragraph: Import Data
+  - button "Documents":
+    - img
+    - paragraph: Documents
+  - button "Settings":
+    - img
+    - paragraph: Settings
+  - button:
+    - img
+  - paragraph: Use the Chat interface to interact with your data and perform Retrieval Augmented Generation (RAG).
+  - paragraph: Chat
+  - button "Chat":
+    - img
+    - paragraph: Chat
+  - button "Config":
+    - img
+    - paragraph: Config
+  - button:
+    - img
+    - paragraph: Label
+  - img
+  - paragraph: 0 documents embedded by all-MiniLM-L6-v2
+  - textbox "No documents detected..."
+  - button:
+    - img
+  - button:
+    - img
+  - button "Feedback" [disabled]:
+    - img
+    - paragraph: Feedback
+- alert
+```
