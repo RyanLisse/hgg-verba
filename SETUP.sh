@@ -236,8 +236,21 @@ setup_venv() {
             VENV_PYTHON=".venv/bin/python"
         fi
         
-        if [[ ! -f "$VENV_PYTHON" ]] && [[ ! -L "$VENV_PYTHON" ]]; then
-            print_warning "Virtual environment seems corrupted, recreating..."
+        # Check for broken symlinks or missing files
+        VENV_CORRUPTED=false
+        if [[ -L "$VENV_PYTHON" ]]; then
+            # It's a symlink, check if it's broken
+            if [[ ! -e "$VENV_PYTHON" ]]; then
+                print_warning "Virtual environment has broken symlinks"
+                VENV_CORRUPTED=true
+            fi
+        elif [[ ! -f "$VENV_PYTHON" ]]; then
+            print_warning "Virtual environment Python executable not found"
+            VENV_CORRUPTED=true
+        fi
+        
+        if [[ "$VENV_CORRUPTED" == true ]]; then
+            print_info "Recreating virtual environment due to corruption..."
             rm -rf .venv
             
             # Try using uv if available, otherwise use standard venv
@@ -288,8 +301,19 @@ install_backend() {
     fi
     
     # Check if virtual environment Python exists
-    if [[ ! -f "$VENV_PYTHON" ]] && [[ ! -L "$VENV_PYTHON" ]]; then
+    VENV_CORRUPTED=false
+    if [[ -L "$VENV_PYTHON" ]]; then
+        # It's a symlink, check if it's broken
+        if [[ ! -e "$VENV_PYTHON" ]]; then
+            print_error "Virtual environment has broken symlinks at $VENV_PYTHON"
+            VENV_CORRUPTED=true
+        fi
+    elif [[ ! -f "$VENV_PYTHON" ]]; then
         print_error "Virtual environment Python not found at $VENV_PYTHON"
+        VENV_CORRUPTED=true
+    fi
+    
+    if [[ "$VENV_CORRUPTED" == true ]]; then
         print_info "Attempting to recreate virtual environment..."
         rm -rf .venv
         
@@ -303,7 +327,16 @@ install_backend() {
         fi
         
         # Check again
-        if [[ ! -f "$VENV_PYTHON" ]] && [[ ! -L "$VENV_PYTHON" ]]; then
+        STILL_CORRUPTED=false
+        if [[ -L "$VENV_PYTHON" ]]; then
+            if [[ ! -e "$VENV_PYTHON" ]]; then
+                STILL_CORRUPTED=true
+            fi
+        elif [[ ! -f "$VENV_PYTHON" ]]; then
+            STILL_CORRUPTED=true
+        fi
+        
+        if [[ "$STILL_CORRUPTED" == true ]]; then
             print_error "Failed to create virtual environment"
             exit 1
         fi
