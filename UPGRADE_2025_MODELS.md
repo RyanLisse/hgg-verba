@@ -5,12 +5,15 @@ This document describes the updates made to support the latest 2025 models and A
 ## OpenAI Updates
 
 ### Updated Models (OpenAIGenerator.py)
-- **GPT-4o mini** - Efficient model for simple tasks
-- **GPT-4o** - Optimized GPT-4 model
-- **GPT-4o-2024-11-20** - Latest stable GPT-4o release
+- **GPT-4.1-mini** - Default, fast and affordable
+- **GPT-4.1** - Flagship multimodal model
+- **GPT-4.1-nano** - Cheapest option
+- **o4-mini** - Legacy reasoning model
 - **o1** - New reasoning model
 - **o1-mini** - Smaller reasoning model
 - **o1-preview** - Preview of the o1 model
+- **GPT-4o-mini** - Older mini model
+- **GPT-4o** - Older model
 
 ### Context Window
 - Updated from 10,000 tokens to 128,000 tokens
@@ -37,12 +40,14 @@ This document describes the updates made to support the latest 2025 models and A
 ## Google Gemini Updates
 
 ### Updated Models (GeminiGenerator.py)
-- **gemini-2.5-flash-preview-05-20** - Latest Gemini 2.5 Flash preview (default)
-- **gemini-2.0-flash-exp** - Experimental Gemini 2.0 model
-- **gemini-1.5-pro-002** - Latest stable Gemini 1.5 Pro
-- **gemini-1.5-flash-002** - Fast, efficient model
-- **gemini-1.5-pro-latest** - Latest preview version
-- **gemini-1.5-flash-latest** - Latest flash preview
+- **gemini-2.5-pro-latest** - Default 2.5 Pro model
+- **gemini-2.5-flash-latest** - Default 2.5 Flash model
+- **gemini-2.5-pro-experimental** - Experimental 2.5 Pro
+- **gemini-2.5-flash-preview-05-20** - Previous preview version
+- **gemini-2.0-flash** - Multimodal model
+- **gemini-2.0-flash-lite** - Cost efficient
+- **gemini-1.5-pro-002** - Legacy stable model
+- **gemini-1.5-flash-002** - Legacy fast model
 
 ### API Migration
 - **Migrated from Vertex AI to new google.genai client**

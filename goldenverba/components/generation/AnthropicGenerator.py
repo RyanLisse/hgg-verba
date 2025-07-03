@@ -25,14 +25,13 @@ class AnthropicGenerator(Generator):
         # Claude 4 models support larger context windows
         self.context_window = 200000  # 200k tokens
         
-        # Latest Claude models as of June 2025
+        # Latest Claude models as of July 2025
         models = [
-            "claude-opus-4-20250514",      # Most capable model for coding and complex tasks
-            "claude-sonnet-4-20250514",    # High-performance with exceptional reasoning
-            "claude-3-7-sonnet-20250219",  # First hybrid reasoning model with thinking
-            "claude-3-7-sonnet-latest",    # Alias for latest 3.7 sonnet
-            "claude-3-5-haiku",            # Fast, cost-effective for simple tasks
-            "claude-3-5-sonnet",           # Previous generation balanced model
+            "claude-4-opus-20250514",      # Most capable model for coding and complex tasks
+            "claude-4-sonnet-20250514",    # Balanced performance and cost
+            "claude-4-haiku-20250514",     # Fast and efficient
+            "claude-3.5-sonnet-20241022",  # Previous generation for compatibility
+            "claude-3.5-haiku-20241022",   # Previous generation fast model
         ]
 
         self.config["Model"] = InputConfig(

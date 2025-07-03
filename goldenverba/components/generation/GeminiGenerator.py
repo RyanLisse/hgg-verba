@@ -32,10 +32,12 @@ class GeminiGenerator(Generator):
         ]
         self.streamable = True
         
-        # Available Gemini models as of June 2025
+        # Available Gemini models as of July 2025
         models = [
-            "gemini-2.5-pro-experimental",      # Most advanced with thinking capabilities
-            "gemini-2.5-flash-preview-05-20",   # Well-rounded with thinking capabilities
+            "gemini-2.5-pro-latest",            # Latest 2.5 Pro release
+            "gemini-2.5-flash-latest",          # Latest 2.5 Flash release
+            "gemini-2.5-pro-experimental",      # Experimental 2.5 Pro model
+            "gemini-2.5-flash-preview-05-20",   # Previous preview version
             "gemini-2.0-flash",                 # Multimodal with next-gen features
             "gemini-2.0-flash-lite",            # Optimized for cost efficiency
             "gemini-1.5-pro-002",               # Legacy stable model
@@ -89,7 +91,7 @@ class GeminiGenerator(Generator):
         if self.client is None:
             self.initialize_client(config)
         
-        model = config.get("Model", {"value": "gemini-2.5-flash-preview-05-20"}).value
+        model = config.get("Model", {"value": "gemini-2.5-pro-latest"}).value
         system_message = config.get("System Message", {"value": ""}).value
         
         # Prepare the content
@@ -168,7 +170,7 @@ class GeminiGenerator(Generator):
         if self.client is None:
             self.initialize_client(config)
         
-        model = config.get("Model", {"value": "gemini-2.5-flash-preview-05-20"}).value
+        model = config.get("Model", {"value": "gemini-2.5-pro-latest"}).value
         system_message = config.get("System Message", {"value": ""}).value
         
         # Prepare the content

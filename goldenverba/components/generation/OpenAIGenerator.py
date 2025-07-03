@@ -37,16 +37,17 @@ class OpenAIGenerator(Generator):
         # GPT-4.1 models support 1M tokens, o4/o3 models support various context windows
         self.context_window = 1000000  # 1M tokens for GPT-4.1 family
 
-        # Updated models for June 2025
+        # Updated models for July 2025
         models = [
-            "gpt-4.1-nano",      # Cheapest: $0.10/1M input tokens
-            "gpt-4.1-mini",      # Fast and affordable: 5x cheaper than GPT-4.1
+            "gpt-4.1-mini",      # Fast and affordable default
             "gpt-4.1",           # Flagship multimodal model
-            "o4-mini",           # Reasoning model
-            "o3-mini",           # Smaller reasoning model  
-            "o3",                # Advanced reasoning model
-            "gpt-4o-mini",       # Legacy model (still available)
-            "gpt-4o",            # Legacy model (still available)
+            "gpt-4.1-nano",      # Cheapest option
+            "o4-mini",           # Legacy reasoning model
+            "o1",                # New reasoning model
+            "o1-mini",           # Smaller reasoning model
+            "o1-preview",        # Preview of the o1 model
+            "gpt-4o-mini",       # Older mini model
+            "gpt-4o",            # Older model
         ]
 
         self.config["Model"] = InputConfig(
@@ -137,7 +138,7 @@ class OpenAIGenerator(Generator):
             await self.initialize_client(config)
 
         system_message = config.get("System Message").value
-        model = config.get("Model", {"value": "gpt-4o-mini"}).value
+        model = config.get("Model", {"value": "gpt-4.1-mini"}).value
 
         messages = self.prepare_messages(query, context, conversation, system_message)
 
