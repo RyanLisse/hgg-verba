@@ -42,12 +42,13 @@ setup(
         "langsmith>=0.1.118",
         "instructor>=1.4.1",
         "spacy==3.7.5",
-        "aiohttp==3.9.5",
+        "aiohttp>=3.10.0",
         "markdownify==0.13.1",
         "assemblyai==0.33.0",
         "beautifulsoup4==4.12.3",
         "langdetect==1.0.9",
         "anthropic>=0.34.0",  # For Claude 4 models
+        "litellm>=1.0.0",  # Unified LLM API for 100+ providers
     ],
     extras_require={
         "dev": ["pytest", "wheel", "twine", "black>=23.7.0", "setuptools"],

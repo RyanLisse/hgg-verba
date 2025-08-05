@@ -109,8 +109,8 @@ class OpenAIGenerator(Generator):
         )
         
         self.config["Temperature"] = InputConfig(
-            type="number",
-            value=0.7,
+            type="text",
+            value="0.7",
             description="Temperature for response generation (0.0-2.0)",
             values=[],
         )
@@ -183,7 +183,7 @@ class OpenAIGenerator(Generator):
             supports_image_thinking = model in ["o3", "o4-mini"]
             show_reasoning = config.get("Show Reasoning Traces", {}).get("value", True)
             enable_images = config.get("Enable Image Analysis", {}).get("value", False)
-            temperature = config.get("Temperature", {}).get("value", 0.7)
+            temperature = float(config.get("Temperature", {}).get("value", "0.7"))
             
             # Add image analysis capability for o3/o4-mini
             if supports_image_thinking and enable_images:

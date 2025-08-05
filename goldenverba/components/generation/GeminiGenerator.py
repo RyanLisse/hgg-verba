@@ -85,8 +85,8 @@ class GeminiGenerator(Generator):
         )
         
         self.config["Temperature"] = InputConfig(
-            type="number",
-            value=0.7,
+            type="text",
+            value="0.7",
             description="Temperature for response generation (0.0-2.0)",
             values=[],
         )

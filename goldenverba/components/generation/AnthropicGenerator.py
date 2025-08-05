@@ -75,8 +75,8 @@ class AnthropicGenerator(Generator):
         )
         
         self.config["Temperature"] = InputConfig(
-            type="number",
-            value=0.7,
+            type="text",
+            value="0.7",
             description="Control randomness (0.0-1.0)",
             values=[],
         )

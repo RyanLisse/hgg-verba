@@ -62,6 +62,7 @@ from goldenverba.components.generation.CohereGenerator import CohereGenerator
 from goldenverba.components.generation.AnthrophicGenerator import AnthropicGenerator
 from goldenverba.components.generation.OpenAIGenerator import OpenAIGenerator
 from goldenverba.components.generation.GeminiGenerator import GeminiGenerator
+from goldenverba.components.generation.LiteLLMGenerator import LiteLLMGenerator
 
 
 try:
@@ -99,6 +100,7 @@ if production != "Production":
     ]
     retrievers = [WindowRetriever()]
     generators = [
+        LiteLLMGenerator(),
         OpenAIGenerator(),
         AnthropicGenerator(),
         CohereGenerator(),
@@ -130,6 +132,7 @@ else:
     ]
     retrievers = [WindowRetriever()]
     generators = [
+        LiteLLMGenerator(),
         OpenAIGenerator(),
         AnthropicGenerator(),
         CohereGenerator(),

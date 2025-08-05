@@ -1,0 +1,65 @@
+{
+  "memories": [
+    {
+      "id": "mem_1754428854040_tog1k7med",
+      "content": "Starting migration of Verba server to LiteLLM integration. Goals: 1) Replace current LLM integrations with LiteLLM unified interface, 2) Connect to Railway-deployed Weaviate database, 3) Test setup via CLI, 4) Commit and push changes. Project location: /Users/neo/Developer/hgg-verba/goldenverba",
+      "type": "config",
+      "tags": [
+        "config",
+        "database",
+        "migration",
+        "litellm",
+        "weaviate",
+        "railway",
+        "verba"
+      ],
+      "timestamp": "2025-08-05T21:20:54.039Z",
+      "context": "LiteLLM migration for Verba RAG application",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-05T21:20:54.039Z",
+      "lastVerified": "2025-08-05T21:20:54.039Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1754428947836_4xrb0yuow",
+      "content": "LiteLLM analysis complete: Unified Python SDK for 100+ LLM providers with OpenAI-compatible API. Key features: async support with acompletion(), streaming with stream=True, unified interface across providers. Installation: pip install litellm. Perfect for Verba migration - can replace individual generator components with single LiteLLM interface supporting OpenAI, Anthropic, Azure, Ollama, HuggingFace, etc.",
+      "type": "config",
+      "tags": [
+        "config",
+        "python",
+        "api",
+        "litellm",
+        "unified",
+        "async",
+        "streaming"
+      ],
+      "timestamp": "2025-08-05T21:22:27.835Z",
+      "context": "LiteLLM research for Verba integration",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-05T21:22:27.835Z",
+      "lastVerified": "2025-08-05T21:22:27.835Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1754429474393_axmh4bpd8",
+      "content": "LiteLLM migration completed successfully! ✅ Created LiteLLMGenerator with unified API for 100+ providers, updated all generator configs to fix pydantic validation, added Railway Weaviate configuration, CLI now working. Components available: LiteLLM (first), OpenAI, Anthropic, Cohere, Gemini. Next: commit and push changes.",
+      "type": "config",
+      "tags": [
+        "config",
+        "api",
+        "success",
+        "litellm",
+        "generators",
+        "verba",
+        "cli"
+      ],
+      "timestamp": "2025-08-05T21:31:14.393Z",
+      "context": "Successful LiteLLM migration completion",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-05T21:31:14.393Z",
+      "lastVerified": "2025-08-05T21:31:14.393Z",
+      "status": "fresh"
+    }
+  ],
+  "lastUpdated": "2025-08-05T21:31:14.393Z"
+}
