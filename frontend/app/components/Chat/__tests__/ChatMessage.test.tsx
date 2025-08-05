@@ -10,7 +10,7 @@ describe("ChatMessage", () => {
   };
 
   const defaultProps = {
-    message_index: 0,
+    messageIndex: 0,
     selectedTheme: mockTheme,
     selectedDocument: null,
     setSelectedDocument: () => {},

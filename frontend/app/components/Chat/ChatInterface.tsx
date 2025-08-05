@@ -764,7 +764,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           {previewText && (
             <ChatMessage
               message={{ type: "system", content: previewText }}
-              message_index={-1}
+              messageIndex={-1}
               selectedTheme={selectedTheme}
               selectedDocument={selectedDocumentScore}
               setSelectedDocumentScore={setSelectedDocumentScore}

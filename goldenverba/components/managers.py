@@ -142,6 +142,9 @@ else:
 
 ### ----------------------- ###
 
+# Constants
+ALPHANUMERIC_REGEX_PATTERN = r"[^a-zA-Z0-9]"
+
 
 class WeaviateManager:
     def __init__(self):
@@ -281,7 +284,7 @@ class WeaviateManager:
 
         except Exception as e:
             msg.fail(f"Couldn't connect to Weaviate, check your URL/API KEY: {str(e)}")
-            raise Exception(
+            raise ConnectionError(
                 f"Couldn't connect to Weaviate, check your URL/API KEY: {str(e)}"
             )
 
@@ -340,7 +343,7 @@ class WeaviateManager:
     async def verify_embedding_collection(self, client: WeaviateAsyncClient, embedder):
         if embedder not in self.embedding_table:
             self.embedding_table[embedder] = "VERBA_Embedding_" + re.sub(
-                r"[^a-zA-Z0-9]", "_", embedder
+                ALPHANUMERIC_REGEX_PATTERN, "_", embedder
             )
             await self.verify_collection(client, self.embedding_table[embedder])
         return True
@@ -348,7 +351,7 @@ class WeaviateManager:
     async def verify_cache_collection(self, client: WeaviateAsyncClient, embedder):
         if embedder not in self.embedding_table:
             self.embedding_table[embedder] = "VERBA_Cache_" + re.sub(
-                r"[^a-zA-Z0-9]", "_", embedder
+                ALPHANUMERIC_REGEX_PATTERN, "_", embedder
             )
             await self.verify_collection(client, self.embedding_table[embedder])
         return True
@@ -361,7 +364,7 @@ class WeaviateManager:
                 if "Model" in embedder.config:
                     for _embedder in embedder.config["Model"].values:
                         self.embedding_table[_embedder] = "VERBA_Embedding_" + re.sub(
-                            r"[^a-zA-Z0-9]", "_", _embedder
+                            ALPHANUMERIC_REGEX_PATTERN, "_", _embedder
                         )
                         await self.verify_collection(
                             client, self.embedding_table[_embedder]
@@ -380,7 +383,7 @@ class WeaviateManager:
 
     ### Configuration Handling
 
-    async def get_config(self, client: WeaviateAsyncClient, uuid: str) -> dict:
+    async def get_config(self, client: WeaviateAsyncClient, uuid: str) -> dict | None:
         if await self.verify_collection(client, self.config_collection_name):
             config_collection = client.collections.get(self.config_collection_name)
             if await config_collection.data.exists(uuid):
@@ -442,7 +445,7 @@ class WeaviateManager:
                 ]
 
                 if chunk_response.has_errors:
-                    raise Exception(
+                    raise RuntimeError(
                         f"Failed to ingest chunks into Weaviate: {chunk_response.errors}"
                     )
 
@@ -455,18 +458,20 @@ class WeaviateManager:
                         await document_collection.data.delete_by_id(doc_uuid)
                         for _id in chunk_ids:
                             await embedder_collection.data.delete_by_id(_id)
-                        raise Exception(
+                        raise ValueError(
                             f"Chunk Mismatch detected after importing: Imported:{response.total_count} | Existing: {len(document.chunks)}"
                         )
 
             except Exception as e:
                 if doc_uuid:
                     await self.delete_document(client, doc_uuid)
-                raise Exception(f"Chunk import failed with : {str(e)}")
+                raise RuntimeError(f"Chunk import failed with : {str(e)}")
 
     ### Document CRUD
 
-    async def exist_document_name(self, client: WeaviateAsyncClient, name: str) -> str:
+    async def exist_document_name(
+        self, client: WeaviateAsyncClient, name: str
+    ) -> str | None:
         if await self.verify_collection(client, self.document_collection_name):
             document_collection = client.collections.get(self.document_collection_name)
             aggregation = await document_collection.aggregate.over_all(total_count=True)

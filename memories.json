@@ -529,7 +529,81 @@
       "lastAccessed": "2025-08-05T22:41:10.648Z",
       "lastVerified": "2025-08-05T22:41:10.648Z",
       "status": "fresh"
+    },
+    {
+      "id": "mem_1754433737507_unulr2ql5",
+      "content": "Successfully fixed ALL 12 npm vulnerabilities in /Users/neo/Developer/hgg-verba/frontend:\n\n## What was fixed:\n- **Critical vulnerabilities**: Next.js (authorization bypass, cache poisoning, DoS) and form-data (unsafe random function)\n- **High vulnerabilities**: braces (resource consumption), cross-spawn (ReDoS), tar-fs (path traversal) \n- **Moderate vulnerabilities**: @babel/runtime (RegExp complexity), brace-expansion (ReDoS), micromatch (ReDoS), postcss (line parsing), prismjs (DOM clobbering)\n\n## Solution approach:\n1. Used `npm audit fix --legacy-peer-deps` to fix most issues\n2. Used `npm audit fix --force` for breaking changes  \n3. Added package.json overrides section to force secure versions:\n   ```json\n   \"overrides\": {\n     \"prismjs\": \"^1.30.0\",\n     \"refractor\": \"^5.0.0\"\n   }\n   ```\n4. Fixed React Hooks violations (useRef calls inside useEffect)\n5. Fixed TypeScript prop name mismatches (message_index → messageIndex)\n\n## Result: \n- npm audit shows \"found 0 vulnerabilities\" \n- Build completes successfully (only warnings remain, no errors)\n- All critical and high severity issues resolved",
+      "type": "troubleshooting",
+      "tags": [
+        "troubleshooting",
+        "typescript",
+        "react",
+        "npm",
+        "security",
+        "vulnerabilities",
+        "verba",
+        "frontend",
+        "dependencies"
+      ],
+      "timestamp": "2025-08-05T22:42:17.507Z",
+      "context": "Fixed all 12 npm security vulnerabilities in hgg-verba frontend project",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-05T22:42:17.507Z",
+      "lastVerified": "2025-08-05T22:42:17.507Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1754433804376_gv1xwbqss",
+      "content": "Completed comprehensive frontend linting fixes for Verba project. Key accomplishments:\n\nFIXED CATEGORIES:\n1. noExplicitAny: Replaced 'any' types with proper TypeScript types in test/setup.ts\n2. noArrayIndexKey: Fixed React array key issues using proper unique identifiers (source_id, content-based keys)\n3. useNamingConvention: Fixed numerous naming convention issues:\n   - message_index → messageIndex \n   - true_text/false_text → trueText/falseText\n   - chat_interface_info → chatInterfaceInfo\n   - Font function names (Plus_Jakarta_Sans → plusJakartaSans, etc.)\n4. noBannedTypes: Replaced '{}' types with Record<string, never>\n5. noUnusedVariables: Prefixed unused variables with underscore\n6. useTemplate: Replaced string concatenation with template literals\n7. noDoubleEquals: Fixed == to === comparisons\n8. noConsoleLog: Commented out console.log statements\n\nPROGRESS: Reduced from 363 errors to ~303 errors (60+ errors fixed)\n\nREMAINING ISSUES: Mostly test files with empty block statements, more naming convention issues in test files, and some API property names that may be intentionally matching backend schema (like RAGConfig properties).\n\nThe most critical and widespread issues have been addressed systematically.",
+      "type": "warning",
+      "tags": [
+        "warning",
+        "typescript",
+        "react",
+        "api"
+      ],
+      "timestamp": "2025-08-05T22:43:24.376Z",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-05T22:43:24.376Z",
+      "lastVerified": "2025-08-05T22:43:24.376Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1754433860748_846beaku2",
+      "content": "Current status after fixes: Backend linting ✅ ALL CHECKS PASSED, Frontend vulnerabilities ✅ 0 found, Tests: 22 passed but 6 failed due to async test configuration issues (need @pytest.mark.asyncio decorators), Frontend build error from wrong directory.",
+      "type": "config",
+      "tags": [
+        "config",
+        "status",
+        "progress",
+        "tests",
+        "linting"
+      ],
+      "timestamp": "2025-08-05T22:44:20.748Z",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-05T22:44:20.748Z",
+      "lastVerified": "2025-08-05T22:44:20.748Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1754434041707_z7r28zcfs",
+      "content": "Found the issue with the failing async tests: The test_august_2025_generators.py and test_reasoning_generators.py files are standalone Python scripts that run with asyncio.run(main()), but pytest is trying to collect them as test functions because they contain functions starting with 'test_'. Need to convert them to proper pytest async test functions by adding @pytest.mark.asyncio decorators.",
+      "type": "troubleshooting",
+      "tags": [
+        "troubleshooting",
+        "python",
+        "pytest",
+        "asyncio",
+        "testing",
+        "verba"
+      ],
+      "timestamp": "2025-08-05T22:47:21.707Z",
+      "context": "Debugging async test failures in Verba project",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-05T22:47:21.707Z",
+      "lastVerified": "2025-08-05T22:47:21.707Z",
+      "status": "fresh"
     }
   ],
-  "lastUpdated": "2025-08-05T22:41:10.648Z"
+  "lastUpdated": "2025-08-05T22:47:21.707Z"
 }
