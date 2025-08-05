@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { ChunkScore, Message } from "@/app/types";
 import ReactMarkdown from "react-markdown";
 import { FaDatabase } from "react-icons/fa";
 import { BiError } from "react-icons/bi";
 import { IoNewspaper, IoDocumentAttach } from "react-icons/io5";
+import { FaBrain, FaChevronDown, FaChevronUp } from "react-icons/fa";
 
 import VerbaButton from "../Navigation/VerbaButton";
 
@@ -30,11 +31,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   setSelectedDocumentScore,
   setSelectedChunkScore,
 }) => {
+  const [showReasoning, setShowReasoning] = useState(false);
+
   const colorTable = {
     user: "bg-bg-verba",
     system: "bg-bg-alt-verba",
     error: "bg-warning-verba",
     retrieval: "bg-bg-verba",
+    thinking: "bg-blue-50 dark:bg-blue-900/20",
   };
 
   if (typeof message.content === "string") {
@@ -43,31 +47,68 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         className={`flex items-end gap-2 ${message.type === "user" ? "justify-end" : "justify-start"}`}
       >
         <div
-          className={`flex flex-col items-start p-5 rounded-3xl animate-press-in text-sm lg:text-base ${colorTable[message.type]}`}
+          className={`flex flex-col items-start p-5 rounded-3xl animate-press-in text-sm lg:text-base ${colorTable[message.type]} ${message.isThinking ? "border-2 border-blue-300 dark:border-blue-600" : ""}`}
         >
           {message.cached && (
             <FaDatabase size={12} className="text-text-verba" />
           )}
-          {message.type === "system" && (
-            <ReactMarkdown
-              className="prose md:prose-sm lg:prose-base p-3 prose-pre:bg-bg-alt-verba"
-              components={{
-                code({ node, inline, className, children, ...props }) {
-                  const match = /language-(\w+)/.exec(className || "");
-                  return !inline && match ? (
-                    <pre className={`language-${match[1]} p-4 rounded-lg overflow-x-auto ${selectedTheme.theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
-                      <code className={`language-${match[1]}`}>
-                        {String(children).replace(/\n$/, "")}
-                      </code>
-                    </pre>
-                  ) : (
-                    <code className={className}>{children}</code>
-                  );
-                },
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
+          {message.isThinking && (
+            <div className="flex items-center gap-2 mb-2 text-blue-600 dark:text-blue-400">
+              <FaBrain size={16} />
+              <span className="text-xs font-semibold">Thinking...</span>
+            </div>
+          )}
+          {(message.type === "system" || message.type === "thinking") && (
+            <>
+              {message.reasoningTrace && message.reasoningTrace.steps.length > 0 && (
+                <div className="w-full mb-3">
+                  <button
+                    onClick={() => setShowReasoning(!showReasoning)}
+                    className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                  >
+                    <FaBrain size={14} />
+                    <span>Reasoning Steps ({message.reasoningTrace.steps.length})</span>
+                    {showReasoning ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                  </button>
+                  {showReasoning && (
+                    <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+                      {message.reasoningTrace.steps.map((step, idx) => (
+                        <div key={idx} className="mb-2 last:mb-0">
+                          <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">Step {idx + 1}:</span>
+                          <p className="text-xs mt-1 text-gray-700 dark:text-gray-300">{step}</p>
+                        </div>
+                      ))}
+                      {message.reasoningTrace.confidence && (
+                        <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-700">
+                          <span className="text-xs text-blue-700 dark:text-blue-300">
+                            Confidence: {(message.reasoningTrace.confidence * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              <ReactMarkdown
+                className="prose md:prose-sm lg:prose-base p-3 prose-pre:bg-bg-alt-verba"
+                components={{
+                  code({ node, inline, className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || "");
+                    return !inline && match ? (
+                      <pre className={`language-${match[1]} p-4 rounded-lg overflow-x-auto ${selectedTheme.theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
+                        <code className={`language-${match[1]}`}>
+                          {String(children).replace(/\n$/, "")}
+                        </code>
+                      </pre>
+                    ) : (
+                      <code className={className}>{children}</code>
+                    );
+                  },
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </>
           )}
           {message.type === "user" && (
             <div className="whitespace-pre-wrap">{message.content}</div>
