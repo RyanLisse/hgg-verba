@@ -3,7 +3,7 @@ from goldenverba.components.types import InputConfig
 
 try:
     from sentence_transformers import SentenceTransformer
-except Exception as e:
+except Exception:
     pass
 
 

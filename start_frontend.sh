@@ -7,5 +7,5 @@ lsof -ti:3000 | xargs kill -9 2>/dev/null || true
 # Give it a moment to release the port
 sleep 1
 
-cd "$(dirname "$0")/frontend"
+cd "$(dirname "$0")/frontend" || exit
 bun dev

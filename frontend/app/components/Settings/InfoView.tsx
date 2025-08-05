@@ -212,10 +212,10 @@ const InfoView: React.FC<InfoViewProps> = ({
                     <span className="w-128 truncate">{collection.name}</span>
                     <span>{collection.count} objects</span>
                   </li>
-                ))}
+                 ))}
               </ul>
             ) : (
-              <span className="loading loading-dots loading-sm mt-2"></span>
+              <span className="loading loading-dots loading-sm mt-2"/>
             )}
           </div>
         </div>

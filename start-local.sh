@@ -24,7 +24,7 @@ command_exists() {
 
 # Function to check if port is available
 port_available() {
-    ! lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null 2>&1
+    ! lsof -Pi :"$1" -sTCP:LISTEN -t >/dev/null 2>&1
 }
 
 # Header

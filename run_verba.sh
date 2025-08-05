@@ -34,7 +34,7 @@ fi
 
 # Start frontend
 echo -e "${GREEN}Starting Frontend Server on http://localhost:3000${NC}"
-cd frontend
+cd frontend || exit
 bun dev &
 FRONTEND_PID=$!
 

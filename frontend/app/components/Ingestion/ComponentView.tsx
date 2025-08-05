@@ -26,7 +26,7 @@ export const MultiInput: React.FC<{
 
   useEffect(() => {
     updateConfig(component_name, config_title, currentValues);
-  }, [currentValues]);
+  }, [component_name, config_title, currentValues, updateConfig]);
 
   const addValue = (v: string) => {
     if (!currentValues.includes(v)) {

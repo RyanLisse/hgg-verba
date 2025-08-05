@@ -523,7 +523,7 @@ async def get_document(payload: GetDocumentPayload):
                 }
             )
         else:
-            msg.warn(f"Could't retrieve document")
+            msg.warn("Could't retrieve document")
             return JSONResponse(
                 content={
                     "error": "Couldn't retrieve requested document",
