@@ -333,7 +333,7 @@ class WeaviateManager:
     async def verify_collection(
         self, client: WeaviateAsyncClient, collection_name: str
     ):
-        if not await client.collections.exists(collection_name):
+        if not client.collections.exists(collection_name):
             msg.info(
                 f"Collection: {collection_name} does not exist, creating new collection."
             )
@@ -413,59 +413,89 @@ class WeaviateManager:
 
     ### Import Handling
 
+    async def _prepare_document_chunks(self, document: Document, doc_uuid: str):
+        """Prepare document chunks by setting doc_uuid, labels, and title."""
+        for chunk in document.chunks:
+            chunk.doc_uuid = doc_uuid
+            chunk.labels = document.labels
+            chunk.title = document.title
+
+    async def _insert_chunks_to_collection(
+        self, embedder_collection, document: Document
+    ):
+        """Insert chunks into the embedder collection and return chunk response and IDs."""
+        chunk_response = await embedder_collection.data.insert_many(
+            [
+                DataObject(properties=chunk.to_json(), vector=chunk.vector)
+                for chunk in document.chunks
+            ]
+        )
+
+        if chunk_response.has_errors:
+            raise RuntimeError(
+                f"Failed to ingest chunks into Weaviate: {chunk_response.errors}"
+            )
+
+        chunk_ids = [chunk_response.uuids[uuid] for uuid in chunk_response.uuids]
+        return chunk_response, chunk_ids
+
+    async def _verify_chunk_count(
+        self,
+        embedder_collection,
+        doc_uuid: str,
+        expected_count: int,
+        document_collection,
+        chunk_ids: list,
+    ):
+        """Verify that the imported chunk count matches expected count."""
+        response = await embedder_collection.aggregate.over_all(
+            filters=Filter.by_property("doc_uuid").equal(doc_uuid),
+            total_count=True,
+        )
+
+        if response.total_count != expected_count:
+            await document_collection.data.delete_by_id(doc_uuid)
+            for chunk_id in chunk_ids:
+                await embedder_collection.data.delete_by_id(chunk_id)
+            raise ValueError(
+                f"Chunk Mismatch detected after importing: "
+                f"Imported:{response.total_count} | Existing: {expected_count}"
+            )
+
     async def import_document(
         self, client: WeaviateAsyncClient, document: Document, embedder: str
     ):
-        if await self.verify_collection(
-            client, self.document_collection_name
-        ) and await self.verify_embedding_collection(client, embedder):
-            document_collection = client.collections.get(self.document_collection_name)
-            embedder_collection = client.collections.get(self.embedding_table[embedder])
+        if not (
+            await self.verify_collection(client, self.document_collection_name)
+            and await self.verify_embedding_collection(client, embedder)
+        ):
+            return
 
-            ### Import Document
-            document_obj = Document.to_json(document)
-            doc_uuid = await document_collection.data.insert(document_obj)
+        document_collection = client.collections.get(self.document_collection_name)
+        embedder_collection = client.collections.get(self.embedding_table[embedder])
 
-            chunk_ids = []
+        document_obj = Document.to_json(document)
+        doc_uuid = await document_collection.data.insert(document_obj)
 
-            try:
-                for chunk in document.chunks:
-                    chunk.doc_uuid = doc_uuid
-                    chunk.labels = document.labels
-                    chunk.title = document.title
+        try:
+            await self._prepare_document_chunks(document, doc_uuid)
+            chunk_response, chunk_ids = await self._insert_chunks_to_collection(
+                embedder_collection, document
+            )
 
-                chunk_response = await embedder_collection.data.insert_many(
-                    [
-                        DataObject(properties=chunk.to_json(), vector=chunk.vector)
-                        for chunk in document.chunks
-                    ]
+            if doc_uuid and chunk_response:
+                await self._verify_chunk_count(
+                    embedder_collection,
+                    doc_uuid,
+                    len(document.chunks),
+                    document_collection,
+                    chunk_ids,
                 )
-                chunk_ids = [
-                    chunk_response.uuids[uuid] for uuid in chunk_response.uuids
-                ]
 
-                if chunk_response.has_errors:
-                    raise RuntimeError(
-                        f"Failed to ingest chunks into Weaviate: {chunk_response.errors}"
-                    )
-
-                if doc_uuid and chunk_response:
-                    response = await embedder_collection.aggregate.over_all(
-                        filters=Filter.by_property("doc_uuid").equal(doc_uuid),
-                        total_count=True,
-                    )
-                    if response.total_count != len(document.chunks):
-                        await document_collection.data.delete_by_id(doc_uuid)
-                        for _id in chunk_ids:
-                            await embedder_collection.data.delete_by_id(_id)
-                        raise ValueError(
-                            f"Chunk Mismatch detected after importing: Imported:{response.total_count} | Existing: {len(document.chunks)}"
-                        )
-
-            except Exception as e:
-                if doc_uuid:
-                    await self.delete_document(client, doc_uuid)
-                raise RuntimeError(f"Chunk import failed with : {str(e)}")
+        except Exception as e:
+            if doc_uuid:
+                await self.delete_document(client, doc_uuid)
+            raise RuntimeError(f"Chunk import failed with : {str(e)}")
 
     ### Document CRUD
 
@@ -522,7 +552,7 @@ class WeaviateManager:
                 await config_collection.data.delete_by_id(item.uuid)
 
     async def delete_all(self, client: WeaviateAsyncClient):
-        node_payload, collection_payload = await self.get_metadata(client)
+        _, collection_payload = await self.get_metadata(client)
         for collection in collection_payload["collections"]:
             if "VERBA" in collection["name"]:
                 await client.collections.delete(collection["name"])
@@ -531,22 +561,22 @@ class WeaviateManager:
         self,
         client: WeaviateAsyncClient,
         query: str,
-        pageSize: int,
+        page_size: int,
         page: int,
         labels: list[str],
         properties: list[str] = None,
-    ) -> list[dict]:
+    ) -> tuple[list[dict], int]:
         if await self.verify_collection(client, self.document_collection_name):
-            offset = pageSize * (page - 1)
+            offset = page_size * (page - 1)
             document_collection = client.collections.get(self.document_collection_name)
 
             if len(labels) > 0:
-                filter = Filter.by_property("labels").contains_all(labels)
+                query_filter = Filter.by_property("labels").contains_all(labels)
             else:
-                filter = None
+                query_filter = None
 
             response = await document_collection.aggregate.over_all(
-                total_count=True, filters=filter
+                total_count=True, filters=query_filter
             )
 
             if response.total_count == 0:
@@ -557,18 +587,18 @@ class WeaviateManager:
             if query == "":
                 total_count = response.total_count
                 response = await document_collection.query.fetch_objects(
-                    limit=pageSize,
+                    limit=page_size,
                     offset=offset,
                     return_properties=properties,
                     sort=Sort.by_property("title", ascending=True),
-                    filters=filter,
+                    filters=query_filter,
                 )
             else:
                 response = await document_collection.query.bm25(
                     query=query,
-                    limit=pageSize,
+                    limit=page_size,
                     offset=offset,
-                    filters=filter,
+                    filters=query_filter,
                     return_properties=properties,
                 )
 
@@ -583,7 +613,7 @@ class WeaviateManager:
 
     async def get_document(
         self, client: WeaviateAsyncClient, uuid: str, properties: list[str] = None
-    ) -> list[dict]:
+    ) -> dict | None:
         if await self.verify_collection(client, self.document_collection_name):
             document_collection = client.collections.get(self.document_collection_name)
 
@@ -613,7 +643,7 @@ class WeaviateManager:
 
     async def get_chunk(
         self, client: WeaviateAsyncClient, uuid: str, embedder: str
-    ) -> list[dict]:
+    ) -> dict | None:
         if await self.verify_embedding_collection(client, embedder):
             embedder_collection = client.collections.get(self.embedding_table[embedder])
             if await embedder_collection.data.exists(uuid):
@@ -624,10 +654,10 @@ class WeaviateManager:
                 return None
 
     async def get_chunks(
-        self, client: WeaviateAsyncClient, uuid: str, page: int, pageSize: int
+        self, client: WeaviateAsyncClient, uuid: str, page: int, page_size: int
     ) -> list[dict]:
         if await self.verify_collection(client, self.document_collection_name):
-            offset = pageSize * (page - 1)
+            offset = page_size * (page - 1)
 
             document = await self.get_document(client, uuid, properties=["meta"])
             if document is None:
@@ -643,7 +673,7 @@ class WeaviateManager:
 
                 weaviate_chunks = await embedder_collection.query.fetch_objects(
                     filters=Filter.by_property("doc_uuid").equal(uuid),
-                    limit=pageSize,
+                    limit=page_size,
                     offset=offset,
                     sort=Sort.by_property("chunk_id", ascending=True),
                 )
@@ -652,132 +682,124 @@ class WeaviateManager:
                     chunk["doc_uuid"] = str(chunk["doc_uuid"])
                 return chunks
 
-    async def get_vectors(
-        self, client: WeaviateAsyncClient, uuid: str, showAll: bool
-    ) -> dict:
-        document = await self.get_document(client, uuid, properties=["meta", "title"])
+    async def _get_single_document_vectors(self, embedder_collection, uuid: str, document: dict, embedder: str) -> dict:
+        """Get vectors for a single document using pre-computed PCA."""
+        batch_size = 250
+        all_chunks = []
+        offset = 0
 
+        while True:
+            weaviate_chunks = await embedder_collection.query.fetch_objects(
+                filters=Filter.by_property("doc_uuid").equal(uuid),
+                limit=batch_size,
+                offset=offset,
+                return_properties=["chunk_id", "pca"],
+                include_vector=True,
+            )
+
+            all_chunks.extend(weaviate_chunks.objects)
+
+            if len(weaviate_chunks.objects) < batch_size:
+                break
+
+            offset += batch_size
+
+        dimensions = len(all_chunks[0].vector["default"])
+
+        chunks = [
+            {
+                "vector": {"x": pca[0], "y": pca[1], "z": pca[2]},
+                "uuid": str(item.uuid),
+                "chunk_id": item.properties["chunk_id"],
+            }
+            for item in all_chunks
+            if (pca := item.properties["pca"]) is not None
+        ]
+        return {
+            "embedder": embedder,
+            "dimensions": dimensions,
+            "groups": [{"name": document["title"], "chunks": chunks}],
+        }
+
+    async def _collect_all_vectors(self, client: WeaviateAsyncClient, embedder_collection) -> tuple[dict, list, int]:
+        """Collect vectors from all documents and build vector map."""
+        vector_map = {}
+        vector_list, vector_ids, vector_chunk_uuids, vector_chunk_ids = [], [], [], []
+        dimensions = 0
+
+        async for item in embedder_collection.iterator(include_vector=True):
+            doc_uuid = item.properties["doc_uuid"]
+            chunk_uuid = item.uuid
+            
+            if doc_uuid not in vector_map:
+                _document = await self.get_document(client, doc_uuid)
+                if _document:
+                    vector_map[doc_uuid] = {"name": _document["title"], "chunks": []}
+                else:
+                    continue
+                    
+            vector_list.append(item.vector["default"])
+            dimensions = len(item.vector["default"])
+            vector_ids.append(doc_uuid)
+            vector_chunk_uuids.append(chunk_uuid)
+            vector_chunk_ids.append(item.properties["chunk_id"])
+
+        return vector_map, [vector_list, vector_ids, vector_chunk_uuids, vector_chunk_ids], dimensions
+
+    async def _generate_pca_vectors(self, vector_map: dict, vector_data: list, dimensions: int, embedder: str) -> dict:
+        """Generate PCA embeddings and build result structure."""
+        vector_list, vector_ids, vector_chunk_uuids, vector_chunk_ids = vector_data
+        
+        if len(vector_ids) > 3:
+            pca = PCA(n_components=3, random_state=42)
+            generated_pca_embeddings = pca.fit_transform(vector_list)
+            pca_embeddings = [pca_.tolist() for pca_ in generated_pca_embeddings]
+
+            for pca_embedding, _uuid, _chunk_uuid, _chunk_id in zip(
+                pca_embeddings, vector_ids, vector_chunk_uuids, vector_chunk_ids
+            ):
+                vector_map[_uuid]["chunks"].append({
+                    "vector": {
+                        "x": pca_embedding[0],
+                        "y": pca_embedding[1],
+                        "z": pca_embedding[2],
+                    },
+                    "uuid": str(_chunk_uuid),
+                    "chunk_id": _chunk_id,
+                })
+
+            return {
+                "embedder": embedder,
+                "dimensions": dimensions,
+                "groups": list(vector_map.values()),
+            }
+        else:
+            return {
+                "embedder": embedder,
+                "dimensions": dimensions,
+                "groups": [],
+            }
+
+    async def get_vectors(
+        self, client: WeaviateAsyncClient, uuid: str, show_all: bool
+    ) -> dict | None:
+        document = await self.get_document(client, uuid, properties=["meta", "title"])
         if document is None:
             return None
 
         embedding_config = json.loads(document.get("meta"))["Embedder"]
         embedder = embedding_config["config"]["Model"]["value"]
 
-        if await self.verify_embedding_collection(client, embedder):
-            embedder_collection = client.collections.get(self.embedding_table[embedder])
+        if not await self.verify_embedding_collection(client, embedder):
+            return None
+            
+        embedder_collection = client.collections.get(self.embedding_table[embedder])
 
-            if not showAll:
-                batch_size = 250
-                all_chunks = []
-                offset = 0
-                total_time = 0
-                call_count = 0
-
-                while True:
-                    call_start_time = asyncio.get_event_loop().time()
-                    weaviate_chunks = await embedder_collection.query.fetch_objects(
-                        filters=Filter.by_property("doc_uuid").equal(uuid),
-                        limit=batch_size,
-                        offset=offset,
-                        return_properties=["chunk_id", "pca"],
-                        include_vector=True,
-                    )
-                    call_end_time = asyncio.get_event_loop().time()
-                    call_duration = call_end_time - call_start_time
-                    total_time += call_duration
-                    call_count += 1
-
-                    all_chunks.extend(weaviate_chunks.objects)
-
-                    if len(weaviate_chunks.objects) < batch_size:
-                        break
-
-                    offset += batch_size
-
-                dimensions = len(all_chunks[0].vector["default"])
-
-                chunks = [
-                    {
-                        "vector": {"x": pca[0], "y": pca[1], "z": pca[2]},
-                        "uuid": str(item.uuid),
-                        "chunk_id": item.properties["chunk_id"],
-                    }
-                    for item in all_chunks
-                    if (pca := item.properties["pca"]) is not None
-                ]
-                return {
-                    "embedder": embedder,
-                    "dimensions": dimensions,
-                    "groups": [{"name": document["title"], "chunks": chunks}],
-                }
-
-            # Generate PCA for all embeddings
-            else:
-                vector_map = {}
-                vector_list, vector_ids, vector_chunk_uuids, vector_chunk_ids = (
-                    [],
-                    [],
-                    [],
-                    [],
-                )
-                dimensions = 0
-
-                async for item in embedder_collection.iterator(include_vector=True):
-                    doc_uuid = item.properties["doc_uuid"]
-                    chunk_uuid = item.uuid
-                    if doc_uuid not in vector_map:
-                        _document = await self.get_document(client, doc_uuid)
-                        if _document:
-                            vector_map[doc_uuid] = {
-                                "name": _document["title"],
-                                "chunks": [],
-                            }
-                        else:
-                            continue
-                    vector_list.append(item.vector["default"])
-                    dimensions = len(item.vector["default"])
-                    vector_ids.append(doc_uuid)
-                    vector_chunk_uuids.append(chunk_uuid)
-                    vector_chunk_ids.append(item.properties["chunk_id"])
-
-                if len(vector_ids) > 3:
-                    pca = PCA(n_components=3)
-                    generated_pca_embeddings = pca.fit_transform(vector_list)
-                    pca_embeddings = [
-                        pca_.tolist() for pca_ in generated_pca_embeddings
-                    ]
-
-                    for pca_embedding, _uuid, _chunk_uuid, _chunk_id in zip(
-                        pca_embeddings,
-                        vector_ids,
-                        vector_chunk_uuids,
-                        vector_chunk_ids,
-                    ):
-                        vector_map[_uuid]["chunks"].append(
-                            {
-                                "vector": {
-                                    "x": pca_embedding[0],
-                                    "y": pca_embedding[1],
-                                    "z": pca_embedding[2],
-                                },
-                                "uuid": str(_chunk_uuid),
-                                "chunk_id": _chunk_id,
-                            }
-                        )
-
-                    return {
-                        "embedder": embedder,
-                        "dimensions": dimensions,
-                        "groups": list(vector_map.values()),
-                    }
-                else:
-                    return {
-                        "embedder": embedder,
-                        "dimensions": dimensions,
-                        "groups": [],
-                    }
-
-        return None
+        if not show_all:
+            return await self._get_single_document_vectors(embedder_collection, uuid, document, embedder)
+        else:
+            vector_map, vector_data, dimensions = await self._collect_all_vectors(client, embedder_collection)
+            return await self._generate_pca_vectors(vector_map, vector_data, dimensions, embedder)
 
     async def hybrid_chunks(
         self,
@@ -888,15 +910,15 @@ class WeaviateManager:
             return return_suggestions
 
     async def retrieve_all_suggestions(
-        self, client: WeaviateAsyncClient, page: int, pageSize: int
+        self, client: WeaviateAsyncClient, page: int, page_size: int
     ):
         if await self.verify_collection(client, self.suggestion_collection_name):
             suggestion_collection = client.collections.get(
                 self.suggestion_collection_name
             )
-            offset = pageSize * (page - 1)
+            offset = page_size * (page - 1)
             suggestions = await suggestion_collection.query.fetch_objects(
-                limit=pageSize,
+                limit=page_size,
                 offset=offset,
                 sort=Sort.by_property("timestamp", ascending=False),
             )

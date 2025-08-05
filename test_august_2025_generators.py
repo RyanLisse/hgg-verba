@@ -199,21 +199,9 @@ async def test_gemini_deep_think():
         print(f"❌ Error: {e}")
 
 
-@pytest.mark.asyncio
-@pytest.mark.skipif(
-    not IMPORTS_AVAILABLE, reason="goldenverba components not available"
-)
-async def test_quick_comparison():
-    """Quick comparison of all three generators with latest models."""
-    print("\n" + "=" * 60)
-    print("⚡ Quick Comparison - Latest Models (August 2025)")
-    print("=" * 60)
-
-    query = "What is 42 + 58?"
-    context = "Simple arithmetic calculation."
-
-    # Test configurations for each provider
-    configs = [
+def _get_test_configurations():
+    """Get test configurations for each provider."""
+    return [
         (
             "OpenAI GPT-4.1",
             OpenAIGenerator(),
@@ -245,29 +233,53 @@ async def test_quick_comparison():
         ),
     ]
 
+
+def _add_api_key_to_config(name, config):
+    """Add API key to config if available."""
+    if "OpenAI" in name and os.getenv("OPENAI_API_KEY"):
+        config["API Key"] = {"value": os.getenv("OPENAI_API_KEY")}
+    elif "Anthropic" in name and os.getenv("ANTHROPIC_API_KEY"):
+        config["API Key"] = {"value": os.getenv("ANTHROPIC_API_KEY")}
+
+
+async def _test_single_generator(name, generator, config, query, context):
+    """Test a single generator configuration."""
+    print(f"\n📍 Testing {name}...")
+
+    _add_api_key_to_config(name, config)
+
+    try:
+        response = ""
+        async for chunk in generator.generate_stream(config, query, context, []):
+            if chunk.get("type") == "content" or (
+                chunk.get("type") is None and chunk.get("message")
+            ):
+                response += chunk["message"]
+            if chunk.get("finish_reason") == "stop":
+                break
+
+        print(f"   Answer: {response.strip()}")
+
+    except Exception as e:
+        print(f"   ❌ Error: {str(e)[:100]}")
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    not IMPORTS_AVAILABLE, reason="goldenverba components not available"
+)
+async def test_quick_comparison():
+    """Quick comparison of all three generators with latest models."""
+    print("\n" + "=" * 60)
+    print("⚡ Quick Comparison - Latest Models (August 2025)")
+    print("=" * 60)
+
+    query = "What is 42 + 58?"
+    context = "Simple arithmetic calculation."
+    configs = _get_test_configurations()
+
     for name, generator, config in configs:
-        print(f"\n📍 Testing {name}...")
-
-        # Add API keys if available
-        if "OpenAI" in name and os.getenv("OPENAI_API_KEY"):
-            config["API Key"] = {"value": os.getenv("OPENAI_API_KEY")}
-        elif "Anthropic" in name and os.getenv("ANTHROPIC_API_KEY"):
-            config["API Key"] = {"value": os.getenv("ANTHROPIC_API_KEY")}
-
-        try:
-            response = ""
-            async for chunk in generator.generate_stream(config, query, context, []):
-                if chunk.get("type") == "content" or (
-                    chunk.get("type") is None and chunk.get("message")
-                ):
-                    response += chunk["message"]
-                if chunk.get("finish_reason") == "stop":
-                    break
-
-            print(f"   Answer: {response.strip()}")
-
-        except Exception as e:
-            print(f"   ❌ Error: {str(e)[:100]}")
+        await _test_single_generator(name, generator, config, query, context)
 
 
 @pytest.mark.asyncio
@@ -285,6 +297,11 @@ async def test_main():
     print("2. Anthropic Claude Opus 4")
     print("3. Google Gemini 2.5 Deep Think")
     print("4. Quick Comparison of Latest Models")
+
+    if not IMPORTS_AVAILABLE:
+        print("\n⚠️  Skipping all tests - goldenverba components not available")
+        print("   Install goldenverba package to run these tests")
+        return
 
     # Run quick comparison first
     await test_quick_comparison()

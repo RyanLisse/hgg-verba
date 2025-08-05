@@ -2,11 +2,11 @@
 
 import type { ChunksPayload, Theme, VerbaChunk } from "@/app/types";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import ReactMarkdown from "react-markdown";
 
-import { fetch_chunks } from "@/app/api";
+import { fetchChunks } from "@/app/api";
 import type { Credentials } from "@/app/types";
 
 import VerbaButton from "../Navigation/VerbaButton";
@@ -28,27 +28,63 @@ const ChunkView: React.FC<ChunkViewProps> = ({
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
   const [isPreviousDisabled, setIsPreviousDisabled] = useState(true);
 
-  useEffect(() => {
-    fetchChunks(page);
-    setIsPreviousDisabled(page === 1 && currentChunkIndex === 0);
-  }, [page, currentChunkIndex]);
-
-  useEffect(() => {
-    fetchChunks(1);
-    setCurrentChunkIndex(0);
-    setIsPreviousDisabled(page === 1 && currentChunkIndex === 0);
-  }, [selectedDocument]);
-
   const pageSize = 10;
+
+  const fetchChunksData = useCallback(
+    async (pageNumber: number) => {
+      try {
+        setIsFetching(true);
+
+        const data: ChunksPayload | null = await fetchChunks(
+          selectedDocument,
+          pageNumber,
+          pageSize,
+          credentials
+        );
+
+        if (data) {
+          if (data.error !== "") {
+            console.error(data.error);
+            setIsFetching(false);
+            setChunks([]);
+            return false; // No more chunks available
+          }
+          setChunks(data.chunks);
+          setIsFetching(false);
+          return data.chunks.length > 0; // Return true if chunks were fetched
+        }
+        return false; // No more chunks available
+      } catch (error) {
+        console.error("Failed to fetch document:", error);
+        setIsFetching(false);
+        return false; // No more chunks available
+      }
+    },
+    [selectedDocument, credentials]
+  );
+
+  useEffect(() => {
+    fetchChunksData(page);
+    setIsPreviousDisabled(page === 1 && currentChunkIndex === 0);
+  }, [page, currentChunkIndex, fetchChunksData]);
+
+  useEffect(() => {
+    if (selectedDocument) {
+      fetchChunksData(1);
+      setCurrentChunkIndex(0);
+      setPage(1);
+      setIsPreviousDisabled(true);
+    }
+  }, [selectedDocument, fetchChunksData]);
 
   const nextChunk = async () => {
     if (currentChunkIndex === chunks.length - 1) {
-      const hasMoreChunks = await fetchChunks(page + 1);
+      const hasMoreChunks = await fetchChunksData(page + 1);
       if (hasMoreChunks) {
         setPage((prev) => prev + 1);
         setCurrentChunkIndex(0);
       } else {
-        await fetchChunks(1);
+        await fetchChunksData(1);
         setPage(1);
         setCurrentChunkIndex(0);
       }
@@ -61,7 +97,7 @@ const ChunkView: React.FC<ChunkViewProps> = ({
     if (currentChunkIndex === 0) {
       if (page > 1) {
         const prevPage = page - 1;
-        const hasChunks = await fetchChunks(prevPage);
+        const hasChunks = await fetchChunksData(prevPage);
         if (hasChunks) {
           setPage(prevPage);
           setCurrentChunkIndex(pageSize - 1);
@@ -70,10 +106,10 @@ const ChunkView: React.FC<ChunkViewProps> = ({
         let lastPage = page;
         let hasMoreChunks = true;
         while (hasMoreChunks) {
-          hasMoreChunks = await fetchChunks(lastPage + 1);
+          hasMoreChunks = await fetchChunksData(lastPage + 1);
           if (hasMoreChunks) lastPage++;
         }
-        await fetchChunks(lastPage);
+        await fetchChunksData(lastPage);
         setPage(lastPage);
         setCurrentChunkIndex(chunks.length - 1);
       }
@@ -82,43 +118,12 @@ const ChunkView: React.FC<ChunkViewProps> = ({
     }
   };
 
-  const fetchChunks = async (pageNumber: number) => {
-    try {
-      setIsFetching(true);
-
-      const data: ChunksPayload | null = await fetch_chunks(
-        selectedDocument,
-        pageNumber,
-        pageSize,
-        credentials
-      );
-
-      if (data) {
-        if (data.error !== "") {
-          console.error(data.error);
-          setIsFetching(false);
-          setChunks([]);
-          return false; // No more chunks available
-        } else {
-          setChunks(data.chunks);
-          setIsFetching(false);
-          return data.chunks.length > 0; // Return true if chunks were fetched
-        }
-      }
-      return false; // No more chunks available
-    } catch (error) {
-      console.error("Failed to fetch document:", error);
-      setIsFetching(false);
-      return false; // No more chunks available
-    }
-  };
-
-  if (chunks.length == 0) {
+  if (chunks.length === 0) {
     return (
       <div>
         {isFetching && (
           <div className="flex items-center justify-center text-text-verba gap-2 h-full">
-            <span className="loading loading-spinner loading-sm"></span>
+            <span className="loading loading-spinner loading-sm" />
           </div>
         )}
       </div>

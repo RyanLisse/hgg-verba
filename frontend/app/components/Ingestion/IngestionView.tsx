@@ -37,7 +37,7 @@ const IngestionView: React.FC<IngestionViewProps> = ({
   const [fileMap, setFileMap] = useState<FileMap>({});
   const [selectedFileData, setSelectedFileData] = useState<string | null>(null);
   const [reconnect, setReconnect] = useState(false);
-  const [socket, setSocket] = useState<ReconnectingWebSocket | null>(null);
+  const [socket, setSocket] = useState<WebSocket | ReconnectingWebSocket | null>(null);
   const [socketStatus, setSocketStatus] =
     useState<ConnectionState>("DISCONNECTED");
   const [messageQueueSize, setMessageQueueSize] = useState(0);
@@ -69,12 +69,12 @@ const IngestionView: React.FC<IngestionViewProps> = ({
           return;
         }
         console.log("Import WebSocket connection opened to " + socketHost);
-        setSocketStatus("ONLINE");
+        setSocketStatus("CONNECTED");
       };
 
       localSocket.onmessage = (event) => {
         if (!isComponentMounted) return;
-        setSocketStatus("ONLINE");
+        setSocketStatus("CONNECTED");
         try {
           const data: StatusReport | CreateNewDocument | { type: string } =
             JSON.parse(event.data);
@@ -107,12 +107,12 @@ const IngestionView: React.FC<IngestionViewProps> = ({
       localSocket.onerror = (error) => {
         if (!isComponentMounted) return;
         console.error("Import WebSocket Error:", error);
-        setSocketStatus("OFFLINE");
+        setSocketStatus("DISCONNECTED");
       };
 
       localSocket.onclose = (event) => {
         if (!isComponentMounted) return;
-        setSocketStatus("OFFLINE");
+        setSocketStatus("DISCONNECTED");
         setSocketErrorStatus();
 
         if (event.wasClean) {
@@ -168,7 +168,7 @@ const IngestionView: React.FC<IngestionViewProps> = ({
     return () => {
       isComponentMounted = false;
       if (cleanupFn) cleanupFn();
-      if (socket && socket.readyState !== WebSocket.CLOSED) {
+      if (socket && 'readyState' in socket && socket.readyState !== WebSocket.CLOSED) {
         socket.close(1000, "Component unmounting");
       }
     };
@@ -271,7 +271,7 @@ const IngestionView: React.FC<IngestionViewProps> = ({
   };
 
   const sendDataBatches = (data: string, fileID: string) => {
-    if (socket?.readyState === WebSocket.OPEN) {
+    if (socket && 'readyState' in socket && socket.readyState === WebSocket.OPEN) {
       setInitialStatus(fileID);
       const chunkSize = 2000; // Define chunk size (in bytes)
       const batches = [];
@@ -300,7 +300,7 @@ const IngestionView: React.FC<IngestionViewProps> = ({
         );
       });
     } else {
-      console.error("WebSocket is not open. ReadyState:", socket?.readyState);
+      console.error("WebSocket is not open. ReadyState:", socket && 'readyState' in socket ? socket.readyState : 'unknown');
       setReconnect((prevState) => !prevState);
     }
   };
@@ -320,7 +320,7 @@ const IngestionView: React.FC<IngestionViewProps> = ({
           setSelectedFileData={setSelectedFileData}
           importSelected={importSelected}
           importAll={importAll}
-          socketStatus={socketStatus}
+          socketStatus={socketStatus === "CONNECTED" ? "ONLINE" : "OFFLINE"}
           reconnect={reconnectToVerba}
         />
       </div>

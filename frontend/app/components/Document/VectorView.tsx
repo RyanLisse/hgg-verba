@@ -9,7 +9,7 @@ import * as three from "three";
 
 import { vectorToColor } from "./util";
 
-import { fetch_chunk, fetch_vectors } from "@/app/api";
+import { fetchChunk, fetchVectors } from "@/app/api";
 
 import type {
   ChunkPayload,
@@ -191,7 +191,7 @@ const VectorView: React.FC<VectorViewProps> = ({
 
   useEffect(() => {
     if (selectedDocument) {
-      fetchVectors();
+      fetchVectorsData();
     } else {
       setVectors([]);
     }
@@ -199,7 +199,7 @@ const VectorView: React.FC<VectorViewProps> = ({
 
   useEffect(() => {
     if (selectedChunk) {
-      fetchChunk();
+      fetchChunkData();
     } else {
       setChunk(null);
     }
@@ -219,9 +219,9 @@ const VectorView: React.FC<VectorViewProps> = ({
     return vectorCount;
   };
 
-  const fetchChunk = async () => {
+  const fetchChunkData = async () => {
     try {
-      const data: ChunkPayload | null = await fetch_chunk(
+      const data: ChunkPayload | null = await fetchChunk(
         selectedChunk,
         embedder,
         credentials
@@ -241,11 +241,11 @@ const VectorView: React.FC<VectorViewProps> = ({
     }
   };
 
-  const fetchVectors = async () => {
+  const fetchVectorsData = async () => {
     try {
       setIsFetching(true);
 
-      const data: VectorsPayload | null = await fetch_vectors(
+      const data: VectorsPayload | null = await fetchVectors(
         selectedDocument,
         showAll,
         credentials

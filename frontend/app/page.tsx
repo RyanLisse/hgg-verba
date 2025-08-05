@@ -245,8 +245,8 @@ export default function Home() {
             <ChatView
               addStatusMessage={addStatusMessage}
               credentials={credentials}
-              RAGConfig={RAGConfig}
-              setRAGConfig={setRAGConfig}
+              ragConfig={RAGConfig}
+              setRagConfig={setRAGConfig}
               production={production}
               selectedTheme={selectedTheme}
               currentPage={currentPage}
