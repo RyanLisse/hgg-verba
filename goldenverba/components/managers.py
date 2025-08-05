@@ -152,23 +152,23 @@ class WeaviateManager:
 
     ### Connection Handling
 
-    async def connect_to_cluster(self, w_url, w_key):
-        # Check if this is a local deployment (no API key and localhost/docker URL)
-        is_local = (
-            not w_key or 
-            w_key == "" or 
-            (w_url and (
-                "localhost" in w_url or 
-                "127.0.0.1" in w_url or
-                "weaviate" in w_url or
-                "host.docker.internal" in w_url
-            ))
+    def connect_to_cluster(self, w_url, w_key):
+        # Check if this is a local deployment (localhost/docker URL)
+        is_local = w_url and (
+            "localhost" in w_url
+            or "127.0.0.1" in w_url
+            or w_url.startswith("http://weaviate")
+            or "host.docker.internal" in w_url
         )
-        
-        if is_local and w_url:
+
+        # Check if this is an external deployment with anonymous access (like Railway)
+        is_external_anonymous = w_url and not is_local and (not w_key or w_key == "")
+
+        if is_local:
             msg.info(f"Connecting to Local Weaviate at {w_url}")
             # Extract just the host from the URL
             from urllib.parse import urlparse
+
             parsed = urlparse(w_url)
             host = parsed.hostname or "localhost"
             port = parsed.port or 8080
@@ -179,6 +179,29 @@ class WeaviateManager:
                     timeout=Timeout(init=60, query=300, insert=300)
                 ),
             )
+        elif is_external_anonymous:
+            msg.info(f"Connecting to External Weaviate (anonymous) at {w_url}")
+            # Parse URL for external deployment with anonymous access (e.g., Railway)
+            from urllib.parse import urlparse
+
+            parsed = urlparse(w_url)
+            host = parsed.hostname
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            secure = parsed.scheme == "https"
+
+            client = weaviate.connect_to_custom(
+                http_host=host,
+                http_port=port,
+                http_secure=secure,
+                grpc_host=host,
+                grpc_port=50051,  # gRPC port (may not be available for Railway)
+                grpc_secure=secure,
+                skip_init_checks=True,  # Skip gRPC health checks for Railway
+                additional_config=AdditionalConfig(
+                    timeout=Timeout(init=60, query=300, insert=300)
+                ),
+            )
+            return client
         elif w_url is not None and w_key is not None:
             msg.info(f"Connecting to Weaviate Cloud {w_url} with Auth")
             return weaviate.use_async_with_weaviate_cloud(
@@ -189,10 +212,10 @@ class WeaviateManager:
                 ),
             )
         else:
-            raise Exception("No URL provided for Weaviate connection")
+            raise ValueError("No URL provided for Weaviate connection")
 
     async def connect_to_docker(self, w_url):
-        msg.info(f"Connecting to Weaviate Docker")
+        msg.info("Connecting to Weaviate Docker")
         return weaviate.use_async_with_local(
             host=w_url,
             additional_config=AdditionalConfig(
@@ -201,7 +224,7 @@ class WeaviateManager:
         )
 
     async def connect_to_embedded(self):
-        msg.info(f"Connecting to Weaviate Embedded")
+        msg.info("Connecting to Weaviate Embedded")
         return weaviate.use_async_with_embedded(
             additional_config=AdditionalConfig(
                 timeout=Timeout(init=60, query=300, insert=300)
@@ -212,7 +235,6 @@ class WeaviateManager:
         self, deployment: str, weaviateURL: str, weaviateAPIKey: str
     ) -> WeaviateAsyncClient:
         try:
-
             if deployment == "Weaviate":
                 if weaviateURL == "" and os.environ.get("WEAVIATE_URL_VERBA"):
                     weaviateURL = os.environ.get("WEAVIATE_URL_VERBA")
@@ -220,7 +242,7 @@ class WeaviateManager:
                 if weaviateAPIKey == "" and os.environ.get("WEAVIATE_API_KEY_VERBA"):
                     weaviateAPIKey = os.environ.get("WEAVIATE_API_KEY_VERBA")
 
-                client = await self.connect_to_cluster(weaviateURL, weaviateAPIKey)
+                client = self.connect_to_cluster(weaviateURL, weaviateAPIKey)
             elif deployment == "Docker":
                 client = await self.connect_to_docker("weaviate")
             elif deployment == "Local":
@@ -251,7 +273,6 @@ class WeaviateManager:
     ### Metadata
 
     async def get_metadata(self, client: WeaviateAsyncClient):
-
         # Node Information
         nodes = await client.cluster.nodes(output="verbose")
         node_payload = {"node_count": 0, "weaviate_version": "", "nodes": []}
@@ -577,9 +598,7 @@ class WeaviateManager:
     async def get_chunks(
         self, client: WeaviateAsyncClient, uuid: str, page: int, pageSize: int
     ) -> list[dict]:
-
         if await self.verify_collection(client, self.document_collection_name):
-
             offset = pageSize * (page - 1)
 
             document = await self.get_document(client, uuid, properties=["meta"])
@@ -608,7 +627,6 @@ class WeaviateManager:
     async def get_vectors(
         self, client: WeaviateAsyncClient, uuid: str, showAll: bool
     ) -> dict:
-
         document = await self.get_document(client, uuid, properties=["meta", "title"])
 
         if document is None:
@@ -1078,7 +1096,7 @@ class EmbeddingManager:
                 await logger.send_report(
                     fileConfig.fileID,
                     FileStatus.EMBEDDING,
-                    f"Vectorized all chunks",
+                    "Vectorized all chunks",
                     took=elapsed_time,
                 )
                 await logger.send_report(

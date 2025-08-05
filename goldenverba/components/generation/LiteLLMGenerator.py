@@ -11,17 +11,85 @@ from goldenverba.components.schemas import (
     ConfidenceLevel,
     SourceType,
 )
-import asyncio
 import instructor
 from instructor.mode import Mode
 import logging
 import time
-from typing import List, Optional, Dict, Any, AsyncIterator
+from typing import List, Dict, Any, AsyncIterator
 
 load_dotenv()
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# Constants for model names and configuration
+DEFAULT_MODEL = "openai/gpt-4o-mini"
+GPT_4O_LATEST = "openai/gpt-4o-2025-08-01"
+DEFAULT_TEMPERATURE = "0.7"
+DEFAULT_MAX_TOKENS = 4096
+DEFAULT_TOP_P = "1.0"
+DEFAULT_CONTEXT_WINDOW = 128000
+MAX_CITATIONS = 6
+MAX_TITLE_LENGTH = 100
+MAX_SNIPPET_LENGTH = 250
+MIN_SECTION_LENGTH = 80
+DEFAULT_CONFIDENCE = 0.8
+MAX_RETRIES = 2
+
+# Configuration key constants
+OPENAI_API_KEY = "OpenAI API Key"
+ANTHROPIC_API_KEY = "Anthropic API Key"
+GOOGLE_API_KEY = "Google API Key"
+COHERE_API_KEY = "Cohere API Key"
+GROQ_API_KEY = "Groq API Key"
+TOGETHER_API_KEY = "Together API Key"
+PERPLEXITY_API_KEY = "Perplexity API Key"
+AZURE_BASE_URL = "Azure Base URL"
+AZURE_API_VERSION = "Azure API Version"
+GOOGLE_PROJECT_ID = "Google Project ID"
+GOOGLE_REGION = "Google Region"
+OLLAMA_BASE_URL = "Ollama Base URL"
+USE_STRUCTURED_OUTPUT = "Use Structured Output"
+RESPONSE_FORMAT = "Response Format"
+ENABLE_COST_TRACKING = "Enable Cost Tracking"
+ENABLE_REASONING_TRACES = "Enable Reasoning Traces"
+TEMPERATURE = "Temperature"
+MAX_TOKENS = "Max Tokens"
+TOP_P = "Top P"
+MODEL = "Model"
+SYSTEM_MESSAGE = "System Message"
+
+# API Key configuration constants
+API_KEY_CONFIGS = {
+    OPENAI_API_KEY: {
+        "env_var": "OPENAI_API_KEY",
+        "description": "OpenAI API Key (for OpenAI models)",
+    },
+    ANTHROPIC_API_KEY: {
+        "env_var": "ANTHROPIC_API_KEY",
+        "description": "Anthropic API Key (for Claude models)",
+    },
+    GOOGLE_API_KEY: {
+        "env_var": "GOOGLE_API_KEY",
+        "description": "Google API Key (for Gemini models)",
+    },
+    COHERE_API_KEY: {
+        "env_var": "COHERE_API_KEY",
+        "description": "Cohere API Key (for Command models)",
+    },
+    GROQ_API_KEY: {
+        "env_var": "GROQ_API_KEY",
+        "description": "Groq API Key (for Groq models)",
+    },
+    TOGETHER_API_KEY: {
+        "env_var": "TOGETHER_API_KEY",
+        "description": "Together AI API Key",
+    },
+    PERPLEXITY_API_KEY: {
+        "env_var": "PERPLEXITY_API_KEY",
+        "description": "Perplexity API Key",
+    },
+}
 
 
 class LiteLLMGenerator(Generator):
@@ -34,17 +102,124 @@ class LiteLLMGenerator(Generator):
         super().__init__()
         self.name = "LiteLLM"
         self.description = "Enhanced LiteLLM generator with structured outputs supporting 100+ LLM providers"
-        self.context_window = 128000  # Default, model-specific
+        self.context_window = DEFAULT_CONTEXT_WINDOW  # Default, model-specific
 
         # Popular models across different providers (updated August 2025)
-        models = [
+        models = self._get_supported_models()
+
+        self.config[MODEL] = InputConfig(
+            type="dropdown",
+            value=GPT_4O_LATEST,  # Default to gpt-4o-2025-08-01 for reliability
+            description="Select a model from any supported LLM provider",
+            values=models,
+        )
+
+        # Provider-specific API Keys
+        self._setup_api_key_configs()
+
+        # Azure specific settings
+        self.config[AZURE_BASE_URL] = InputConfig(
+            type="text",
+            value=os.getenv("AZURE_API_BASE", ""),
+            description="Azure OpenAI Base URL",
+            values=[],
+        )
+
+        self.config[AZURE_API_VERSION] = InputConfig(
+            type="text",
+            value=os.getenv("AZURE_API_VERSION", "2024-02-15-preview"),
+            description="Azure OpenAI API Version",
+            values=[],
+        )
+
+        # Vertex AI settings
+        self.config[GOOGLE_PROJECT_ID] = InputConfig(
+            type="text",
+            value=os.getenv("GOOGLE_PROJECT_ID", ""),
+            description="Google Cloud Project ID (for Vertex AI)",
+            values=[],
+        )
+
+        self.config[GOOGLE_REGION] = InputConfig(
+            type="text",
+            value=os.getenv("GOOGLE_REGION", "us-central1"),
+            description="Google Cloud Region (for Vertex AI)",
+            values=[],
+        )
+
+        # Ollama settings
+        self.config[OLLAMA_BASE_URL] = InputConfig(
+            type="text",
+            value=os.getenv("OLLAMA_API_BASE", "http://localhost:11434"),
+            description="Ollama Base URL (for local models)",
+            values=[],
+        )
+
+        # Instructor configuration
+        self.config[USE_STRUCTURED_OUTPUT] = InputConfig(
+            type="bool",
+            value=True,
+            description="Use structured Pydantic models for enhanced responses",
+            values=[],
+        )
+
+        self.config[RESPONSE_FORMAT] = InputConfig(
+            type="dropdown",
+            value="enhanced",
+            description="Response format level",
+            values=["basic", "standard", "enhanced"],
+        )
+
+        # Advanced features
+        self.config[ENABLE_COST_TRACKING] = InputConfig(
+            type="bool",
+            value=True,
+            description="Track and display API costs",
+            values=[],
+        )
+
+        self.config[ENABLE_REASONING_TRACES] = InputConfig(
+            type="bool",
+            value=True,
+            description="Show reasoning process for supported models",
+            values=[],
+        )
+
+        self.config[TEMPERATURE] = InputConfig(
+            type="text",
+            value=DEFAULT_TEMPERATURE,
+            description="Control randomness (0.0-2.0)",
+            values=[],
+        )
+
+        self.config[MAX_TOKENS] = InputConfig(
+            type="number",
+            value=DEFAULT_MAX_TOKENS,
+            description="Maximum tokens in response",
+            values=[],
+        )
+
+        self.config[TOP_P] = InputConfig(
+            type="text",
+            value=DEFAULT_TOP_P,
+            description="Top P sampling parameter (0.0-1.0)",
+            values=[],
+        )
+
+        # Initialize clients
+        self.client = None
+        self.instructor_client = None
+
+    def _get_supported_models(self) -> List[str]:
+        """Get list of supported models across all providers."""
+        return [
             # OpenAI Models
             "openai/o3",  # Latest reasoning model
             "openai/o4-mini",  # Fast reasoning model
             "openai/gpt-4.1",  # Flagship model
             "openai/gpt-4.1-mini",  # Smaller variant
-            "openai/gpt-4o-2025-08-01",  # Latest GPT-4o
-            "openai/gpt-4o-mini",  # Cost-effective
+            GPT_4O_LATEST,  # Latest GPT-4o
+            DEFAULT_MODEL,  # Cost-effective
             "openai/o1-preview",  # Previous reasoning
             "openai/o1-mini",  # Smaller o1
             # Anthropic Models
@@ -89,155 +264,15 @@ class LiteLLMGenerator(Generator):
             "perplexity/llama-3.1-sonar-small-128k-online",
         ]
 
-        self.config["Model"] = InputConfig(
-            type="dropdown",
-            value=models[4],  # Default to gpt-4o-2025-08-01 for reliability
-            description="Select a model from any supported LLM provider",
-            values=models,
-        )
-
-        # Provider-specific API Keys
-        self.config["OpenAI API Key"] = InputConfig(
-            type="password",
-            value=os.getenv("OPENAI_API_KEY", ""),
-            description="OpenAI API Key (for OpenAI models)",
-            values=[],
-        )
-
-        self.config["Anthropic API Key"] = InputConfig(
-            type="password",
-            value=os.getenv("ANTHROPIC_API_KEY", ""),
-            description="Anthropic API Key (for Claude models)",
-            values=[],
-        )
-
-        self.config["Google API Key"] = InputConfig(
-            type="password",
-            value=os.getenv("GOOGLE_API_KEY", ""),
-            description="Google API Key (for Gemini models)",
-            values=[],
-        )
-
-        self.config["Cohere API Key"] = InputConfig(
-            type="password",
-            value=os.getenv("COHERE_API_KEY", ""),
-            description="Cohere API Key (for Command models)",
-            values=[],
-        )
-
-        self.config["Groq API Key"] = InputConfig(
-            type="password",
-            value=os.getenv("GROQ_API_KEY", ""),
-            description="Groq API Key (for Groq models)",
-            values=[],
-        )
-
-        self.config["Together API Key"] = InputConfig(
-            type="password",
-            value=os.getenv("TOGETHER_API_KEY", ""),
-            description="Together AI API Key",
-            values=[],
-        )
-
-        self.config["Perplexity API Key"] = InputConfig(
-            type="password",
-            value=os.getenv("PERPLEXITY_API_KEY", ""),
-            description="Perplexity API Key",
-            values=[],
-        )
-
-        # Azure specific settings
-        self.config["Azure Base URL"] = InputConfig(
-            type="text",
-            value=os.getenv("AZURE_API_BASE", ""),
-            description="Azure OpenAI Base URL",
-            values=[],
-        )
-
-        self.config["Azure API Version"] = InputConfig(
-            type="text",
-            value=os.getenv("AZURE_API_VERSION", "2024-02-15-preview"),
-            description="Azure OpenAI API Version",
-            values=[],
-        )
-
-        # Vertex AI settings
-        self.config["Google Project ID"] = InputConfig(
-            type="text",
-            value=os.getenv("GOOGLE_PROJECT_ID", ""),
-            description="Google Cloud Project ID (for Vertex AI)",
-            values=[],
-        )
-
-        self.config["Google Region"] = InputConfig(
-            type="text",
-            value=os.getenv("GOOGLE_REGION", "us-central1"),
-            description="Google Cloud Region (for Vertex AI)",
-            values=[],
-        )
-
-        # Ollama settings
-        self.config["Ollama Base URL"] = InputConfig(
-            type="text",
-            value=os.getenv("OLLAMA_API_BASE", "http://localhost:11434"),
-            description="Ollama Base URL (for local models)",
-            values=[],
-        )
-
-        # Instructor configuration
-        self.config["Use Structured Output"] = InputConfig(
-            type="bool",
-            value=True,
-            description="Use structured Pydantic models for enhanced responses",
-            values=[],
-        )
-
-        self.config["Response Format"] = InputConfig(
-            type="dropdown",
-            value="enhanced",
-            description="Response format level",
-            values=["basic", "standard", "enhanced"],
-        )
-
-        # Advanced features
-        self.config["Enable Cost Tracking"] = InputConfig(
-            type="bool",
-            value=True,
-            description="Track and display API costs",
-            values=[],
-        )
-
-        self.config["Enable Reasoning Traces"] = InputConfig(
-            type="bool",
-            value=True,
-            description="Show reasoning process for supported models",
-            values=[],
-        )
-
-        self.config["Temperature"] = InputConfig(
-            type="text",
-            value="0.7",
-            description="Control randomness (0.0-2.0)",
-            values=[],
-        )
-
-        self.config["Max Tokens"] = InputConfig(
-            type="number",
-            value=4096,
-            description="Maximum tokens in response",
-            values=[],
-        )
-
-        self.config["Top P"] = InputConfig(
-            type="text",
-            value="1.0",
-            description="Top P sampling parameter (0.0-1.0)",
-            values=[],
-        )
-
-        # Initialize clients
-        self.client = None
-        self.instructor_client = None
+    def _setup_api_key_configs(self) -> None:
+        """Set up API key configurations for all providers."""
+        for key_name, config_info in API_KEY_CONFIGS.items():
+            self.config[key_name] = InputConfig(
+                type="password",
+                value=os.getenv(config_info["env_var"], ""),
+                description=config_info["description"],
+                values=[],
+            )
 
     async def initialize_client(self, config):
         """Initialize LiteLLM instructor client."""
@@ -245,7 +280,7 @@ class LiteLLMGenerator(Generator):
             # Set up environment variables for LiteLLM
             self.setup_environment_variables(config)
 
-            model = config.get("Model", {"value": "openai/gpt-4o-mini"}).value
+            model = config.get(MODEL, {"value": DEFAULT_MODEL}).value
 
             # Initialize instructor client with LiteLLM provider
             self.instructor_client = instructor.from_provider(
@@ -262,18 +297,18 @@ class LiteLLMGenerator(Generator):
     def setup_environment_variables(self, config):
         """Set up environment variables for different providers based on config."""
         api_keys = {
-            "OPENAI_API_KEY": config.get("OpenAI API Key", {}).get("value", ""),
-            "ANTHROPIC_API_KEY": config.get("Anthropic API Key", {}).get("value", ""),
-            "GOOGLE_API_KEY": config.get("Google API Key", {}).get("value", ""),
-            "COHERE_API_KEY": config.get("Cohere API Key", {}).get("value", ""),
-            "GROQ_API_KEY": config.get("Groq API Key", {}).get("value", ""),
-            "TOGETHER_API_KEY": config.get("Together API Key", {}).get("value", ""),
-            "PERPLEXITY_API_KEY": config.get("Perplexity API Key", {}).get("value", ""),
-            "AZURE_API_BASE": config.get("Azure Base URL", {}).get("value", ""),
-            "AZURE_API_VERSION": config.get("Azure API Version", {}).get("value", ""),
-            "GOOGLE_PROJECT_ID": config.get("Google Project ID", {}).get("value", ""),
-            "GOOGLE_REGION": config.get("Google Region", {}).get("value", ""),
-            "OLLAMA_API_BASE": config.get("Ollama Base URL", {}).get("value", ""),
+            "OPENAI_API_KEY": config.get(OPENAI_API_KEY, {}).get("value", ""),
+            "ANTHROPIC_API_KEY": config.get(ANTHROPIC_API_KEY, {}).get("value", ""),
+            "GOOGLE_API_KEY": config.get(GOOGLE_API_KEY, {}).get("value", ""),
+            "COHERE_API_KEY": config.get(COHERE_API_KEY, {}).get("value", ""),
+            "GROQ_API_KEY": config.get(GROQ_API_KEY, {}).get("value", ""),
+            "TOGETHER_API_KEY": config.get(TOGETHER_API_KEY, {}).get("value", ""),
+            "PERPLEXITY_API_KEY": config.get(PERPLEXITY_API_KEY, {}).get("value", ""),
+            "AZURE_API_BASE": config.get(AZURE_BASE_URL, {}).get("value", ""),
+            "AZURE_API_VERSION": config.get(AZURE_API_VERSION, {}).get("value", ""),
+            "GOOGLE_PROJECT_ID": config.get(GOOGLE_PROJECT_ID, {}).get("value", ""),
+            "GOOGLE_REGION": config.get(GOOGLE_REGION, {}).get("value", ""),
+            "OLLAMA_API_BASE": config.get(OLLAMA_BASE_URL, {}).get("value", ""),
         }
 
         for key, value in api_keys.items():
@@ -297,7 +332,7 @@ class LiteLLMGenerator(Generator):
         supports_reasoning = any(
             model_type in model.lower() for model_type in ["o1", "o3", "o4", "claude"]
         )
-        enable_cost_tracking = config.get("Enable Cost Tracking", {}).get("value", True)
+        enable_cost_tracking = config.get(ENABLE_COST_TRACKING, {}).get("value", True)
 
         try:
             # Select response model based on format
@@ -310,10 +345,14 @@ class LiteLLMGenerator(Generator):
             completion_params = {
                 "messages": messages,
                 "response_model": response_model,
-                "temperature": float(config.get("Temperature", {}).get("value", "0.7")),
-                "max_tokens": config.get("Max Tokens", {}).get("value", 4096),
-                "top_p": float(config.get("Top P", {}).get("value", "1.0")),
-                "max_retries": 2,
+                "temperature": float(
+                    config.get(TEMPERATURE, {}).get("value", DEFAULT_TEMPERATURE)
+                ),
+                "max_tokens": config.get(MAX_TOKENS, {}).get(
+                    "value", DEFAULT_MAX_TOKENS
+                ),
+                "top_p": float(config.get(TOP_P, {}).get("value", DEFAULT_TOP_P)),
+                "max_retries": MAX_RETRIES,
             }
 
             # Generate structured response
@@ -389,10 +428,10 @@ class LiteLLMGenerator(Generator):
         if not self.instructor_client:
             await self.initialize_client(config)
 
-        system_message = config.get("System Message").value
-        model = config.get("Model", {"value": "openai/gpt-4o-mini"}).value
-        use_structured = config.get("Use Structured Output", {"value": True}).value
-        response_format = config.get("Response Format", {"value": "enhanced"}).value
+        system_message = config.get(SYSTEM_MESSAGE).value
+        model = config.get(MODEL, {"value": DEFAULT_MODEL}).value
+        use_structured = config.get(USE_STRUCTURED_OUTPUT, {"value": True}).value
+        response_format = config.get(RESPONSE_FORMAT, {"value": "enhanced"}).value
 
         messages = self.prepare_messages(query, context, conversation, system_message)
 
@@ -404,10 +443,14 @@ class LiteLLMGenerator(Generator):
                 )
 
                 # Stream the structured response
-                yield from self.stream_structured_response(structured_response)
+                async for chunk in self.stream_structured_response(structured_response):
+                    yield chunk
             else:
                 # Fall back to regular LiteLLM streaming
-                yield from await self.generate_regular_stream(messages, model, config)
+                async for chunk in self.generate_regular_stream(
+                    messages, model, config
+                ):
+                    yield chunk
 
         except Exception as e:
             logger.error(f"Error in generate_stream: {str(e)}")
@@ -417,7 +460,7 @@ class LiteLLMGenerator(Generator):
                 "runId": "error",
             }
 
-    def stream_structured_response(
+    async def stream_structured_response(
         self, response: EnhancedRAGResponse
     ) -> AsyncIterator[dict]:
         """Stream a structured response in chunks with LiteLLM-specific formatting."""
@@ -570,9 +613,9 @@ class LiteLLMGenerator(Generator):
         """Fall back to regular LiteLLM streaming for non-structured output."""
         from litellm import acompletion
 
-        temperature = float(config.get("Temperature", {}).get("value", "0.7"))
-        max_tokens = config.get("Max Tokens", {}).get("value", 4096)
-        top_p = float(config.get("Top P", {}).get("value", "1.0"))
+        temperature = float(config.get(TEMPERATURE, {}).get("value", DEFAULT_TEMPERATURE))
+        max_tokens = config.get(MAX_TOKENS, {}).get("value", DEFAULT_MAX_TOKENS)
+        top_p = float(config.get(TOP_P, {}).get("value", DEFAULT_TOP_P))
 
         completion_params = {
             "model": model,
