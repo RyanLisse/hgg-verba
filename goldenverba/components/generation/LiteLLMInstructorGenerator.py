@@ -3,17 +3,15 @@ import os
 from dotenv import load_dotenv
 from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
+from goldenverba.components.util import get_environment
 from goldenverba.components.schemas import (
-    RAGResponse,
-    EnhancedRAGResponse,
-    Citation,
-    ThinkingTrace,
-    ConfidenceLevel,
-    SourceType,
+    RAGResponse, EnhancedRAGResponse, Citation, ReasoningStep, ThinkingTrace,
+    ConfidenceLevel, SourceType, create_citation_from_chunk
 )
 import asyncio
 import instructor
 from instructor.mode import Mode
+from pydantic import BaseModel, Field
 import logging
 import time
 from typing import List, Optional, Dict, Any, AsyncIterator
@@ -24,7 +22,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
-class LiteLLMGenerator(Generator):
+class LiteLLMInstructorGenerator(Generator):
     """
     Enhanced LiteLLM Generator using Instructor for structured outputs.
     Supports 100+ LLM providers with unified interface and cost tracking.
@@ -32,58 +30,66 @@ class LiteLLMGenerator(Generator):
 
     def __init__(self):
         super().__init__()
-        self.name = "LiteLLM"
+        self.name = "LiteLLM Instructor"
         self.description = "Enhanced LiteLLM generator with structured outputs supporting 100+ LLM providers"
         self.context_window = 128000  # Default, model-specific
 
         # Popular models across different providers (updated August 2025)
         models = [
             # OpenAI Models
-            "openai/o3",  # Latest reasoning model
-            "openai/o4-mini",  # Fast reasoning model
-            "openai/gpt-4.1",  # Flagship model
-            "openai/gpt-4.1-mini",  # Smaller variant
-            "openai/gpt-4o-2025-08-01",  # Latest GPT-4o
-            "openai/gpt-4o-mini",  # Cost-effective
-            "openai/o1-preview",  # Previous reasoning
-            "openai/o1-mini",  # Smaller o1
+            "openai/o3",                    # Latest reasoning model
+            "openai/o4-mini",               # Fast reasoning model
+            "openai/gpt-4.1",               # Flagship model
+            "openai/gpt-4.1-mini",          # Smaller variant
+            "openai/gpt-4o-2025-08-01",     # Latest GPT-4o
+            "openai/gpt-4o-mini",           # Cost-effective
+            "openai/o1-preview",            # Previous reasoning
+            "openai/o1-mini",               # Smaller o1
+            
             # Anthropic Models
-            "anthropic/claude-opus-4",  # Most powerful Claude
-            "anthropic/claude-sonnet-4",  # Balanced Claude 4
+            "anthropic/claude-opus-4",      # Most powerful Claude
+            "anthropic/claude-sonnet-4",    # Balanced Claude 4
             "anthropic/claude-3.7-sonnet",  # Coding-focused
             "anthropic/claude-3-7-sonnet-20250219",
             "anthropic/claude-3.5-sonnet-20241022",
             "anthropic/claude-3.5-haiku-20241022",
+            
             # Google Models
-            "gemini/gemini-1.5-flash",  # Fast Gemini
-            "gemini/gemini-1.5-pro",  # Advanced Gemini
+            "gemini/gemini-1.5-flash",      # Fast Gemini
+            "gemini/gemini-1.5-pro",        # Advanced Gemini
             "gemini/gemini-2.0-flash-exp",  # Experimental
-            "vertex_ai/gemini-1.5-flash",  # Vertex AI
-            "vertex_ai/gemini-1.5-pro",  # Vertex AI Pro
+            "vertex_ai/gemini-1.5-flash",   # Vertex AI
+            "vertex_ai/gemini-1.5-pro",     # Vertex AI Pro
+            
             # Azure OpenAI
             "azure/gpt-4o",
             "azure/gpt-4o-mini",
             "azure/gpt-35-turbo",
+            
             # Cohere Models
             "cohere/command-r-plus-08-2024",
             "cohere/command-r-plus",
             "cohere/command-r",
             "cohere/command",
+            
             # Open Source Models
             "ollama/llama3.2",
             "ollama/llama3.1:70b",
             "ollama/codellama:34b",
             "ollama/mistral:7b",
             "ollama/phi3:14b",
+            
             # Together AI
             "together_ai/meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
             "together_ai/meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
             "together_ai/mistralai/Mixtral-8x7B-Instruct-v0.1",
+            
             # Groq (Fast inference)
             "groq/llama-3.1-70b-versatile",
             "groq/llama-3.1-8b-instant",
             "groq/mixtral-8x7b-32768",
             "groq/gemma2-9b-it",
+            
             # Perplexity
             "perplexity/llama-3.1-sonar-large-128k-online",
             "perplexity/llama-3.1-sonar-small-128k-online",
@@ -244,17 +250,17 @@ class LiteLLMGenerator(Generator):
         try:
             # Set up environment variables for LiteLLM
             self.setup_environment_variables(config)
-
+            
             model = config.get("Model", {"value": "openai/gpt-4o-mini"}).value
-
+            
             # Initialize instructor client with LiteLLM provider
             self.instructor_client = instructor.from_provider(
                 f"litellm/{model}",
-                mode=Mode.TOOLS,  # Use tools mode for maximum compatibility
+                mode=Mode.TOOLS  # Use tools mode for maximum compatibility
             )
-
+            
             logger.info(f"Initialized LiteLLM Instructor client for model: {model}")
-
+            
         except Exception as e:
             logger.error(f"Error initializing LiteLLM Instructor client: {str(e)}")
             raise
@@ -281,22 +287,20 @@ class LiteLLMGenerator(Generator):
                 os.environ[key] = value
 
     async def generate_structured_response(
-        self,
-        messages: List[Dict],
-        model: str,
+        self, 
+        messages: List[Dict], 
+        model: str, 
         config: Dict,
-        response_format: str = "enhanced",
+        response_format: str = "enhanced"
     ) -> EnhancedRAGResponse:
         """Generate a structured response using LiteLLM + Instructor."""
-
+        
         logger.info(f"Generating structured response with LiteLLM model: {model}")
         start_time = time.time()
 
         # Check provider-specific capabilities
         provider = model.split("/")[0] if "/" in model else "unknown"
-        supports_reasoning = any(
-            model_type in model.lower() for model_type in ["o1", "o3", "o4", "claude"]
-        )
+        supports_reasoning = any(model_type in model.lower() for model_type in ["o1", "o3", "o4", "claude"])
         enable_cost_tracking = config.get("Enable Cost Tracking", {}).get("value", True)
 
         try:
@@ -313,33 +317,25 @@ class LiteLLMGenerator(Generator):
                 "temperature": float(config.get("Temperature", {}).get("value", "0.7")),
                 "max_tokens": config.get("Max Tokens", {}).get("value", 4096),
                 "top_p": float(config.get("Top P", {}).get("value", "1.0")),
-                "max_retries": 2,
+                "max_retries": 2
             }
 
             # Generate structured response
             if enable_cost_tracking:
                 # Use create_with_completion to get cost information
-                (
-                    response,
-                    raw_completion,
-                ) = await self.instructor_client.chat.completions.create_with_completion(
+                response, raw_completion = await self.instructor_client.chat.completions.create_with_completion(
                     **completion_params
                 )
-
+                
                 # Extract cost information
                 cost_info = {}
-                if (
-                    hasattr(raw_completion, "_hidden_params")
-                    and "response_cost" in raw_completion._hidden_params
-                ):
+                if hasattr(raw_completion, '_hidden_params') and 'response_cost' in raw_completion._hidden_params:
                     cost_info = {
-                        "cost": raw_completion._hidden_params["response_cost"],
-                        "currency": "USD",
+                        "cost": raw_completion._hidden_params['response_cost'],
+                        "currency": "USD"
                     }
             else:
-                response = await self.instructor_client.chat.completions.create(
-                    **completion_params
-                )
+                response = await self.instructor_client.chat.completions.create(**completion_params)
                 cost_info = {}
 
             # Add metadata
@@ -354,12 +350,12 @@ class LiteLLMGenerator(Generator):
                     response.reasoning_trace = ThinkingTrace(
                         reasoning_steps=[],
                         final_conclusion=response.answer,
-                        complexity_level="automated",
+                        complexity_level="automated"
                     )
 
             # Add provider information
             response.tools_used = [f"litellm_{provider}"]
-            if hasattr(response, "tool_results"):
+            if hasattr(response, 'tool_results'):
                 response.tool_results["provider"] = provider
                 response.tool_results["cost_tracking"] = enable_cost_tracking
 
@@ -374,7 +370,7 @@ class LiteLLMGenerator(Generator):
                 confidence_level=ConfidenceLevel.LOW,
                 model_name=model,
                 error_messages=[str(e)],
-                generation_time=time.time() - start_time,
+                generation_time=time.time() - start_time
             )
 
     async def generate_stream(
@@ -385,7 +381,7 @@ class LiteLLMGenerator(Generator):
         conversation: list[dict] = [],
     ):
         """Generate streaming response with structured output support."""
-
+        
         if not self.instructor_client:
             await self.initialize_client(config)
 
@@ -402,7 +398,7 @@ class LiteLLMGenerator(Generator):
                 structured_response = await self.generate_structured_response(
                     messages, model, config, response_format
                 )
-
+                
                 # Stream the structured response
                 yield from self.stream_structured_response(structured_response)
             else:
@@ -414,26 +410,20 @@ class LiteLLMGenerator(Generator):
             yield {
                 "message": f"Error: {str(e)}",
                 "finish_reason": "error",
-                "runId": "error",
+                "runId": "error"
             }
 
-    def stream_structured_response(
-        self, response: EnhancedRAGResponse
-    ) -> AsyncIterator[dict]:
+    def stream_structured_response(self, response: EnhancedRAGResponse) -> AsyncIterator[dict]:
         """Stream a structured response in chunks with LiteLLM-specific formatting."""
         run_id = f"litellm_{int(time.time())}"
-
+        
         # Stream provider information
-        provider = (
-            response.model_name.split("/")[0]
-            if "/" in response.model_name
-            else "unknown"
-        )
+        provider = response.model_name.split("/")[0] if "/" in response.model_name else "unknown"
         yield {
             "message": f"## 🔗 Provider: {provider.upper()}\n\n",
             "finish_reason": None,
             "runId": run_id,
-            "type": "provider_header",
+            "type": "provider_header"
         }
 
         # Stream reasoning trace if available
@@ -442,15 +432,15 @@ class LiteLLMGenerator(Generator):
                 "message": "## 🧠 Reasoning Process\n\n",
                 "finish_reason": None,
                 "runId": run_id,
-                "type": "reasoning_header",
+                "type": "reasoning_header"
             }
-
+            
             for step in response.reasoning_trace.reasoning_steps:
                 yield {
                     "message": f"**Step {step.step_number}:** {step.description}\n{step.content}\n\n",
                     "finish_reason": None,
                     "runId": run_id,
-                    "type": "reasoning_step",
+                    "type": "reasoning_step"
                 }
 
         # Stream main answer
@@ -458,18 +448,18 @@ class LiteLLMGenerator(Generator):
             "message": "## 💬 Response\n\n",
             "finish_reason": None,
             "runId": run_id,
-            "type": "answer_header",
+            "type": "answer_header"
         }
 
         # Stream answer in natural chunks
-        answer_sentences = response.answer.split(". ")
+        answer_sentences = response.answer.split('. ')
         for sentence in answer_sentences:
             if sentence.strip():
                 yield {
-                    "message": sentence + (". " if not sentence.endswith(".") else " "),
+                    "message": sentence + ('. ' if not sentence.endswith('.') else ' '),
                     "finish_reason": None,
                     "runId": run_id,
-                    "type": "content",
+                    "type": "content"
                 }
 
         # Stream key insights
@@ -478,15 +468,15 @@ class LiteLLMGenerator(Generator):
                 "message": "\n\n## 💡 Key Insights\n\n",
                 "finish_reason": None,
                 "runId": run_id,
-                "type": "insights_header",
+                "type": "insights_header"
             }
-
+            
             for insight in response.key_insights:
                 yield {
                     "message": f"• {insight}\n",
                     "finish_reason": None,
                     "runId": run_id,
-                    "type": "insight",
+                    "type": "insight"
                 }
 
         # Stream citations
@@ -495,16 +485,16 @@ class LiteLLMGenerator(Generator):
                 "message": "\n\n## 📖 Sources\n\n",
                 "finish_reason": None,
                 "runId": run_id,
-                "type": "citations_header",
+                "type": "citations_header"
             }
-
+            
             for i, citation in enumerate(response.citations, 1):
                 citation_text = f"[{i}] **{citation.title or 'Source'}**\n{citation.content_snippet}\n\n"
                 yield {
                     "message": citation_text,
                     "finish_reason": None,
                     "runId": run_id,
-                    "type": "citation",
+                    "type": "citation"
                 }
 
         # Stream limitations if any
@@ -513,15 +503,15 @@ class LiteLLMGenerator(Generator):
                 "message": "\n\n## ⚠️ Limitations\n\n",
                 "finish_reason": None,
                 "runId": run_id,
-                "type": "limitations_header",
+                "type": "limitations_header"
             }
-
+            
             for limitation in response.limitations:
                 yield {
                     "message": f"• {limitation}\n",
                     "finish_reason": None,
                     "runId": run_id,
-                    "type": "limitation",
+                    "type": "limitation"
                 }
 
         # Stream follow-up questions
@@ -530,15 +520,15 @@ class LiteLLMGenerator(Generator):
                 "message": "\n\n## 🤔 Follow-up Questions\n\n",
                 "finish_reason": None,
                 "runId": run_id,
-                "type": "followup_header",
+                "type": "followup_header"
             }
-
+            
             for question in response.follow_up_questions:
                 yield {
                     "message": f"• {question}\n",
                     "finish_reason": None,
                     "runId": run_id,
-                    "type": "followup",
+                    "type": "followup"
                 }
 
         # Final metadata with cost information
@@ -553,27 +543,25 @@ class LiteLLMGenerator(Generator):
             "litellm_features": {
                 "provider": provider,
                 "unified_api": True,
-                "cost_tracking": bool(response.token_usage),
-            },
+                "cost_tracking": bool(response.token_usage)
+            }
         }
 
         yield {
             "message": "",
             "finish_reason": "stop",
             "runId": run_id,
-            "metadata": metadata,
+            "metadata": metadata
         }
 
-    async def generate_regular_stream(
-        self, messages: List[Dict], model: str, config: Dict
-    ):
+    async def generate_regular_stream(self, messages: List[Dict], model: str, config: Dict):
         """Fall back to regular LiteLLM streaming for non-structured output."""
         from litellm import acompletion
-
+        
         temperature = float(config.get("Temperature", {}).get("value", "0.7"))
         max_tokens = config.get("Max Tokens", {}).get("value", 4096)
         top_p = float(config.get("Top P", {}).get("value", "1.0"))
-
+        
         completion_params = {
             "model": model,
             "messages": messages,
@@ -581,68 +569,62 @@ class LiteLLMGenerator(Generator):
             "max_tokens": max_tokens,
             "top_p": top_p,
             "stream": True,
-            "stream_options": {"include_usage": True},
+            "stream_options": {"include_usage": True}
         }
-
+        
         try:
             response_stream = await acompletion(**completion_params)
             run_id = "litellm_regular_stream"
-
+            
             async for chunk in response_stream:
-                if hasattr(chunk, "choices") and chunk.choices:
+                if hasattr(chunk, 'choices') and chunk.choices:
                     delta = chunk.choices[0].delta
-
-                    if hasattr(delta, "content") and delta.content:
+                    
+                    if hasattr(delta, 'content') and delta.content:
                         yield {
                             "message": delta.content,
                             "finish_reason": None,
                             "runId": run_id,
-                            "type": "content",
+                            "type": "content"
                         }
-
-                    if (
-                        hasattr(chunk.choices[0], "finish_reason")
-                        and chunk.choices[0].finish_reason
-                    ):
+                    
+                    if hasattr(chunk.choices[0], 'finish_reason') and chunk.choices[0].finish_reason:
                         # Include usage and cost info if available
                         usage_info = {}
-                        if hasattr(chunk, "usage") and chunk.usage:
+                        if hasattr(chunk, 'usage') and chunk.usage:
                             usage_info = {
                                 "prompt_tokens": chunk.usage.prompt_tokens,
                                 "completion_tokens": chunk.usage.completion_tokens,
-                                "total_tokens": chunk.usage.total_tokens,
+                                "total_tokens": chunk.usage.total_tokens
                             }
-
+                        
                         # Add cost information if available
-                        if (
-                            hasattr(chunk, "_hidden_params")
-                            and "response_cost" in chunk._hidden_params
-                        ):
-                            usage_info["cost"] = chunk._hidden_params["response_cost"]
-
+                        if hasattr(chunk, '_hidden_params') and 'response_cost' in chunk._hidden_params:
+                            usage_info["cost"] = chunk._hidden_params['response_cost']
+                        
                         yield {
                             "message": "",
                             "finish_reason": chunk.choices[0].finish_reason,
                             "runId": run_id,
-                            "usage": usage_info,
+                            "usage": usage_info
                         }
-
-                if hasattr(chunk, "id"):
+                
+                if hasattr(chunk, 'id'):
                     run_id = chunk.id
-
+                    
         except Exception as e:
             logger.error(f"Error in regular streaming: {str(e)}")
             yield {
                 "message": f"Error: {str(e)}",
                 "finish_reason": "error",
-                "runId": "error",
+                "runId": "error"
             }
 
     def prepare_messages(
         self, query: str, context: str, conversation: list[dict], system_message: str
     ) -> list[dict]:
         """Prepare messages optimized for LiteLLM unified interface."""
-
+        
         # Enhanced system message for LiteLLM with multi-provider context
         enhanced_system = f"""{system_message}
 
@@ -676,107 +658,83 @@ Relevant Context:
 
 Please provide a comprehensive response that demonstrates reasoning and cites relevant sources."""
 
-        messages.append({"role": "user", "content": user_content})
+        messages.append({
+            "role": "user",
+            "content": user_content
+        })
 
         return messages
 
-    def extract_citations_from_context(
-        self, context: str, max_citations: int = 6
-    ) -> List[Citation]:
+    def extract_citations_from_context(self, context: str, max_citations: int = 6) -> List[Citation]:
         """Extract citations from context with LiteLLM-optimized processing."""
         citations = []
-
-        context_sections = context.split("\n\n")
-
+        
+        context_sections = context.split('\n\n')
+        
         for i, section in enumerate(context_sections[:max_citations]):
             if len(section.strip()) > 80:
                 # Extract title from first line or create one
-                lines = section.split("\n")
-                potential_title = lines[0] if lines else f"LiteLLM Context {i + 1}"
-
+                lines = section.split('\n')
+                potential_title = lines[0] if lines else f"LiteLLM Context {i+1}"
+                
                 citation = Citation(
                     source_id=f"litellm_context_{i}",
                     source_type=SourceType.DOCUMENT,
-                    title=potential_title[:100] + "..."
-                    if len(potential_title) > 100
-                    else potential_title,
-                    content_snippet=section[:250] + "..."
-                    if len(section) > 250
-                    else section,
+                    title=potential_title[:100] + "..." if len(potential_title) > 100 else potential_title,
+                    content_snippet=section[:250] + "..." if len(section) > 250 else section,
                     confidence_score=0.8,
                     metadata={
                         "section_number": i + 1,
                         "length": len(section),
                         "processed_by": "litellm",
-                        "provider": "unified",
-                    },
+                        "provider": "unified"
+                    }
                 )
                 citations.append(citation)
-
+        
         return citations
 
     def get_supported_providers(self) -> Dict[str, Any]:
         """Return comprehensive information about supported providers."""
         return {
             "openai": {
-                "models": [
-                    "o3",
-                    "o4-mini",
-                    "gpt-4.1",
-                    "gpt-4.1-mini",
-                    "gpt-4o-2025-08-01",
-                    "gpt-4o-mini",
-                ],
+                "models": ["o3", "o4-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4o-2025-08-01", "gpt-4o-mini"],
                 "features": ["reasoning", "structured_output", "function_calling"],
-                "env_key": "OPENAI_API_KEY",
+                "env_key": "OPENAI_API_KEY"
             },
             "anthropic": {
                 "models": ["claude-opus-4", "claude-sonnet-4", "claude-3.7-sonnet"],
                 "features": ["thinking", "multimodal", "tool_use"],
-                "env_key": "ANTHROPIC_API_KEY",
+                "env_key": "ANTHROPIC_API_KEY"
             },
             "google": {
-                "models": [
-                    "gemini-1.5-flash",
-                    "gemini-1.5-pro",
-                    "gemini-2.0-flash-exp",
-                ],
+                "models": ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"],
                 "features": ["multimodal", "code_execution", "grounding"],
-                "env_key": "GOOGLE_API_KEY",
+                "env_key": "GOOGLE_API_KEY"
             },
             "cohere": {
                 "models": ["command-r-plus", "command-r", "command"],
                 "features": ["rag_optimized", "multilingual"],
-                "env_key": "COHERE_API_KEY",
+                "env_key": "COHERE_API_KEY"
             },
             "groq": {
-                "models": [
-                    "llama-3.1-70b-versatile",
-                    "llama-3.1-8b-instant",
-                    "mixtral-8x7b-32768",
-                ],
+                "models": ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
                 "features": ["ultra_fast", "low_latency"],
-                "env_key": "GROQ_API_KEY",
+                "env_key": "GROQ_API_KEY"
             },
             "together_ai": {
-                "models": [
-                    "Meta-Llama-3.1-70B-Instruct-Turbo",
-                    "Mixtral-8x7B-Instruct-v0.1",
-                ],
+                "models": ["Meta-Llama-3.1-70B-Instruct-Turbo", "Mixtral-8x7B-Instruct-v0.1"],
                 "features": ["open_source", "customizable"],
-                "env_key": "TOGETHER_API_KEY",
+                "env_key": "TOGETHER_API_KEY"
             },
             "perplexity": {
-                "models": [
-                    "llama-3.1-sonar-large-128k-online",
-                    "llama-3.1-sonar-small-128k-online",
-                ],
+                "models": ["llama-3.1-sonar-large-128k-online", "llama-3.1-sonar-small-128k-online"],
                 "features": ["web_search", "real_time", "citations"],
-                "env_key": "PERPLEXITY_API_KEY",
+                "env_key": "PERPLEXITY_API_KEY"
             },
             "ollama": {
                 "models": ["llama3.2", "llama3.1:70b", "codellama:34b", "mistral:7b"],
                 "features": ["local_deployment", "privacy", "customizable"],
-                "env_key": "OLLAMA_API_BASE",
-            },
+                "env_key": "OLLAMA_API_BASE"
+            }
         }
