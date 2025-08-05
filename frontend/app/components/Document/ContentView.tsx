@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import ReactMarkdown from "react-markdown";
+import { fetchContent } from "@/app/api";
+import type {
+  ChunkScore,
+  ContentPayload,
+  ContentSnippet,
+  Credentials,
+  Theme,
+  VerbaDocument,
+} from "@/app/types";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
 import { HiSparkles } from "react-icons/hi2";
 import { IoNewspaper } from "react-icons/io5";
-import {
-  VerbaDocument,
-  ContentPayload,
-  Credentials,
-  ContentSnippet,
-  Theme,
-  ChunkScore,
-} from "@/app/types";
-import { fetchContent } from "@/app/api";
+import ReactMarkdown from "react-markdown";
 
 import VerbaButton from "../Navigation/VerbaButton";
 

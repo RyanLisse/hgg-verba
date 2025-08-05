@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { VerbaDocument, Credentials } from "@/app/types";
 import { fetchSelectedDocument } from "@/app/api";
+import type { Credentials, VerbaDocument } from "@/app/types";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 interface DocumentMetaViewProps {
   selectedDocument: string;

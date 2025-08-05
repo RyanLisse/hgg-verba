@@ -1,7 +1,6 @@
 from goldenverba.server.types import FileConfig
 from goldenverba.components.chunk import Chunk
 from spacy.tokens import Doc
-from spacy.language import Language
 import spacy
 import json
 

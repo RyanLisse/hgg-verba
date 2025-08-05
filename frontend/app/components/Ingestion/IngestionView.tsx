@@ -1,18 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import FileSelectionView from "./FileSelectionView";
-import ConfigurationView from "./ConfigurationView";
-import {
+import type {
+  CreateNewDocument,
+  Credentials,
+  FileData,
   FileMap,
   StatusReport,
-  CreateNewDocument,
-  FileData,
-  Credentials,
 } from "@/app/types";
-import { RAGConfig } from "@/app/types";
+import type { RAGConfig } from "@/app/types";
 import { getImportWebSocketApiHost } from "@/app/util";
-import { ReconnectingWebSocket, ConnectionState } from "@/app/utils/websocket";
+import type {
+  ConnectionState,
+  ReconnectingWebSocket,
+} from "@/app/utils/websocket";
+import type React from "react";
+import { useEffect, useState } from "react";
+import ConfigurationView from "./ConfigurationView";
+import FileSelectionView from "./FileSelectionView";
 
 interface IngestionViewProps {
   credentials: Credentials;
@@ -34,9 +38,8 @@ const IngestionView: React.FC<IngestionViewProps> = ({
   const [selectedFileData, setSelectedFileData] = useState<string | null>(null);
   const [reconnect, setReconnect] = useState(false);
   const [socket, setSocket] = useState<ReconnectingWebSocket | null>(null);
-  const [socketStatus, setSocketStatus] = useState<ConnectionState>(
-    "DISCONNECTED"
-  );
+  const [socketStatus, setSocketStatus] =
+    useState<ConnectionState>("DISCONNECTED");
   const [messageQueueSize, setMessageQueueSize] = useState(0);
 
   useEffect(() => {
@@ -48,7 +51,7 @@ const IngestionView: React.FC<IngestionViewProps> = ({
     let isComponentMounted = true;
     let cleanupFn: (() => void) | undefined;
 
-    const connectWebSocket = async (attempt: number = 1) => {
+    const connectWebSocket = async (attempt = 1) => {
       if (!isComponentMounted) return;
 
       const socketHost = getImportWebSocketApiHost();
@@ -73,13 +76,14 @@ const IngestionView: React.FC<IngestionViewProps> = ({
         if (!isComponentMounted) return;
         setSocketStatus("ONLINE");
         try {
-          const data: StatusReport | CreateNewDocument | { type: string } = JSON.parse(event.data);
-          
+          const data: StatusReport | CreateNewDocument | { type: string } =
+            JSON.parse(event.data);
+
           // Handle pong messages
-          if ('type' in data && data.type === 'pong') {
+          if ("type" in data && data.type === "pong") {
             return; // Pong received, connection is alive
           }
-          
+
           if ("new_file_id" in data) {
             setFileMap((prevFileMap) => {
               const newFileMap: FileMap = { ...prevFileMap };
@@ -110,7 +114,7 @@ const IngestionView: React.FC<IngestionViewProps> = ({
         if (!isComponentMounted) return;
         setSocketStatus("OFFLINE");
         setSocketErrorStatus();
-        
+
         if (event.wasClean) {
           console.log(
             `Import WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`
@@ -120,18 +124,25 @@ const IngestionView: React.FC<IngestionViewProps> = ({
         }
 
         console.error("WebSocket connection died");
-        
+
         // Only retry if within max retries
         if (attempt < maxRetries) {
-          console.log(`Retrying WebSocket connection... Attempt ${attempt + 1} in ${backoffDelay}ms`);
+          console.log(
+            `Retrying WebSocket connection... Attempt ${attempt + 1} in ${backoffDelay}ms`
+          );
           setTimeout(() => {
             if (isComponentMounted) {
               connectWebSocket(attempt + 1);
             }
           }, backoffDelay);
         } else {
-          console.log("Max retry attempts reached. Please check your connection.");
-          addStatusMessage("Connection lost. Please refresh the page.", "ERROR");
+          console.log(
+            "Max retry attempts reached. Please check your connection."
+          );
+          addStatusMessage(
+            "Connection lost. Please refresh the page.",
+            "ERROR"
+          );
         }
       };
 

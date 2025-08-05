@@ -5,7 +5,6 @@ import aiohttp
 
 from goldenverba.components.interfaces import Embedding
 from goldenverba.components.types import InputConfig
-from goldenverba.components.util import get_environment
 
 
 class OllamaEmbedder(Embedding):
@@ -49,6 +48,6 @@ def get_models(url: str):
         else:
             msg.info("No Ollama Model detected")
             return ["No Ollama Model detected"]
-    except Exception as e:
+    except Exception:
         msg.info(f"Couldn't connect to Ollama {url}")
         return [f"Couldn't connect to Ollama {url}"]

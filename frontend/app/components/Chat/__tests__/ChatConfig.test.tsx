@@ -1,7 +1,7 @@
-import { describe, expect, test, mock } from "bun:test";
-import { render, fireEvent, within } from "@testing-library/react";
+import { describe, expect, mock, test } from "bun:test";
+import type { RAGConfig } from "@/app/types";
+import { fireEvent, render, within } from "@testing-library/react";
 import ChatConfig from "../ChatConfig";
-import { RAGConfig } from "@/app/types";
 
 describe("ChatConfig", () => {
   const mockConfig: RAGConfig = {
@@ -13,11 +13,11 @@ describe("ChatConfig", () => {
             Model: {
               value: "text-embedding-3-large",
               type: "string",
-              values: ["text-embedding-3-large"]
-            }
-          }
-        }
-      }
+              values: ["text-embedding-3-large"],
+            },
+          },
+        },
+      },
     },
     Generator: {
       selected: "ChatOpenAI",
@@ -27,11 +27,11 @@ describe("ChatConfig", () => {
             Model: {
               value: "gpt-4",
               type: "string",
-              values: ["gpt-4", "gpt-3.5-turbo"]
-            }
-          }
-        }
-      }
+              values: ["gpt-4", "gpt-3.5-turbo"],
+            },
+          },
+        },
+      },
     },
     Retriever: {
       selected: "MultiQueryRetriever",
@@ -41,18 +41,18 @@ describe("ChatConfig", () => {
             search_type: {
               value: "similarity",
               type: "string",
-              values: ["similarity", "mmr"]
-            }
-          }
-        }
-      }
-    }
+              values: ["similarity", "mmr"],
+            },
+          },
+        },
+      },
+    },
   };
 
   const mockCredentials = {
     url: "test-url",
     username: "test-user",
-    password: "test-pass"
+    password: "test-pass",
   };
 
   const defaultProps = {
@@ -62,14 +62,16 @@ describe("ChatConfig", () => {
     onReset: mock(() => {}),
     addStatusMessage: mock((message: string, type: string) => {}),
     credentials: mockCredentials,
-    production: "Local" as const
+    production: "Local" as const,
   };
 
   test("renders config form correctly", () => {
     const { container } = render(<ChatConfig {...defaultProps} />);
 
     // Check for main container
-    const mainContainer = container.querySelector(".flex.flex-col.justify-start.rounded-2xl.w-full");
+    const mainContainer = container.querySelector(
+      ".flex.flex-col.justify-start.rounded-2xl.w-full"
+    );
     expect(mainContainer).toBeInTheDocument();
 
     // Check for save and reset buttons
@@ -87,7 +89,9 @@ describe("ChatConfig", () => {
   test("buttons are enabled in Local mode", () => {
     const { container } = render(<ChatConfig {...defaultProps} />);
 
-    const saveButton = within(container).getByText("Save Config").closest("button");
+    const saveButton = within(container)
+      .getByText("Save Config")
+      .closest("button");
     const resetButton = within(container).getByText("Reset").closest("button");
     expect(saveButton?.getAttribute("disabled")).toBeFalsy();
     expect(resetButton?.getAttribute("disabled")).toBeFalsy();
@@ -98,7 +102,9 @@ describe("ChatConfig", () => {
       <ChatConfig {...defaultProps} production="Demo" />
     );
 
-    const saveButton = within(container).getByText("Save Config").closest("button");
+    const saveButton = within(container)
+      .getByText("Save Config")
+      .closest("button");
     const resetButton = within(container).getByText("Reset").closest("button");
     expect(saveButton?.getAttribute("disabled")).toBe("");
     expect(resetButton?.getAttribute("disabled")).toBe("");
@@ -141,7 +147,9 @@ describe("ChatConfig", () => {
     );
 
     // Find and click the Embedder component
-    const embedderSection = within(container).getByText("Embedder").closest(".flex.flex-col");
+    const embedderSection = within(container)
+      .getByText("Embedder")
+      .closest(".flex.flex-col");
     expect(embedderSection).toBeInTheDocument();
 
     // Verify that OpenAIEmbeddings is selected
@@ -152,7 +160,9 @@ describe("ChatConfig", () => {
     const { container } = render(<ChatConfig {...defaultProps} />);
 
     // Check Generator section
-    const generatorSection = within(container).getByText("Generator").closest(".flex.flex-col");
+    const generatorSection = within(container)
+      .getByText("Generator")
+      .closest(".flex.flex-col");
     expect(generatorSection).toBeInTheDocument();
 
     // Verify that ChatOpenAI is selected
@@ -163,10 +173,14 @@ describe("ChatConfig", () => {
     const { container } = render(<ChatConfig {...defaultProps} />);
 
     // Check Retriever section
-    const retrieverSection = within(container).getByText("Retriever").closest(".flex.flex-col");
+    const retrieverSection = within(container)
+      .getByText("Retriever")
+      .closest(".flex.flex-col");
     expect(retrieverSection).toBeInTheDocument();
 
     // Verify that MultiQueryRetriever is selected
-    expect(within(container).getByText("MultiQueryRetriever")).toBeInTheDocument();
+    expect(
+      within(container).getByText("MultiQueryRetriever")
+    ).toBeInTheDocument();
   });
-}); 
+});

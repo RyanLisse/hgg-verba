@@ -1,13 +1,18 @@
 "use client";
 
-import React from "react";
-import { IoChatbubbleSharp, IoDocumentSharp, IoAddCircle, IoSettingsSharp } from "react-icons/io5";
-import { TiThMenu } from "react-icons/ti";
+import type { PageType } from "@/app/types";
 import { closeOnClick } from "@/app/util";
-import VerbaButton from "./VerbaButton";
+import Image from "next/image";
+import type React from "react";
+import {
+  IoAddCircle,
+  IoChatbubbleSharp,
+  IoDocumentSharp,
+  IoSettingsSharp,
+} from "react-icons/io5";
+import { TiThMenu } from "react-icons/ti";
 import NavbarButton from "./NavButton";
-import { PageType } from "@/app/types"; 
-import Image from 'next/image';
+import VerbaButton from "./VerbaButton";
 
 interface NavbarProps {
   imageSrc: string;

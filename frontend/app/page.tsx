@@ -1,24 +1,38 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
 import { GoogleAnalytics } from "@next/third-parties/google";
-import { PageType, Credentials, RAGConfig, Theme, StatusMessage, LightTheme, Themes, DarkTheme, DocumentFilter, WCDTheme, WeaviateTheme } from "./types";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  type Credentials,
+  DarkTheme,
+  type DocumentFilter,
+  LightTheme,
+  type PageType,
+  type RAGConfig,
+  type StatusMessage,
+  type Theme,
+  type Themes,
+  WCDTheme,
+  WeaviateTheme,
+} from "./types";
 
-// Components
-import Navbar from "./components/Navigation/NavbarComponent";
+import ChatView from "./components/Chat/ChatView";
 import DocumentView from "./components/Document/DocumentView";
 import IngestionView from "./components/Ingestion/IngestionView";
-import ChatView from "./components/Chat/ChatView";
-import SettingsView from "./components/Settings/SettingsView";
+// Components
+import Navbar from "./components/Navigation/NavbarComponent";
 import StatusMessengerComponent from "./components/Navigation/StatusMessenger";
+import SettingsView from "./components/Settings/SettingsView";
 
 // Utilities
-import { fetchHealth, connectToVerba } from "./api";
+import { connectToVerba, fetchHealth } from "./api";
 
 export default function Home() {
   // Page States
   const [currentPage, setCurrentPage] = useState<PageType>("CHAT");
-  const [production, setProduction] = useState<"Local" | "Demo" | "Production">("Production");
+  const [production, setProduction] = useState<"Local" | "Demo" | "Production">(
+    "Production"
+  );
   const [gtag, setGtag] = useState("");
 
   // Settings
@@ -51,7 +65,10 @@ export default function Home() {
   const fontClassName = "default-font-class"; // Set your desired default class name
 
   // Function to add a status message
-  const addStatusMessage = (message: string, type: "INFO" | "WARNING" | "SUCCESS" | "ERROR") => {
+  const addStatusMessage = (
+    message: string,
+    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+  ) => {
     const newMessage: StatusMessage = {
       message,
       timestamp: new Date().toISOString(),
@@ -60,19 +77,19 @@ export default function Home() {
     setStatusMessages((prevMessages) => [...prevMessages, newMessage]);
   };
 
-  const initialFetch = useCallback(async (retries: number = 3, delay: number = 1000) => {
+  const initialFetch = useCallback(async (retries = 3, delay = 1000) => {
     for (let i = 0; i < retries; i++) {
       try {
-        const [health_data] = await Promise.all([fetchHealth()]);
+        const [healthData] = await Promise.all([fetchHealth()]);
 
-        if (health_data) {
-          setProduction(health_data.production);
-          setGtag(health_data.gtag);
+        if (healthData) {
+          setProduction(healthData.production);
+          setGtag(healthData.gtag);
           setIsHealthy(true);
           setCredentials({
             deployment: "Weaviate",
-            url: health_data.deployments.WEAVIATE_URL_VERBA,
-            key: health_data.deployments.WEAVIATE_API_KEY_VERBA,
+            url: healthData.deployments.WEAVIATE_URL_VERBA,
+            key: healthData.deployments.WEAVIATE_API_KEY_VERBA,
           });
           return; // Exit if successful
         } else {
@@ -94,8 +111,8 @@ export default function Home() {
   // Health check interval
   useEffect(() => {
     const healthCheck = async () => {
-      const health_data = await fetchHealth();
-      if (health_data) {
+      const healthData = await fetchHealth();
+      if (healthData) {
         setIsHealthy(true);
       } else {
         // Only set unhealthy if we were previously healthy to avoid unnecessary re-renders
@@ -201,11 +218,19 @@ export default function Home() {
   }, [updateCSSVariables]);
 
   return (
-    <main className={`min-h-screen bg-bg-verba text-text-verba ${fontClassName}`} data-theme={selectedTheme.theme}>
+    <main
+      className={`min-h-screen bg-bg-verba text-text-verba ${fontClassName}`}
+      data-theme={selectedTheme.theme}
+    >
       {gtag !== "" && <GoogleAnalytics gaId={gtag} />}
-      <StatusMessengerComponent status_messages={statusMessages} set_status_messages={setStatusMessages} />
+      <StatusMessengerComponent
+        status_messages={statusMessages}
+        set_status_messages={setStatusMessages}
+      />
       {isLoggedIn && isHealthy && (
-        <div className={`transition-opacity duration-1000 ${isLoaded ? "opacity-100" : "opacity-0"} flex flex-col gap-2 p-5 md:p-10`}>
+        <div
+          className={`transition-opacity duration-1000 ${isLoaded ? "opacity-100" : "opacity-0"} flex flex-col gap-2 p-5 md:p-10`}
+        >
           <Navbar
             production={production}
             title={selectedTheme.title.text}

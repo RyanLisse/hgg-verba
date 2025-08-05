@@ -1,5 +1,5 @@
 # schemas.py - Common Pydantic models for structured RAG outputs
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from enum import Enum
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Chunk } from '../../types/chat';
+import type React from "react";
+import type { Chunk } from "../../types/chat";
 
 interface ChunkViewProps {
   chunk: Chunk;

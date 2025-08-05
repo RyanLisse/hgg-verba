@@ -5,18 +5,14 @@ from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
 from goldenverba.components.util import get_environment
 from goldenverba.components.schemas import (
-    RAGResponse, EnhancedRAGResponse, Citation, ReasoningStep, ThinkingTrace,
-    ConfidenceLevel, SourceType, create_citation_from_chunk
+    RAGResponse, EnhancedRAGResponse, Citation, ConfidenceLevel, SourceType
 )
-import asyncio
 import instructor
 from instructor.mode import Mode
 from anthropic import AsyncAnthropic
-from pydantic import BaseModel, Field
 import logging
 import time
-from typing import List, Optional, Dict, Any, AsyncIterator
-import base64
+from typing import List, Dict, AsyncIterator
 
 load_dotenv()
 
@@ -249,10 +245,12 @@ class AnthropicInstructorGenerator(Generator):
                 )
                 
                 # Stream the structured response
-                yield from self.stream_structured_response(structured_response)
+                async for chunk in self.stream_structured_response(structured_response):
+                    yield chunk
             else:
                 # Fall back to regular streaming
-                yield from await self.generate_regular_stream(messages, model, config)
+                async for chunk in self.generate_regular_stream(messages, model, config):
+                    yield chunk
 
         except Exception as e:
             logger.error(f"Error in generate_stream: {str(e)}")

@@ -254,10 +254,12 @@ class AnthropicGenerator(Generator):
                 )
 
                 # Stream the structured response
-                yield from self.stream_structured_response(structured_response)
+                async for chunk in self.stream_structured_response(structured_response):
+                    yield chunk
             else:
                 # Fall back to regular streaming
-                yield from await self.generate_regular_stream(messages, model, config)
+                async for chunk in self.generate_regular_stream(messages, model, config):
+                    yield chunk
 
         except Exception as e:
             logger.error(f"Error in generate_stream: {str(e)}")

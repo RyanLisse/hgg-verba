@@ -1,7 +1,5 @@
 import os
-import json
 from typing import List
-import io
 
 import aiohttp
 from wasabi import msg

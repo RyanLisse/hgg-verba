@@ -1,22 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 
-import { RiAdminFill } from "react-icons/ri";
-import { FaPaintBrush } from "react-icons/fa";
 import { BiSolidCommentError } from "react-icons/bi";
+import { FaPaintBrush } from "react-icons/fa";
 import { IoLogOutSharp } from "react-icons/io5";
 import { IoChatboxEllipsesSharp } from "react-icons/io5";
+import { RiAdminFill } from "react-icons/ri";
 
 import VerbaButton from "../Navigation/VerbaButton";
 
-import { Theme, Themes, Credentials } from "@/app/types";
+import type { Credentials, Theme, Themes } from "@/app/types";
 
 import SettingsComponent from "./SettingsComponent";
 
 import InfoComponent from "../Navigation/InfoComponent";
-import SuggestionView from "./SuggestionView";
 import InfoView from "./InfoView";
+import SuggestionView from "./SuggestionView";
 
 interface SettingsViewProps {
   selectedTheme: Theme;

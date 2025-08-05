@@ -1,18 +1,18 @@
-import { Inter, Plus_Jakarta_Sans, Open_Sans, PT_Mono } from "next/font/google";
-import { RAGConfig } from "./types";
+import { Inter, Open_Sans, PT_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import type { RAGConfig } from "./types";
 
 // Fonts
 const inter = Inter({ subsets: ["latin"] });
-const plus_jakarta_sans = Plus_Jakarta_Sans({ subsets: ["latin"] });
-const open_sans = Open_Sans({ subsets: ["latin"] });
-const pt_mono = PT_Mono({ subsets: ["latin"], weight: "400" });
+const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
+const openSans = Open_Sans({ subsets: ["latin"] });
+const ptMono = PT_Mono({ subsets: ["latin"], weight: "400" });
 export type FontKey = "Inter" | "Plus_Jakarta_Sans" | "Open_Sans" | "PT_Mono";
 
 export const fonts: Record<FontKey, typeof inter> = {
   Inter: inter,
-  Plus_Jakarta_Sans: plus_jakarta_sans,
-  Open_Sans: open_sans,
-  PT_Mono: pt_mono,
+  Plus_Jakarta_Sans: plusJakartaSans,
+  Open_Sans: openSans,
+  PT_Mono: ptMono,
 };
 
 export const chat_interface_info =

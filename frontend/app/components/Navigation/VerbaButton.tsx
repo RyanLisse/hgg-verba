@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { FaStar } from "react-icons/fa";
+import type React from "react";
+import type { FaStar } from "react-icons/fa";
 
 interface VerbaButtonProps {
   title?: string;

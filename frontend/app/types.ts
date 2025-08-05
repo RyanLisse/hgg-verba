@@ -140,7 +140,7 @@ export type RAGComponentConfig = {
   variables: string[];
   library: string[];
   description: string[];
-  selected:boolean | string;
+  selected: boolean | string;
   config: RAGSetting;
   type: string;
   available: boolean | string;
@@ -337,7 +337,7 @@ export type VerbaDocument = {
   fileSize: number;
   labels: string[];
   source: string;
-  meta: any;
+  meta: Record<string, unknown>;
 };
 
 export type VerbaChunk = {
@@ -394,6 +394,13 @@ export type Segment =
   | { type: "text"; content: string }
   | { type: "code"; language: string; content: string };
 
+export interface ReasoningStep {
+  step_number: number;
+  description: string;
+  content: string;
+  confidence: number;
+}
+
 export interface ReasoningTrace {
   steps: string[];
   confidence?: number;
@@ -401,6 +408,44 @@ export interface ReasoningTrace {
     phase?: string;
     model?: string;
   };
+  reasoning_steps?: ReasoningStep[];
+  total_thinking_time?: number;
+  complexity_level?: string;
+  final_conclusion?: string;
+}
+
+export interface Citation {
+  source_id: string;
+  source_type:
+    | "document"
+    | "chunk"
+    | "web_search"
+    | "file_search"
+    | "reasoning";
+  title?: string;
+  content_snippet: string;
+  page_number?: number;
+  confidence_score: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface StructuredResponse {
+  answer: string;
+  confidence_level: "high" | "medium" | "low" | "unknown";
+  citations?: Citation[];
+  reasoning_trace?: ReasoningTrace;
+  key_insights?: string[];
+  limitations?: string[];
+  follow_up_questions?: string[];
+  alternative_perspectives?: string[];
+  extended_thinking?: string;
+  tools_used?: string[];
+  generation_time?: number;
+  model_name?: string;
+  provider?: string;
+  factual_accuracy_score?: number;
+  completeness_score?: number;
+  cost_info?: Record<string, unknown>;
 }
 
 export interface Message {
@@ -412,6 +457,9 @@ export interface Message {
   runId?: string; // Make runId optional
   reasoningTrace?: ReasoningTrace; // New field for reasoning traces
   isThinking?: boolean; // Flag to indicate if this is a thinking/reasoning message
+  structured?: StructuredResponse; // New field for structured responses
+  messageType?: string; // Additional field for categorizing message content (reasoning_header, citation, etc.)
+  metadata?: Record<string, unknown>; // Additional metadata from structured responses
 }
 
 // Setting Fields
@@ -550,85 +598,85 @@ export const LightTheme: Theme = {
   title: {
     text: "Verba",
     type: "text",
-    description: "Application title"
+    description: "Application title",
   },
   subtitle: {
     text: "Your AI-powered document assistant",
     type: "text",
-    description: "Application subtitle"
+    description: "Application subtitle",
   },
   intro_message: {
     text: "Ask me anything about your documents",
     type: "text",
-    description: "Introduction message"
+    description: "Introduction message",
   },
   image: {
     src: "/verba.png",
     type: "image",
-    description: "Application logo"
+    description: "Application logo",
   },
   primary_color: {
     color: "#000000",
     type: "color",
-    description: "Primary color"
+    description: "Primary color",
   },
   secondary_color: {
     color: "#ffffff",
     type: "color",
-    description: "Secondary color"
+    description: "Secondary color",
   },
   warning_color: {
     color: "#ff0000",
     type: "color",
-    description: "Warning color"
+    description: "Warning color",
   },
   bg_color: {
     color: "#ffffff",
     type: "color",
-    description: "Background color"
+    description: "Background color",
   },
   bg_alt_color: {
     color: "#f0f0f0",
     type: "color",
-    description: "Alternate background color"
+    description: "Alternate background color",
   },
   text_color: {
     color: "#111111",
     type: "color",
-    description: "Text color"
+    description: "Text color",
   },
   text_alt_color: {
     color: "#222222",
     type: "color",
-    description: "Alternate text color"
+    description: "Alternate text color",
   },
   button_text_color: {
     color: "#333333",
     type: "color",
-    description: "Button text color"
+    description: "Button text color",
   },
   button_text_alt_color: {
     color: "#444444",
     type: "color",
-    description: "Alternate button text color"
+    description: "Alternate button text color",
   },
   button_color: {
     color: "#555555",
     type: "color",
-    description: "Button color"
+    description: "Button color",
   },
   button_hover_color: {
     color: "#666666",
     type: "color",
-    description: "Button hover color"
+    description: "Button hover color",
   },
   font: {
     type: "select",
     value: "Plus_Jakarta_Sans",
     description: "Text Font",
-    options: ["Inter", "Plus_Jakarta_Sans", "Open_Sans", "PT_Mono"]
+    options: ["Inter", "Plus_Jakarta_Sans", "Open_Sans", "PT_Mono"],
   },
-  theme: "light"
+  theme: "light",
 };
 
 export const DarkTheme: Theme = {
@@ -638,23 +686,23 @@ export const DarkTheme: Theme = {
   bg_color: {
     color: "#111111",
     type: "color",
-    description: "Background color"
+    description: "Background color",
   },
   bg_alt_color: {
     color: "#222222",
     type: "color",
-    description: "Alternate background color"
+    description: "Alternate background color",
   },
   text_color: {
     color: "#ffffff",
     type: "color",
-    description: "Text color"
+    description: "Text color",
   },
   text_alt_color: {
     color: "#eeeeee",
     type: "color",
-    description: "Alternate text color"
-  }
+    description: "Alternate text color",
+  },
 };
 
 export const WeaviateTheme: Theme = {
@@ -663,8 +711,8 @@ export const WeaviateTheme: Theme = {
   primary_color: {
     color: "#FF6D85",
     type: "color",
-    description: "Primary color"
-  }
+    description: "Primary color",
+  },
 };
 
 export const WCDTheme: Theme = {
@@ -673,8 +721,15 @@ export const WCDTheme: Theme = {
   primary_color: {
     color: "#00A6D6",
     type: "color",
-    description: "Primary color"
-  }
+    description: "Primary color",
+  },
 };
 
-export type PageType = "CHAT" | "DOCUMENTS" | "STATUS" | "IMPORT_DATA" | "SETTINGS" | "RAG" | "ADD";
+export type PageType =
+  | "CHAT"
+  | "DOCUMENTS"
+  | "STATUS"
+  | "IMPORT_DATA"
+  | "SETTINGS"
+  | "RAG"
+  | "ADD";

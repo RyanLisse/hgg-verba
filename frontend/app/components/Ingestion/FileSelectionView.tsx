@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import FileComponent from "./FileComponent";
-import InfoComponent from "../Navigation/InfoComponent";
-import { IoMdAddCircle } from "react-icons/io";
 import { FaFileImport } from "react-icons/fa";
-import { MdCancel } from "react-icons/md";
 import { GoFileDirectoryFill } from "react-icons/go";
-import { TbPlugConnected } from "react-icons/tb";
+import { IoMdAddCircle } from "react-icons/io";
 import { IoMdArrowDropdown } from "react-icons/io";
+import { MdCancel } from "react-icons/md";
+import { TbPlugConnected } from "react-icons/tb";
+import InfoComponent from "../Navigation/InfoComponent";
+import FileComponent from "./FileComponent";
 
 import { closeOnClick } from "@/app/util";
 
@@ -16,8 +16,8 @@ import UserModalComponent from "../Navigation/UserModal";
 
 import VerbaButton from "../Navigation/VerbaButton";
 
-import { FileMap } from "@/app/types";
-import { RAGConfig } from "@/app/types";
+import type { FileMap } from "@/app/types";
+import type { RAGConfig } from "@/app/types";
 
 interface FileSelectionViewProps {
   fileMap: FileMap;

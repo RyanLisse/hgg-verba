@@ -274,6 +274,211 @@ class LiteLLMGenerator(Generator):
                 values=[],
             )
 
+    def _extract_provider_name(self, model_name: str) -> str:
+        """Extract provider name from model name."""
+        return model_name.split("/")[0] if "/" in model_name else "unknown"
+
+    async def _stream_reasoning_trace(
+        self, response: EnhancedRAGResponse, run_id: str
+    ) -> AsyncIterator[dict]:
+        """Stream reasoning trace if available."""
+        if response.reasoning_trace and response.reasoning_trace.reasoning_steps:
+            yield {
+                "message": "## 🧠 Reasoning Process\n\n",
+                "finish_reason": None,
+                "runId": run_id,
+                "type": "reasoning_header",
+            }
+
+            for step in response.reasoning_trace.reasoning_steps:
+                yield {
+                    "message": f"**Step {step.step_number}:** {step.description}\n{step.content}\n\n",
+                    "finish_reason": None,
+                    "runId": run_id,
+                    "type": "reasoning_step",
+                }
+
+    async def _stream_main_answer(
+        self, response: EnhancedRAGResponse, run_id: str
+    ) -> AsyncIterator[dict]:
+        """Stream main answer in natural chunks."""
+        yield {
+            "message": "## 💬 Response\n\n",
+            "finish_reason": None,
+            "runId": run_id,
+            "type": "answer_header",
+        }
+
+        # Stream answer in natural chunks
+        answer_sentences = response.answer.split(". ")
+        for sentence in answer_sentences:
+            if sentence.strip():
+                yield {
+                    "message": sentence + (". " if not sentence.endswith(".") else " "),
+                    "finish_reason": None,
+                    "runId": run_id,
+                    "type": "content",
+                }
+
+    async def _stream_insights(
+        self, response: EnhancedRAGResponse, run_id: str
+    ) -> AsyncIterator[dict]:
+        """Stream key insights if available."""
+        if response.key_insights:
+            yield {
+                "message": "\n\n## 💡 Key Insights\n\n",
+                "finish_reason": None,
+                "runId": run_id,
+                "type": "insights_header",
+            }
+
+            for insight in response.key_insights:
+                yield {
+                    "message": f"• {insight}\n",
+                    "finish_reason": None,
+                    "runId": run_id,
+                    "type": "insight",
+                }
+
+    async def _stream_citations(
+        self, response: EnhancedRAGResponse, run_id: str
+    ) -> AsyncIterator[dict]:
+        """Stream citations if available."""
+        if response.citations:
+            yield {
+                "message": "\n\n## 📖 Sources\n\n",
+                "finish_reason": None,
+                "runId": run_id,
+                "type": "citations_header",
+            }
+
+            for i, citation in enumerate(response.citations, 1):
+                citation_text = f"[{i}] **{citation.title or 'Source'}**\n{citation.content_snippet}\n\n"
+                yield {
+                    "message": citation_text,
+                    "finish_reason": None,
+                    "runId": run_id,
+                    "type": "citation",
+                }
+
+    async def _stream_limitations(
+        self, response: EnhancedRAGResponse, run_id: str
+    ) -> AsyncIterator[dict]:
+        """Stream limitations if available."""
+        if response.limitations:
+            yield {
+                "message": "\n\n## ⚠️ Limitations\n\n",
+                "finish_reason": None,
+                "runId": run_id,
+                "type": "limitations_header",
+            }
+
+            for limitation in response.limitations:
+                yield {
+                    "message": f"• {limitation}\n",
+                    "finish_reason": None,
+                    "runId": run_id,
+                    "type": "limitation",
+                }
+
+    async def _stream_followup_questions(
+        self, response: EnhancedRAGResponse, run_id: str
+    ) -> AsyncIterator[dict]:
+        """Stream follow-up questions if available."""
+        if response.follow_up_questions:
+            yield {
+                "message": "\n\n## 🤔 Follow-up Questions\n\n",
+                "finish_reason": None,
+                "runId": run_id,
+                "type": "followup_header",
+            }
+
+            for question in response.follow_up_questions:
+                yield {
+                    "message": f"• {question}\n",
+                    "finish_reason": None,
+                    "runId": run_id,
+                    "type": "followup",
+                }
+
+    def _create_metadata(self, response: EnhancedRAGResponse, provider: str) -> dict:
+        """Create metadata for the final response."""
+        return {
+            "confidence": response.confidence_level.value,
+            "model": response.model_name,
+            "provider": provider,
+            "generation_time": response.generation_time,
+            "sources_used": len(response.citations),
+            "tools_used": response.tools_used,
+            "cost_info": response.token_usage,
+            "litellm_features": {
+                "provider": provider,
+                "unified_api": True,
+                "cost_tracking": bool(response.token_usage),
+            },
+        }
+
+    def _get_completion_params(
+        self, messages: List[Dict], model: str, config: Dict
+    ) -> dict:
+        """Get completion parameters for LiteLLM."""
+        temperature = float(
+            config.get(TEMPERATURE, {}).get("value", DEFAULT_TEMPERATURE)
+        )
+        max_tokens = config.get(MAX_TOKENS, {}).get("value", DEFAULT_MAX_TOKENS)
+        top_p = float(config.get(TOP_P, {}).get("value", DEFAULT_TOP_P))
+
+        return {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "top_p": top_p,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
+
+    def _extract_usage_info(self, chunk) -> dict:
+        """Extract usage information from chunk."""
+        usage_info = {}
+        if hasattr(chunk, "usage") and chunk.usage:
+            usage_info = {
+                "prompt_tokens": chunk.usage.prompt_tokens,
+                "completion_tokens": chunk.usage.completion_tokens,
+                "total_tokens": chunk.usage.total_tokens,
+            }
+
+        # Add cost information if available
+        if hasattr(chunk, "_hidden_params") and "response_cost" in chunk._hidden_params:
+            usage_info["cost"] = chunk._hidden_params["response_cost"]
+
+        return usage_info
+
+    async def _process_stream_chunk(self, chunk, run_id: str) -> AsyncIterator[dict]:
+        """Process individual stream chunk."""
+        if hasattr(chunk, "choices") and chunk.choices:
+            delta = chunk.choices[0].delta
+
+            if hasattr(delta, "content") and delta.content:
+                yield {
+                    "message": delta.content,
+                    "finish_reason": None,
+                    "runId": run_id,
+                    "type": "content",
+                }
+
+            if (
+                hasattr(chunk.choices[0], "finish_reason")
+                and chunk.choices[0].finish_reason
+            ):
+                usage_info = self._extract_usage_info(chunk)
+                yield {
+                    "message": "",
+                    "finish_reason": chunk.choices[0].finish_reason,
+                    "runId": run_id,
+                    "usage": usage_info,
+                }
+
     async def initialize_client(self, config):
         """Initialize LiteLLM instructor client."""
         try:
@@ -467,11 +672,7 @@ class LiteLLMGenerator(Generator):
         run_id = f"litellm_{int(time.time())}"
 
         # Stream provider information
-        provider = (
-            response.model_name.split("/")[0]
-            if "/" in response.model_name
-            else "unknown"
-        )
+        provider = self._extract_provider_name(response.model_name)
         yield {
             "message": f"## 🔗 Provider: {provider.upper()}\n\n",
             "finish_reason": None,
@@ -480,125 +681,31 @@ class LiteLLMGenerator(Generator):
         }
 
         # Stream reasoning trace if available
-        if response.reasoning_trace and response.reasoning_trace.reasoning_steps:
-            yield {
-                "message": "## 🧠 Reasoning Process\n\n",
-                "finish_reason": None,
-                "runId": run_id,
-                "type": "reasoning_header",
-            }
-
-            for step in response.reasoning_trace.reasoning_steps:
-                yield {
-                    "message": f"**Step {step.step_number}:** {step.description}\n{step.content}\n\n",
-                    "finish_reason": None,
-                    "runId": run_id,
-                    "type": "reasoning_step",
-                }
+        async for chunk in self._stream_reasoning_trace(response, run_id):
+            yield chunk
 
         # Stream main answer
-        yield {
-            "message": "## 💬 Response\n\n",
-            "finish_reason": None,
-            "runId": run_id,
-            "type": "answer_header",
-        }
-
-        # Stream answer in natural chunks
-        answer_sentences = response.answer.split(". ")
-        for sentence in answer_sentences:
-            if sentence.strip():
-                yield {
-                    "message": sentence + (". " if not sentence.endswith(".") else " "),
-                    "finish_reason": None,
-                    "runId": run_id,
-                    "type": "content",
-                }
+        async for chunk in self._stream_main_answer(response, run_id):
+            yield chunk
 
         # Stream key insights
-        if response.key_insights:
-            yield {
-                "message": "\n\n## 💡 Key Insights\n\n",
-                "finish_reason": None,
-                "runId": run_id,
-                "type": "insights_header",
-            }
-
-            for insight in response.key_insights:
-                yield {
-                    "message": f"• {insight}\n",
-                    "finish_reason": None,
-                    "runId": run_id,
-                    "type": "insight",
-                }
+        async for chunk in self._stream_insights(response, run_id):
+            yield chunk
 
         # Stream citations
-        if response.citations:
-            yield {
-                "message": "\n\n## 📖 Sources\n\n",
-                "finish_reason": None,
-                "runId": run_id,
-                "type": "citations_header",
-            }
-
-            for i, citation in enumerate(response.citations, 1):
-                citation_text = f"[{i}] **{citation.title or 'Source'}**\n{citation.content_snippet}\n\n"
-                yield {
-                    "message": citation_text,
-                    "finish_reason": None,
-                    "runId": run_id,
-                    "type": "citation",
-                }
+        async for chunk in self._stream_citations(response, run_id):
+            yield chunk
 
         # Stream limitations if any
-        if response.limitations:
-            yield {
-                "message": "\n\n## ⚠️ Limitations\n\n",
-                "finish_reason": None,
-                "runId": run_id,
-                "type": "limitations_header",
-            }
-
-            for limitation in response.limitations:
-                yield {
-                    "message": f"• {limitation}\n",
-                    "finish_reason": None,
-                    "runId": run_id,
-                    "type": "limitation",
-                }
+        async for chunk in self._stream_limitations(response, run_id):
+            yield chunk
 
         # Stream follow-up questions
-        if response.follow_up_questions:
-            yield {
-                "message": "\n\n## 🤔 Follow-up Questions\n\n",
-                "finish_reason": None,
-                "runId": run_id,
-                "type": "followup_header",
-            }
-
-            for question in response.follow_up_questions:
-                yield {
-                    "message": f"• {question}\n",
-                    "finish_reason": None,
-                    "runId": run_id,
-                    "type": "followup",
-                }
+        async for chunk in self._stream_followup_questions(response, run_id):
+            yield chunk
 
         # Final metadata with cost information
-        metadata = {
-            "confidence": response.confidence_level.value,
-            "model": response.model_name,
-            "provider": provider,
-            "generation_time": response.generation_time,
-            "sources_used": len(response.citations),
-            "tools_used": response.tools_used,
-            "cost_info": response.token_usage,
-            "litellm_features": {
-                "provider": provider,
-                "unified_api": True,
-                "cost_tracking": bool(response.token_usage),
-            },
-        }
+        metadata = self._create_metadata(response, provider)
 
         yield {
             "message": "",
@@ -613,62 +720,15 @@ class LiteLLMGenerator(Generator):
         """Fall back to regular LiteLLM streaming for non-structured output."""
         from litellm import acompletion
 
-        temperature = float(config.get(TEMPERATURE, {}).get("value", DEFAULT_TEMPERATURE))
-        max_tokens = config.get(MAX_TOKENS, {}).get("value", DEFAULT_MAX_TOKENS)
-        top_p = float(config.get(TOP_P, {}).get("value", DEFAULT_TOP_P))
-
-        completion_params = {
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "top_p": top_p,
-            "stream": True,
-            "stream_options": {"include_usage": True},
-        }
+        completion_params = self._get_completion_params(messages, model, config)
 
         try:
             response_stream = await acompletion(**completion_params)
             run_id = "litellm_regular_stream"
 
             async for chunk in response_stream:
-                if hasattr(chunk, "choices") and chunk.choices:
-                    delta = chunk.choices[0].delta
-
-                    if hasattr(delta, "content") and delta.content:
-                        yield {
-                            "message": delta.content,
-                            "finish_reason": None,
-                            "runId": run_id,
-                            "type": "content",
-                        }
-
-                    if (
-                        hasattr(chunk.choices[0], "finish_reason")
-                        and chunk.choices[0].finish_reason
-                    ):
-                        # Include usage and cost info if available
-                        usage_info = {}
-                        if hasattr(chunk, "usage") and chunk.usage:
-                            usage_info = {
-                                "prompt_tokens": chunk.usage.prompt_tokens,
-                                "completion_tokens": chunk.usage.completion_tokens,
-                                "total_tokens": chunk.usage.total_tokens,
-                            }
-
-                        # Add cost information if available
-                        if (
-                            hasattr(chunk, "_hidden_params")
-                            and "response_cost" in chunk._hidden_params
-                        ):
-                            usage_info["cost"] = chunk._hidden_params["response_cost"]
-
-                        yield {
-                            "message": "",
-                            "finish_reason": chunk.choices[0].finish_reason,
-                            "runId": run_id,
-                            "usage": usage_info,
-                        }
+                async for result in self._process_stream_chunk(chunk, run_id):
+                    yield result
 
                 if hasattr(chunk, "id"):
                     run_id = chunk.id
@@ -724,7 +784,7 @@ Please provide a comprehensive response that demonstrates reasoning and cites re
         return messages
 
     def extract_citations_from_context(
-        self, context: str, max_citations: int = 6
+        self, context: str, max_citations: int = MAX_CITATIONS
     ) -> List[Citation]:
         """Extract citations from context with LiteLLM-optimized processing."""
         citations = []
@@ -732,7 +792,7 @@ Please provide a comprehensive response that demonstrates reasoning and cites re
         context_sections = context.split("\n\n")
 
         for i, section in enumerate(context_sections[:max_citations]):
-            if len(section.strip()) > 80:
+            if len(section.strip()) > MIN_SECTION_LENGTH:
                 # Extract title from first line or create one
                 lines = section.split("\n")
                 potential_title = lines[0] if lines else f"LiteLLM Context {i + 1}"
@@ -740,13 +800,13 @@ Please provide a comprehensive response that demonstrates reasoning and cites re
                 citation = Citation(
                     source_id=f"litellm_context_{i}",
                     source_type=SourceType.DOCUMENT,
-                    title=potential_title[:100] + "..."
-                    if len(potential_title) > 100
+                    title=potential_title[:MAX_TITLE_LENGTH] + "..."
+                    if len(potential_title) > MAX_TITLE_LENGTH
                     else potential_title,
-                    content_snippet=section[:250] + "..."
-                    if len(section) > 250
+                    content_snippet=section[:MAX_SNIPPET_LENGTH] + "..."
+                    if len(section) > MAX_SNIPPET_LENGTH
                     else section,
-                    confidence_score=0.8,
+                    confidence_score=DEFAULT_CONFIDENCE,
                     metadata={
                         "section_number": i + 1,
                         "length": len(section),

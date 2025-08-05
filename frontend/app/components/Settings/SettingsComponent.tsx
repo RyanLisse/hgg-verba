@@ -1,21 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
 import {
-  Theme,
-  Themes,
-  TextFieldSetting,
-  ImageFieldSetting,
-  CheckboxSetting,
-  ColorSetting,
-  SelectSetting,
-  NumberFieldSetting,
-  WeaviateTheme,
-  WCDTheme,
-  LightTheme,
+  type CheckboxSetting,
+  type ColorSetting,
+  type Credentials,
   DarkTheme,
-  Credentials,
+  type ImageFieldSetting,
+  LightTheme,
+  type NumberFieldSetting,
+  type SelectSetting,
+  type TextFieldSetting,
+  type Theme,
+  type Themes,
+  WCDTheme,
+  WeaviateTheme,
 } from "@/app/types";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 import VerbaButton from "@/app/components/Navigation/VerbaButton";
 
@@ -25,7 +26,7 @@ import { FaCheckCircle } from "react-icons/fa";
 import { MdCancel } from "react-icons/md";
 
 import { updateThemeConfig } from "@/app/api";
-import Image from 'next/image';
+import Image from "next/image";
 
 interface SettingsComponentProps {
   selectedTheme: Theme;
@@ -135,7 +136,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
 
   const renderSettingComponent = (
     title: any,
-    setting_type:
+    settingType:
       | TextFieldSetting
       | ImageFieldSetting
       | CheckboxSetting
@@ -146,8 +147,8 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
     return (
       <div key={title}>
         <div className="flex gap-3 justify-between items-center text-text-verba">
-          <p className="flex min-w-[8vw]">{setting_type.description}</p>
-          {setting_type.type === "text" && (
+          <p className="flex min-w-[8vw]">{settingType.description}</p>
+          {settingType.type === "text" && (
             <label className="input flex items-center gap-2 w-full border-none bg-bg-verba">
               <input
                 type="text"
@@ -158,7 +159,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
               />
             </label>
           )}
-          {setting_type.type === "select" && (
+          {settingType.type === "select" && (
             <select
               value={(selectedTheme as any)[title].value}
               onChange={(e) => {
@@ -166,14 +167,14 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
               }}
               className="select bg-bg-verba"
             >
-              {setting_type.options.map((template) => (
+              {settingType.options.map((template) => (
                 <option key={"Select_" + template} value={template}>
                   {template}
                 </option>
               ))}
             </select>
           )}
-          {setting_type.type === "color" && (
+          {settingType.type === "color" && (
             <div className="flex flex-col gap-1 h-[15vh] z-10">
               <label className="input bg-bg-verba input-sm input-bordered flex items-center gap-2 w-full">
                 <input
@@ -195,7 +196,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
               />
             </div>
           )}
-          {setting_type.type === "image" && (
+          {settingType.type === "image" && (
             <div className="flex justify-between gap-4 w-full items-center">
               <div className="flex-grow">
                 <label className="input flex items-center text-text-verba gap-2 w-full border-none bg-bg-verba">

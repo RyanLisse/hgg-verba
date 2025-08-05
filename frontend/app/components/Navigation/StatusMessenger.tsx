@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { StatusMessage } from "@/app/types";
-import { motion, AnimatePresence } from "framer-motion";
+import type { StatusMessage } from "@/app/types";
+import { AnimatePresence, motion } from "framer-motion";
+import type React from "react";
+import { useEffect, useState } from "react";
 
-import { FaWandMagicSparkles } from "react-icons/fa6";
-import { IoWarning } from "react-icons/io5";
 import { BiSolidMessageAltDetail } from "react-icons/bi";
 import { BiSolidErrorCircle } from "react-icons/bi";
+import { FaWandMagicSparkles } from "react-icons/fa6";
+import { IoWarning } from "react-icons/io5";
 
 interface StatusMessengerProps {
   status_messages: StatusMessage[];
@@ -59,19 +60,19 @@ const StatusMessengerComponent: React.FC<StatusMessengerProps> = ({
   };
 
   const getMessageIcon = (type: string) => {
-    const icon_size = 15;
+    const iconSize = 15;
 
     switch (type) {
       case "INFO":
-        return <BiSolidMessageAltDetail size={icon_size} />;
+        return <BiSolidMessageAltDetail size={iconSize} />;
       case "WARNING":
-        return <IoWarning size={icon_size} />;
+        return <IoWarning size={iconSize} />;
       case "SUCCESS":
-        return <FaWandMagicSparkles size={icon_size} />;
+        return <FaWandMagicSparkles size={iconSize} />;
       case "ERROR":
-        return <BiSolidErrorCircle size={icon_size} />;
+        return <BiSolidErrorCircle size={iconSize} />;
       default:
-        return <BiSolidMessageAltDetail size={icon_size} />;
+        return <BiSolidMessageAltDetail size={iconSize} />;
     }
   };
 

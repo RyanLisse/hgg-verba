@@ -1,27 +1,28 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 import { FaInfoCircle } from "react-icons/fa";
-import VectorView from "./VectorView";
-import ChunkView from "./ChunkView";
 import InfoComponent from "../Navigation/InfoComponent";
+import ChunkView from "./ChunkView";
+import VectorView from "./VectorView";
 
 import DocumentMetaView from "./DocumentMetaView";
 
+import type {
+  ChunkScore,
+  Credentials,
+  DocumentFilter,
+  DocumentPayload,
+  Theme,
+  VerbaDocument,
+} from "@/app/types";
+import { FaExternalLinkAlt } from "react-icons/fa";
+import { IoMdAddCircle } from "react-icons/io";
 import { MdCancel } from "react-icons/md";
 import { MdContentPaste } from "react-icons/md";
 import { MdContentCopy } from "react-icons/md";
 import { TbVectorTriangle } from "react-icons/tb";
 import ContentView from "./ContentView";
-import { IoMdAddCircle } from "react-icons/io";
-import { FaExternalLinkAlt } from "react-icons/fa";
-import {
-  VerbaDocument,
-  DocumentPayload,
-  Credentials,
-  ChunkScore,
-  Theme,
-  DocumentFilter,
-} from "@/app/types";
 
 import VerbaButton from "../Navigation/VerbaButton";
 

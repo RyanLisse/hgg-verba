@@ -1,28 +1,25 @@
+import asyncio
+import json
+import logging
+import os
+from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+from uuid import UUID
+
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
-import asyncio
-import logging
-import json
-
-
-
-# Set up logging
-logger = logging.getLogger(__name__)
-
-from goldenverba.server.helpers import LoggerManager, BatchManager
-
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
 from starlette.websockets import WebSocketDisconnect
+from dotenv import load_dotenv
 from wasabi import msg  # type: ignore[import]
+from langsmith import Client as LangSmithClient
 
 from goldenverba import verba_manager
+from goldenverba.server.helpers import LoggerManager, BatchManager
 
+# Import types
 from goldenverba.server.types import (
     ResetPayload,
     QueryPayload,
@@ -45,10 +42,9 @@ from goldenverba.server.types import (
     ChunksPayload,
     FeedbackPayload,
 )
-from datetime import datetime
 
-from langsmith import Client as LangSmithClient
-from uuid import UUID
+# Set up logging
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 

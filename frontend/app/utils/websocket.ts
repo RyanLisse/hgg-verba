@@ -9,7 +9,12 @@ export interface WebSocketConfig {
   messageQueueSize?: number;
 }
 
-export type ConnectionState = "CONNECTING" | "CONNECTED" | "DISCONNECTED" | "RECONNECTING" | "ERROR";
+export type ConnectionState =
+  | "CONNECTING"
+  | "CONNECTED"
+  | "DISCONNECTED"
+  | "RECONNECTING"
+  | "ERROR";
 
 export interface WebSocketMessage {
   id: string;
@@ -55,7 +60,7 @@ export class ReconnectingWebSocket {
   }
 
   private emit(event: string, ...args: any[]): void {
-    this.listeners.get(event)?.forEach(callback => {
+    this.listeners.get(event)?.forEach((callback) => {
       try {
         callback(...args);
       } catch (error) {
@@ -70,7 +75,7 @@ export class ReconnectingWebSocket {
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
     this.updateState("CONNECTING");
-    
+
     try {
       const socketHost = getWebSocketApiHost();
       const fullUrl = `${socketHost}${this.endpoint}`;
@@ -97,7 +102,7 @@ export class ReconnectingWebSocket {
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         // Handle pong messages
         if (data.type === "pong") {
           this.emit("pong");
@@ -118,9 +123,11 @@ export class ReconnectingWebSocket {
     };
 
     this.ws.onclose = (event) => {
-      console.log(`WebSocket closed: code=${event.code}, reason=${event.reason}`);
+      console.log(
+        `WebSocket closed: code=${event.code}, reason=${event.reason}`
+      );
       this.stopHeartbeat();
-      
+
       if (event.wasClean || this.isDestroyed) {
         this.updateState("DISCONNECTED");
         this.emit("close", event);
@@ -128,7 +135,10 @@ export class ReconnectingWebSocket {
       }
 
       // Handle unexpected closure
-      if (this.config.reconnectOnError && this.retryCount < this.config.maxRetries) {
+      if (
+        this.config.reconnectOnError &&
+        this.retryCount < this.config.maxRetries
+      ) {
         this.handleReconnect();
       } else {
         this.updateState("DISCONNECTED");
@@ -151,7 +161,9 @@ export class ReconnectingWebSocket {
     const jitter = Math.random() * 0.3 * baseDelay; // 30% jitter
     const delay = baseDelay + jitter;
 
-    console.log(`Reconnecting in ${Math.round(delay)}ms (attempt ${this.retryCount}/${this.config.maxRetries})`);
+    console.log(
+      `Reconnecting in ${Math.round(delay)}ms (attempt ${this.retryCount}/${this.config.maxRetries})`
+    );
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -192,7 +204,10 @@ export class ReconnectingWebSocket {
   }
 
   private flushMessageQueue(): void {
-    while (this.messageQueue.length > 0 && this.ws?.readyState === WebSocket.OPEN) {
+    while (
+      this.messageQueue.length > 0 &&
+      this.ws?.readyState === WebSocket.OPEN
+    ) {
       const message = this.messageQueue.shift()!;
       try {
         this.ws.send(JSON.stringify(message.data));
@@ -248,7 +263,7 @@ export class ReconnectingWebSocket {
   public disconnect(): void {
     this.isDestroyed = true;
     this.stopHeartbeat();
-    
+
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Credentials, Suggestion } from "@/app/types";
-import { IoTrash, IoDocumentSharp, IoReload, IoCopy } from "react-icons/io5";
-import { FaWrench } from "react-icons/fa";
-import { fetchAllSuggestions, deleteSuggestion } from "@/app/api";
-import UserModalComponent from "../Navigation/UserModal";
-import { FaArrowAltCircleRight, FaArrowAltCircleLeft } from "react-icons/fa";
+import { deleteSuggestion, fetchAllSuggestions } from "@/app/api";
+import type { Credentials, Suggestion } from "@/app/types";
 import { formatDistanceToNow, parseISO } from "date-fns";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { FaWrench } from "react-icons/fa";
+import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
+import { IoCopy, IoDocumentSharp, IoReload, IoTrash } from "react-icons/io5";
+import UserModalComponent from "../Navigation/UserModal";
 
 import VerbaButton from "../Navigation/VerbaButton";
 
@@ -59,8 +60,8 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
     }
   };
 
-  const openModal = (modal_id: string) => {
-    const modal = document.getElementById(modal_id);
+  const openModal = (modalId: string) => {
+    const modal = document.getElementById(modalId);
     if (modal instanceof HTMLDialogElement) {
       modal.showModal();
     }

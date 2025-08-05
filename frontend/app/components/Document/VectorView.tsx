@@ -1,29 +1,24 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useMemo,
-  useCallback,
-} from "react";
+import { Float, OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { extend } from "@react-three/fiber";
-import { OrbitControls, Float, PerspectiveCamera } from "@react-three/drei";
-import * as THREE from "three";
-import { MdCancel } from "react-icons/md";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoTriangleDown } from "react-icons/go";
+import { MdCancel } from "react-icons/md";
+import * as three from "three";
 
 import { vectorToColor } from "./util";
 
 import { fetch_chunk, fetch_vectors } from "@/app/api";
 
-import {
-  VectorsPayload,
-  VectorGroup,
+import type {
   ChunkPayload,
+  ChunkScore,
+  Credentials,
+  VectorGroup,
+  VectorsPayload,
   VerbaChunk,
   VerbaVector,
-  Credentials,
-  ChunkScore,
 } from "@/app/types";
 
 import { colors } from "./util";
@@ -67,7 +62,7 @@ const Sphere: React.FC<{
   maxZ,
   chunkScores,
 }) => {
-  const ref = useRef<THREE.Mesh>(null!);
+  const ref = useRef<three.Mesh>(null!);
   const hoverRef = useRef(false);
 
   const isHighlighted = useMemo(
@@ -76,11 +71,11 @@ const Sphere: React.FC<{
   );
 
   const sphereColor = useMemo(() => {
-    if (isHighlighted) return new THREE.Color("yellow");
-    if (selectedChunk === chunk_uuid) return new THREE.Color("green");
+    if (isHighlighted) return new three.Color("yellow");
+    if (selectedChunk === chunk_uuid) return new three.Color("green");
     return dynamicColor
       ? vectorToColor(vector, minX, maxX, minY, maxY, minZ, maxZ)
-      : new THREE.Color(color);
+      : new three.Color(color);
   }, [
     isHighlighted,
     selectedChunk,
@@ -120,7 +115,7 @@ const Sphere: React.FC<{
   useFrame(() => {
     if (ref.current) {
       ref.current.position.lerp(
-        new THREE.Vector3(
+        new three.Vector3(
           vector.x * multiplication,
           vector.y * multiplication,
           vector.z * multiplication
@@ -129,7 +124,7 @@ const Sphere: React.FC<{
       );
 
       // Update material color based on hover state
-      const material = ref.current.material as THREE.MeshBasicMaterial;
+      const material = ref.current.material as three.MeshBasicMaterial;
       material.color.set(hoverRef.current ? "blue" : sphereColor);
       material.opacity = hoverRef.current ? 1 : sphereOpacity;
       material.transparent = !hoverRef.current;
@@ -169,7 +164,7 @@ const VectorView: React.FC<VectorViewProps> = ({
   production,
   chunkScores,
 }) => {
-  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const refs = useRef<(three.Mesh | null)[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [vectors, setVectors] = useState<VectorGroup[]>([]);
   const [embedder, setEmbedder] = useState("");
@@ -217,11 +212,11 @@ const VectorView: React.FC<VectorViewProps> = ({
   }
 
   const getVectorCount = () => {
-    let vector_count = 0;
-    for (const vector_group of vectors) {
-      vector_count += vector_group.chunks.length;
+    let vectorCount = 0;
+    for (const vectorGroup of vectors) {
+      vectorCount += vectorGroup.chunks.length;
     }
-    return vector_count;
+    return vectorCount;
   };
 
   const fetchChunk = async () => {
@@ -439,16 +434,16 @@ const VectorView: React.FC<VectorViewProps> = ({
             <OrbitControls></OrbitControls>
             <PerspectiveCamera makeDefault position={[0, 0, 0 + 150]} />
             <axesHelper args={[50]} />
-            {vectors.map((vector_group, index) =>
-              vector_group.chunks.map((chunk, v_index) => (
+            {vectors.map((vectorGroup, index) =>
+              vectorGroup.chunks.map((chunk, vIndex) => (
                 <Sphere
                   dynamicColor={dynamicColor}
                   multiplication={viewMultiplication}
-                  key={"Sphere_" + v_index + vector_group.name}
+                  key={"Sphere_" + vIndex + vectorGroup.name}
                   vector={chunk.vector}
                   color={selectColor(index)}
                   setHoverTitle={hoverTitleRef}
-                  documentTitle={vector_group.name}
+                  documentTitle={vectorGroup.name}
                   chunk_id={chunk.chunk_id}
                   setSelectedChunk={setSelectedChunk}
                   selectedChunk={selectedChunk}

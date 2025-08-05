@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import type { PageType, RAGConfig, Theme } from "@/app/types";
 import { render, within } from "@testing-library/react";
 import ChatInterface from "../ChatInterface";
-import { RAGConfig, Theme, PageType } from "@/app/types";
 
 describe("ChatInterface", () => {
   test("renders chat interface correctly", () => {

@@ -1,17 +1,17 @@
 "use client";
 
-import React from "react";
+import type React from "react";
 
 interface StatusLabelProps {
   status: boolean;
-  true_text: string;
-  false_text: string;
+  trueText: string;
+  falseText: string;
 }
 
 const StatusLabel: React.FC<StatusLabelProps> = ({
   status,
-  true_text,
-  false_text,
+  trueText,
+  falseText,
 }) => {
   return (
     <div
@@ -20,7 +20,7 @@ const StatusLabel: React.FC<StatusLabelProps> = ({
       <p
         className={`text-xs ${status ? "text-text-verba" : "text-text-alt-verba"}`}
       >
-        {status ? true_text : false_text}
+        {status ? trueText : falseText}
       </p>
     </div>
   );

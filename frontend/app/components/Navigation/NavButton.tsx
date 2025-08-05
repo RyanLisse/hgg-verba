@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import type { PageType } from "@/app/types"; // Update this import
+import type React from "react";
 import VerbaButton from "./VerbaButton";
-import { PageType } from "@/app/types"; // Update this import
 
 // Remove this line as we're now importing PageType from types.ts
 // type PageType = "CHAT" | "DOCUMENTS" | "STATUS" | "IMPORT_DATA" | "SETTINGS" | "RAG" | "ADD";

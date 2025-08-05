@@ -100,7 +100,7 @@ class BasicReader(Reader):
             else:
                 try:
                     file_content = await self.load_text_file(decoded_bytes)
-                except Exception as e:
+                except Exception:
                     raise ValueError(
                         f"Unsupported file extension: {fileConfig.extension}"
                     )

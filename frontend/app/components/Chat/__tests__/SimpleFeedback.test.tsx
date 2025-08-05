@@ -1,5 +1,5 @@
-import { describe, expect, test, mock, beforeEach } from "bun:test";
-import { render, fireEvent, within } from "@testing-library/react";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { fireEvent, render, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SimpleFeedback from "../SimpleFeedback";
 
@@ -39,7 +39,9 @@ describe("SimpleFeedback", () => {
       <SimpleFeedback runId={mockRunId} onSubmit={mockOnSubmit} />
     );
 
-    fireEvent.click(within(container).getByRole("button", { name: /feedback/i }));
+    fireEvent.click(
+      within(container).getByRole("button", { name: /feedback/i })
+    );
     fireEvent.click(within(container).getByRole("button", { name: /yes/i }));
 
     expect(mockOnSubmit.mock.calls.length).toBe(1);
@@ -51,7 +53,9 @@ describe("SimpleFeedback", () => {
       <SimpleFeedback runId={mockRunId} onSubmit={mockOnSubmit} />
     );
 
-    fireEvent.click(within(container).getByRole("button", { name: /feedback/i }));
+    fireEvent.click(
+      within(container).getByRole("button", { name: /feedback/i })
+    );
     fireEvent.click(within(container).getByRole("button", { name: /no/i }));
 
     const textarea = container.querySelector("textarea");
@@ -64,14 +68,22 @@ describe("SimpleFeedback", () => {
       <SimpleFeedback runId={mockRunId} onSubmit={mockOnSubmit} />
     );
 
-    fireEvent.click(within(container).getByRole("button", { name: /feedback/i }));
+    fireEvent.click(
+      within(container).getByRole("button", { name: /feedback/i })
+    );
     fireEvent.click(within(container).getByRole("button", { name: /no/i }));
 
     const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
     await user.type(textarea, "Test feedback");
-    await user.click(within(container).getByRole("button", { name: /submit feedback/i }));
+    await user.click(
+      within(container).getByRole("button", { name: /submit feedback/i })
+    );
 
     expect(mockOnSubmit.mock.calls.length).toBe(1);
-    expect(mockOnSubmit.mock.calls[0]).toEqual([mockRunId, "negative", "Test feedback"]);
+    expect(mockOnSubmit.mock.calls[0]).toEqual([
+      mockRunId,
+      "negative",
+      "Test feedback",
+    ]);
   });
-}); 
+});

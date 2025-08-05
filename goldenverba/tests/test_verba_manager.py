@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 from goldenverba.verba_manager import VerbaManager
-from goldenverba.server.types import Credentials, FileConfig
+from goldenverba.server.types import Credentials
 
 @pytest.fixture
 def verba_manager():
@@ -23,7 +23,7 @@ async def test_connect(verba_manager):
         key="test-key"
     )
     
-    with patch('weaviate.client.WeaviateAsyncClient') as mock_client, \
+    with patch('weaviate.client.WeaviateAsyncClient'), \
          patch('goldenverba.components.managers.WeaviateManager.verify_collection') as mock_verify:
         mock_verify.return_value = True
         client = await verba_manager.connect(credentials)
@@ -66,7 +66,7 @@ def test_verify_config(verba_manager):
             }
         }
     }
-    assert verba_manager.verify_config(config_a, config_b) == True
+    assert verba_manager.verify_config(config_a, config_b)
 
     config_b = {
         "Reader": {
@@ -83,4 +83,4 @@ def test_verify_config(verba_manager):
             }
         }
     }
-    assert verba_manager.verify_config(config_a, config_b) == False
+    assert not verba_manager.verify_config(config_a, config_b)

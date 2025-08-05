@@ -1,6 +1,6 @@
-import { FormattedDocument } from "@/app/types";
-import { VerbaVector } from "@/app/types";
-import * as THREE from "three";
+import type { FormattedDocument } from "@/app/types";
+import type { VerbaVector } from "@/app/types";
+import * as three from "three";
 
 export function splitDocument(
   fullText: string,
@@ -111,7 +111,7 @@ export function vectorToColor(
   maxY: number,
   minZ: number,
   maxZ: number
-): THREE.Color {
+): three.Color {
   // Normalize vector components to be within the range of 0 to 1 based on min and max
   const normalizedX = normalize(vector.x, minX, maxX);
   const normalizedY = normalize(vector.y, minY, maxY);
@@ -122,5 +122,5 @@ export function vectorToColor(
   const g = Math.floor(normalizedX * 255); // Green from X axis
   const b = Math.floor(normalizedY * 255); // Blue from Y axis
 
-  return new THREE.Color(`rgb(${g},${b},${r})`);
+  return new three.Color(`rgb(${g},${b},${r})`);
 }

@@ -231,30 +231,53 @@ class WeaviateManager:
             )
         )
 
+    def _get_env_vars(
+        self, weaviate_url: str, weaviate_api_key: str
+    ) -> tuple[str, str]:
+        """Get environment variables for Weaviate URL and API key if not provided."""
+        if weaviate_url == "" and os.environ.get("WEAVIATE_URL_VERBA"):
+            weaviate_url = os.environ.get("WEAVIATE_URL_VERBA")
+
+        if weaviate_api_key == "" and os.environ.get("WEAVIATE_API_KEY_VERBA"):
+            weaviate_api_key = os.environ.get("WEAVIATE_API_KEY_VERBA")
+
+        return weaviate_url, weaviate_api_key
+
+    async def _create_client(
+        self, deployment: str, weaviate_url: str, weaviate_api_key: str
+    ):
+        """Create the appropriate Weaviate client based on deployment type."""
+        if deployment == "Weaviate":
+            weaviate_url, weaviate_api_key = self._get_env_vars(
+                weaviate_url, weaviate_api_key
+            )
+            return self.connect_to_cluster(weaviate_url, weaviate_api_key)
+        elif deployment == "Docker":
+            return await self.connect_to_docker("weaviate")
+        elif deployment == "Local":
+            return await self.connect_to_embedded()
+        else:
+            raise ValueError(f"Unknown deployment type: {deployment}")
+
     async def connect(
-        self, deployment: str, weaviateURL: str, weaviateAPIKey: str
+        self, deployment: str, weaviate_url: str, weaviate_api_key: str
     ) -> WeaviateAsyncClient:
         try:
-            if deployment == "Weaviate":
-                if weaviateURL == "" and os.environ.get("WEAVIATE_URL_VERBA"):
-                    weaviateURL = os.environ.get("WEAVIATE_URL_VERBA")
-
-                if weaviateAPIKey == "" and os.environ.get("WEAVIATE_API_KEY_VERBA"):
-                    weaviateAPIKey = os.environ.get("WEAVIATE_API_KEY_VERBA")
-
-                client = self.connect_to_cluster(weaviateURL, weaviateAPIKey)
-            elif deployment == "Docker":
-                client = await self.connect_to_docker("weaviate")
-            elif deployment == "Local":
-                client = await self.connect_to_embedded()
+            client = await self._create_client(
+                deployment, weaviate_url, weaviate_api_key
+            )
 
             if client is not None:
-                await client.connect()
-                if await client.is_ready():
-                    msg.good("Succesfully Connected to Weaviate")
+                client.connect()
+                if client.is_ready():
+                    msg.good("Successfully Connected to Weaviate")
                     return client
-
-            return None
+                else:
+                    msg.fail("Weaviate client is not ready")
+                    return None
+            else:
+                msg.fail("Failed to create Weaviate client")
+                return None
 
         except Exception as e:
             msg.fail(f"Couldn't connect to Weaviate, check your URL/API KEY: {str(e)}")
@@ -264,7 +287,7 @@ class WeaviateManager:
 
     async def disconnect(self, client: WeaviateAsyncClient):
         try:
-            await client.close()
+            client.close()
             return True
         except Exception as e:
             msg.fail(f"Couldn't disconnect Weaviate: {str(e)}")

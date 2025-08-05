@@ -1,40 +1,43 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { MdCancel, MdOutlineRefresh } from "react-icons/md";
-import { TbPlugConnected } from "react-icons/tb";
-import { IoChatbubbleSharp } from "react-icons/io5";
+import { BiError } from "react-icons/bi";
 import { FaHammer } from "react-icons/fa";
 import { IoIosSend } from "react-icons/io";
-import { BiError } from "react-icons/bi";
 import { IoMdAddCircle } from "react-icons/io";
+import { IoChatbubbleSharp } from "react-icons/io5";
+import { MdCancel, MdOutlineRefresh } from "react-icons/md";
+import { TbPlugConnected } from "react-icons/tb";
 
 import VerbaButton from "../Navigation/VerbaButton";
 import SimpleFeedback from "./SimpleFeedback";
 
 import {
-  updateRAGConfig,
-  sendUserQuery,
   fetchDatacount,
+  fetchLabels,
   fetchRAGConfig,
   fetchSuggestions,
-  fetchLabels,
+  sendUserQuery,
+  updateRAGConfig,
 } from "@/app/api";
 import { getWebSocketApiHost, logMessage } from "@/app/util";
-import { ReconnectingWebSocket, ConnectionState } from "@/app/utils/websocket";
-
 import {
-  Credentials,
-  QueryPayload,
-  Suggestion,
-  DataCountPayload,
+  type ConnectionState,
+  ReconnectingWebSocket,
+} from "@/app/utils/websocket";
+
+import type {
   ChunkScore,
-  Message,
-  LabelsResponse,
-  RAGConfig,
-  Theme,
+  Credentials,
+  DataCountPayload,
   DocumentFilter,
+  LabelsResponse,
+  Message,
   PageType,
+  QueryPayload,
+  RAGConfig,
+  Suggestion,
+  Theme,
 } from "@/app/types";
 
 import InfoComponent from "../Navigation/InfoComponent";
@@ -99,6 +102,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   // Manages whether data is currently being fetched
   const isFetching = useRef<boolean>(false);
+  const reasoningSteps = useRef<string[]>([]);
+  const isInReasoningPhase = useRef(false);
   const [fetchingStatus, setFetchingStatus] = useState<
     "DONE" | "CHUNKS" | "RESPONSE"
   >("DONE");
@@ -108,13 +113,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   // WebSocket state
   const [socket, setSocket] = useState<ReconnectingWebSocket | null>(null);
-  const [socketStatus, setSocketStatus] = useState<ConnectionState>(
-    "DISCONNECTED"
-  );
+  const [socketStatus, setSocketStatus] =
+    useState<ConnectionState>("DISCONNECTED");
   const [messageQueueSize, setMessageQueueSize] = useState(0);
 
   // Suggestions
-  const [currentSuggestions, setCurrentSuggestions] = useState<Suggestion[]>([]);
+  const [currentSuggestions, setCurrentSuggestions] = useState<Suggestion[]>(
+    []
+  );
 
   // Document data
   const [selectedDocumentScore, setSelectedDocumentScore] = useState<
@@ -157,10 +163,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
     });
 
-    // Track reasoning steps
-    const reasoningSteps = React.useRef<string[]>([]);
-    const isInReasoningPhase = React.useRef(false);
-
     ws.on("message", (data: WebSocketMessage | { type: string }) => {
       // If we aren't actively fetching, ignore messages
       if (!isFetching.current) {
@@ -170,7 +172,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       const wsMessage = data as WebSocketMessage;
       const newMessageContent = wsMessage.message;
-      
+
       // Handle reasoning/thinking messages
       if (wsMessage.type === "reasoning" || wsMessage.type === "thinking") {
         isInReasoningPhase.current = true;
@@ -190,20 +192,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         isFetching.current = false;
         setFetchingStatus("DONE");
         addStatusMessage("Finished generation", "SUCCESS");
-        const full_text = wsMessage.full_text;
-        
+        const fullText = wsMessage.full_text;
+
         // Prepare reasoning trace if available
-        const reasoningTrace = (wsMessage.reasoning_trace || wsMessage.thinking_trace || reasoningSteps.current.length > 0) ? {
-          steps: wsMessage.reasoning_trace || wsMessage.thinking_trace || reasoningSteps.current,
-          metadata: wsMessage.metadata
-        } : undefined;
-        
+        const reasoningTrace =
+          wsMessage.reasoning_trace ||
+          wsMessage.thinking_trace ||
+          reasoningSteps.current.length > 0
+            ? {
+                steps:
+                  wsMessage.reasoning_trace ||
+                  wsMessage.thinking_trace ||
+                  reasoningSteps.current,
+                metadata: wsMessage.metadata,
+              }
+            : undefined;
+
         if (wsMessage.cached) {
           setMessages((prev) => [
             ...prev,
             {
               type: "system",
-              content: full_text || "",
+              content: fullText || "",
               cached: true,
               distance: wsMessage.distance,
               runId: wsMessage.runId,
@@ -215,13 +225,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             ...prev,
             {
               type: "system",
-              content: full_text || "",
+              content: fullText || "",
               runId: wsMessage.runId,
               reasoningTrace: reasoningTrace,
             },
           ]);
         }
-        
+
         // Clear reasoning steps for next message
         reasoningSteps.current = [];
         isInReasoningPhase.current = false;
@@ -318,7 +328,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   /**
    * Handle an error response from the server.
-   * @param errorMessage 
+   * @param errorMessage
    */
   const handleErrorResponse = (errorMessage: string) => {
     addStatusMessage("Query failed", "ERROR");
@@ -329,8 +339,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   /**
    * Handle a successful QueryPayload from the server.
-   * @param data 
-   * @param sendInput 
+   * @param data
+   * @param sendInput
    */
   const handleSuccessResponse = (data: QueryPayload, sendInput: string) => {
     // Show retrieval documents
@@ -363,8 +373,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   /**
    * Open the WebSocket channel and stream the response for generation.
-   * @param query 
-   * @param context 
+   * @param query
+   * @param context
    */
   const streamResponses = (query?: string, context?: string) => {
     if (socket?.isConnected()) {
@@ -391,7 +401,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   /**
    * Listen for Enter key to send message.
-   * @param e 
+   * @param e
    */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -566,16 +576,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           />
           {/* Connection Status Indicator */}
           <div className="flex items-center gap-2 ml-4">
-            <div className={`w-2 h-2 rounded-full ${
-              socketStatus === "CONNECTED" ? "bg-green-500" :
-              socketStatus === "CONNECTING" || socketStatus === "RECONNECTING" ? "bg-yellow-500 animate-pulse" :
-              "bg-red-500"
-            }`} />
+            <div
+              className={`w-2 h-2 rounded-full ${
+                socketStatus === "CONNECTED"
+                  ? "bg-green-500"
+                  : socketStatus === "CONNECTING" ||
+                      socketStatus === "RECONNECTING"
+                    ? "bg-yellow-500 animate-pulse"
+                    : "bg-red-500"
+              }`}
+            />
             <span className="text-xs text-text-alt-verba">
-              {socketStatus === "CONNECTED" ? "Connected" :
-               socketStatus === "CONNECTING" ? "Connecting..." :
-               socketStatus === "RECONNECTING" ? "Reconnecting..." :
-               "Disconnected"}
+              {socketStatus === "CONNECTED"
+                ? "Connected"
+                : socketStatus === "CONNECTING"
+                  ? "Connecting..."
+                  : socketStatus === "RECONNECTING"
+                    ? "Reconnecting..."
+                    : "Disconnected"}
             </span>
             {messageQueueSize > 0 && (
               <span className="text-xs text-warning-verba ml-2">
@@ -641,8 +659,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             const dropdownElement =
                               document.activeElement as HTMLElement;
                             dropdownElement.blur();
-                            const dropdown = dropdownElement.closest(".dropdown");
-                            if (dropdown instanceof HTMLElement) dropdown.blur();
+                            const dropdown =
+                              dropdownElement.closest(".dropdown");
+                            if (dropdown instanceof HTMLElement)
+                              dropdown.blur();
                           }}
                         >
                           {label}
@@ -731,7 +751,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             >
               <ChatMessage
                 message={message}
-                message_index={index}
+                messageIndex={index}
                 selectedTheme={selectedTheme}
                 selectedDocument={selectedDocumentScore}
                 setSelectedDocumentScore={setSelectedDocumentScore}
@@ -832,7 +852,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 disabled={false}
                 selected_color="bg-primary-verba"
               />
-              <SimpleFeedback runId={getLastRunId()} onSubmit={handleFeedbackSubmit} />
+              <SimpleFeedback
+                runId={getLastRunId()}
+                onSubmit={handleFeedbackSubmit}
+              />
             </div>
 
             {currentSuggestions.length > 0 && (
@@ -864,7 +887,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               className="flex btn border-none text-text-verba bg-button-verba hover:bg-button-hover-verba gap-2 items-center"
             >
               <TbPlugConnected size={15} />
-              <p>{socketStatus === "RECONNECTING" ? "Reconnecting..." : "Reconnect"}</p>
+              <p>
+                {socketStatus === "RECONNECTING"
+                  ? "Reconnecting..."
+                  : "Reconnect"}
+              </p>
               {socketStatus === "RECONNECTING" && (
                 <span className="loading loading-spinner loading-xs"></span>
               )}

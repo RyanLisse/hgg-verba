@@ -1,4 +1,3 @@
-import pytest
 from goldenverba.components.types import InputConfig
 
 

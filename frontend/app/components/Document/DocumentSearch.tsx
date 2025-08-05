@@ -1,18 +1,19 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import {
-  DocumentPreview,
+import { deleteDocument, retrieveAllDocuments } from "@/app/api";
+import type {
   Credentials,
+  DocumentPreview,
   DocumentsPreviewPayload,
 } from "@/app/types";
-import { retrieveAllDocuments, deleteDocument } from "@/app/api";
+import type React from "react";
+import { useEffect, useState } from "react";
 import { FaSearch, FaTrash } from "react-icons/fa";
-import { MdOutlineRefresh, MdCancel } from "react-icons/md";
 import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
+import { IoMdAddCircle } from "react-icons/io";
+import { MdCancel, MdOutlineRefresh } from "react-icons/md";
 import InfoComponent from "../Navigation/InfoComponent";
 import UserModalComponent from "../Navigation/UserModal";
 import VerbaButton from "../Navigation/VerbaButton";
-import { IoMdAddCircle } from "react-icons/io";
 
 interface DocumentSearchComponentProps {
   selectedDocument: string | null;

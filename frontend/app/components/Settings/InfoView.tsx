@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Credentials, NodePayload, CollectionPayload } from "@/app/types";
-import { IoTrash, IoDocumentSharp, IoReload } from "react-icons/io5";
-import { FaWrench } from "react-icons/fa";
 import { deleteAllDocuments, fetchMeta } from "@/app/api";
+import type { CollectionPayload, Credentials, NodePayload } from "@/app/types";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { FaWrench } from "react-icons/fa";
+import { IoDocumentSharp, IoReload, IoTrash } from "react-icons/io5";
 import UserModalComponent from "../Navigation/UserModal";
 
 import VerbaButton from "../Navigation/VerbaButton";
@@ -82,8 +83,8 @@ const InfoView: React.FC<InfoViewProps> = ({
     }
   };
 
-  const openModal = (modal_id: string) => {
-    const modal = document.getElementById(modal_id);
+  const openModal = (modalId: string) => {
+    const modal = document.getElementById(modalId);
     if (modal instanceof HTMLDialogElement) {
       modal.showModal();
     }
@@ -212,10 +213,10 @@ const InfoView: React.FC<InfoViewProps> = ({
                     <span className="w-128 truncate">{collection.name}</span>
                     <span>{collection.count} objects</span>
                   </li>
-                 ))}
+                ))}
               </ul>
             ) : (
-              <span className="loading loading-dots loading-sm mt-2"/>
+              <span className="loading loading-dots loading-sm mt-2" />
             )}
           </div>
         </div>

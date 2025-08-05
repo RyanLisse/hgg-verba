@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useCallback } from "react";
-import { MdCancel } from "react-icons/md";
-import { IoSettingsSharp } from "react-icons/io5";
-import { RAGConfig, RAGComponentConfig, Credentials } from "@/app/types";
 import { updateRAGConfig } from "@/app/api";
+import type { Credentials, RAGComponentConfig, RAGConfig } from "@/app/types";
+import type React from "react";
+import { useCallback } from "react";
+import { IoSettingsSharp } from "react-icons/io5";
+import { MdCancel } from "react-icons/md";
 import ComponentView from "../Ingestion/ComponentView";
 
 import VerbaButton from "../Navigation/VerbaButton";
@@ -32,7 +33,7 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
   production,
 }) => {
   const updateConfig = (
-    component_n: string,
+    componentN: string,
     configTitle: string,
     value: string | boolean | string[]
   ) => {
@@ -41,12 +42,12 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
         // Deep clone to ensure state update is detected
         const newRAGConfig = JSON.parse(JSON.stringify(prevRAGConfig));
         if (typeof value === "string" || typeof value === "boolean") {
-          newRAGConfig[component_n].components[
-            newRAGConfig[component_n].selected
+          newRAGConfig[componentN].components[
+            newRAGConfig[componentN].selected
           ].config[configTitle].value = value;
         } else {
-          newRAGConfig[component_n].components[
-            newRAGConfig[component_n].selected
+          newRAGConfig[componentN].components[
+            newRAGConfig[componentN].selected
           ].config[configTitle].values = value;
         }
         return newRAGConfig;
@@ -55,13 +56,12 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
     });
   };
 
-  const selectComponent = (component_n: string, selected_component: string) => {
+  const selectComponent = (componentN: string, selectedComponent: string) => {
     setRAGConfig((prevRAGConfig) => {
       if (prevRAGConfig) {
         // Deep clone to ensure state update is detected
         const newRAGConfig = JSON.parse(JSON.stringify(prevRAGConfig));
-        newRAGConfig[component_n].selected = selected_component;
-        console.log(`Selected ${component_n}: ${selected_component}`);
+        newRAGConfig[componentN].selected = selectedComponent;
         return newRAGConfig;
       }
       return prevRAGConfig;
@@ -70,24 +70,23 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
 
   const saveComponentConfig = useCallback(
     async (
-      component_n: string,
-      selected_component: string,
-      component_config: RAGComponentConfig
+      componentN: string,
+      selectedComponent: string,
+      componentConfig: RAGComponentConfig
     ) => {
       if (!RAGConfig) return;
 
-      addStatusMessage("Saving " + selected_component + " Config", "SUCCESS");
+      addStatusMessage(`Saving ${selectedComponent} Config`, "SUCCESS");
 
       const newRAGConfig = JSON.parse(JSON.stringify(RAGConfig));
-      newRAGConfig[component_n].selected = selected_component;
-      newRAGConfig[component_n].components[selected_component] =
-        component_config;
+      newRAGConfig[componentN].selected = selectedComponent;
+      newRAGConfig[componentN].components[selectedComponent] = componentConfig;
       const response = await updateRAGConfig(newRAGConfig, credentials);
       if (response) {
         setRAGConfig(newRAGConfig);
       }
     },
-    [RAGConfig, credentials]
+    [RAGConfig, addStatusMessage, credentials, setRAGConfig]
   );
 
   if (RAGConfig) {
@@ -101,14 +100,14 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
               title="Save Config"
               onClick={onSave}
               className="max-w-[150px]"
-              disabled={production == "Demo"}
+              disabled={production === "Demo"}
             />
             <VerbaButton
               Icon={MdCancel}
               title="Reset"
               onClick={onReset}
               className="max-w-[150px]"
-              disabled={production == "Demo"}
+              disabled={production === "Demo"}
             />
           </div>
         </div>
@@ -120,29 +119,29 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
             selectComponent={selectComponent}
             updateConfig={updateConfig}
             saveComponentConfig={saveComponentConfig}
-            blocked={production == "Demo"}
+            blocked={production === "Demo"}
           />
-  <ComponentView
+          <ComponentView
             RAGConfig={RAGConfig}
             component_name="Generator"
             selectComponent={selectComponent}
             updateConfig={updateConfig}
             saveComponentConfig={saveComponentConfig}
-            blocked={production == "Demo"}
-          />          <ComponentView
+            blocked={production === "Demo"}
+          />{" "}
+          <ComponentView
             RAGConfig={RAGConfig}
             component_name="Retriever"
             selectComponent={selectComponent}
             updateConfig={updateConfig}
             saveComponentConfig={saveComponentConfig}
-            blocked={production == "Demo"}
+            blocked={production === "Demo"}
           />
         </div>
       </div>
     );
-  } else {
-    return <div></div>;
   }
+  return <div />;
 };
 
 export default ChatConfig;

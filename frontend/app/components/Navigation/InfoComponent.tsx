@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import { FaInfo } from "react-icons/fa";
 import VerbaButton from "./VerbaButton";
 

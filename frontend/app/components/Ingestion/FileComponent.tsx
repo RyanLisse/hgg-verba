@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { FileData, FileMap, statusTextMap } from "@/app/types";
+import { type FileData, type FileMap, statusTextMap } from "@/app/types";
+import type React from "react";
 import { FaTrash } from "react-icons/fa";
 import { FaCheckCircle } from "react-icons/fa";
 import { MdError } from "react-icons/md";

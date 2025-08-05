@@ -1,40 +1,41 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
 import {
-  FileData,
-  FileMap,
-  statusTextMap,
-  statusColorMap,
-  RAGComponentConfig,
+  type FileData,
+  type FileMap,
+  type RAGComponentConfig,
   RAGConfig,
+  statusColorMap,
+  statusTextMap,
 } from "@/app/types";
-import VerbaButton from "../Navigation/VerbaButton";
-import { MdCancel } from "react-icons/md";
-import { IoAddCircleSharp } from "react-icons/io5";
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CgDebug } from "react-icons/cg";
+import { IoAddCircleSharp } from "react-icons/io5";
+import { MdCancel } from "react-icons/md";
+import VerbaButton from "../Navigation/VerbaButton";
 
 import ComponentView from "./ComponentView";
 
-import { MdError } from "react-icons/md";
 import { FaCheckCircle } from "react-icons/fa";
 import { FaCircleInfo } from "react-icons/fa6";
+import { MdError } from "react-icons/md";
 
 interface BasicSettingViewProps {
   selectedFileData: string | null;
   fileMap: FileMap;
   setFileMap: React.Dispatch<React.SetStateAction<FileMap>>;
   blocked: boolean | undefined;
-  selectComponent: (component_n: string, selected_component: string) => void;
+  selectComponent: (componentN: string, selectedComponent: string) => void;
   updateConfig: (
-    component_n: string,
+    componentN: string,
     configTitle: string,
     value: string | boolean | string[]
   ) => void;
   saveComponentConfig: (
-    component_n: string,
-    selected_component: string,
-    component_config: RAGComponentConfig
+    componentN: string,
+    selectedComponent: string,
+    componentConfig: RAGComponentConfig
   ) => void;
   addStatusMessage: (
     message: string,

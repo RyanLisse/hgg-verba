@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import type { RAGComponentConfig, RAGConfig } from "@/app/types";
+import type React from "react";
+import { useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa";
 import { GoTriangleDown } from "react-icons/go";
 import { IoAddCircleSharp } from "react-icons/io5";
-import { RAGConfig, RAGComponentConfig } from "@/app/types";
 
 import { closeOnClick } from "@/app/util";
 
@@ -16,7 +17,7 @@ export const MultiInput: React.FC<{
   blocked: boolean | undefined;
   config_title: string;
   updateConfig: (
-    component_n: string,
+    componentN: string,
     configTitle: string,
     value: string | boolean | string[]
   ) => void;
@@ -104,16 +105,16 @@ interface ComponentViewProps {
   RAGConfig: RAGConfig;
   blocked: boolean | undefined;
   component_name: "Chunker" | "Embedder" | "Reader" | "Generator" | "Retriever";
-  selectComponent: (component_n: string, selected_component: string) => void;
+  selectComponent: (componentN: string, selectedComponent: string) => void;
   skip_component?: boolean;
   updateConfig: (
-    component_n: string,
+    componentN: string,
     configTitle: string,
     value: string | boolean | string[]
   ) => void;
   saveComponentConfig: (
-    component_n: string,
-    selected_component: string,
+    componentN: string,
+    selectedComponent: string,
     config: RAGComponentConfig
   ) => void;
 }
@@ -134,8 +135,8 @@ const ComponentView: React.FC<ComponentViewProps> = ({
     setForceRender((prev) => prev + 1);
   }, [RAGConfig]);
 
-  function renderComponents(rag_config: RAGConfig) {
-    return Object.entries(rag_config[component_name].components)
+  function renderComponents(ragConfig: RAGConfig) {
+    return Object.entries(ragConfig[component_name].components)
       .filter(([key, component]) => component.available)
       .map(([key, component]) => (
         <li
@@ -151,15 +152,16 @@ const ComponentView: React.FC<ComponentViewProps> = ({
         </li>
       ));
   }
-  function renderConfigOptions(rag_config: RAGConfig, configKey: string) {
-    const selectedComponentName = rag_config[component_name]?.selected;
+  function renderConfigOptions(ragConfig: RAGConfig, configKey: string) {
+    const selectedComponentName = ragConfig[component_name]?.selected;
     if (!selectedComponentName) return [];
 
-    const selectedComponent = rag_config[component_name]?.components[selectedComponentName];
+    const selectedComponent =
+      ragConfig[component_name]?.components[selectedComponentName];
     if (!selectedComponent?.config[configKey]?.values) return [];
 
     const configValues = selectedComponent.config[configKey].values as string[];
-    
+
     return configValues.map((configValue) => (
       <li
         key={"ConfigValue" + configValue}
