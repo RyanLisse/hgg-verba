@@ -68,6 +68,13 @@ interface WebSocketMessage {
   cached?: boolean;
   distance?: string;
   runId?: string;
+  type?: "content" | "reasoning" | "thinking" | "transition";
+  metadata?: {
+    phase?: string;
+    model?: string;
+  };
+  reasoning_trace?: string[];
+  thinking_trace?: string[];
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -150,6 +157,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
     });
 
+    // Track reasoning steps
+    const reasoningSteps = React.useRef<string[]>([]);
+    const isInReasoningPhase = React.useRef(false);
+
     ws.on("message", (data: WebSocketMessage | { type: string }) => {
       // If we aren't actively fetching, ignore messages
       if (!isFetching.current) {
@@ -159,13 +170,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       const wsMessage = data as WebSocketMessage;
       const newMessageContent = wsMessage.message;
-      setPreviewText((prev) => prev + newMessageContent);
+      
+      // Handle reasoning/thinking messages
+      if (wsMessage.type === "reasoning" || wsMessage.type === "thinking") {
+        isInReasoningPhase.current = true;
+        reasoningSteps.current.push(newMessageContent);
+        // Show reasoning in preview with special formatting
+        setPreviewText((prev) => prev + `\n🤔 ${newMessageContent}`);
+      } else if (wsMessage.type === "transition") {
+        // Transition from reasoning to answer
+        isInReasoningPhase.current = false;
+        setPreviewText((prev) => prev + newMessageContent);
+      } else {
+        // Regular content
+        setPreviewText((prev) => prev + newMessageContent);
+      }
 
       if (wsMessage.finish_reason === "stop") {
         isFetching.current = false;
         setFetchingStatus("DONE");
         addStatusMessage("Finished generation", "SUCCESS");
         const full_text = wsMessage.full_text;
+        
+        // Prepare reasoning trace if available
+        const reasoningTrace = (wsMessage.reasoning_trace || wsMessage.thinking_trace || reasoningSteps.current.length > 0) ? {
+          steps: wsMessage.reasoning_trace || wsMessage.thinking_trace || reasoningSteps.current,
+          metadata: wsMessage.metadata
+        } : undefined;
+        
         if (wsMessage.cached) {
           setMessages((prev) => [
             ...prev,
@@ -175,6 +207,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               cached: true,
               distance: wsMessage.distance,
               runId: wsMessage.runId,
+              reasoningTrace: reasoningTrace,
             },
           ]);
         } else {
@@ -184,9 +217,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               type: "system",
               content: full_text || "",
               runId: wsMessage.runId,
+              reasoningTrace: reasoningTrace,
             },
           ]);
         }
+        
+        // Clear reasoning steps for next message
+        reasoningSteps.current = [];
+        isInReasoningPhase.current = false;
         setPreviewText("");
       }
     });

@@ -394,13 +394,24 @@ export type Segment =
   | { type: "text"; content: string }
   | { type: "code"; language: string; content: string };
 
+export interface ReasoningTrace {
+  steps: string[];
+  confidence?: number;
+  metadata?: {
+    phase?: string;
+    model?: string;
+  };
+}
+
 export interface Message {
-  type: "user" | "system" | "error" | "retrieval";
+  type: "user" | "system" | "error" | "retrieval" | "thinking";
   content: string | DocumentScore[];
   cached?: boolean;
   distance?: string;
   context?: string;
   runId?: string; // Make runId optional
+  reasoningTrace?: ReasoningTrace; // New field for reasoning traces
+  isThinking?: boolean; // Flag to indicate if this is a thinking/reasoning message
 }
 
 // Setting Fields
