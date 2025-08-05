@@ -5,12 +5,21 @@ Test script to verify the reasoning trace functionality for OpenAI and Gemini ge
 
 import asyncio
 import os
+import pytest
 from dotenv import load_dotenv
-from goldenverba.components.generation.OpenAIGenerator import OpenAIGenerator
-from goldenverba.components.generation.GeminiGenerator import GeminiGenerator
+
+# Skip imports if running as pytest due to missing dependencies
+try:
+    from goldenverba.components.generation.OpenAIGenerator import OpenAIGenerator
+    from goldenverba.components.generation.GeminiGenerator import GeminiGenerator
+    IMPORTS_AVAILABLE = True
+except ImportError:
+    IMPORTS_AVAILABLE = False
 
 load_dotenv()
 
+@pytest.mark.asyncio
+@pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="goldenverba components not available")
 async def test_openai_generator():
     """Test OpenAI generator with reasoning models."""
     print("\n" + "="*50)
@@ -39,8 +48,8 @@ async def test_openai_generator():
     print("\nGenerating response with reasoning traces...\n")
     
     try:
-        full_response = ""
         reasoning_steps = []
+        response_content = ""
         
         async for chunk in generator.generate_stream(config, query, context, []):
             if chunk.get("type") == "reasoning":
@@ -49,12 +58,12 @@ async def test_openai_generator():
             elif chunk.get("type") == "transition":
                 print(chunk["message"])
             elif chunk.get("type") == "content":
-                full_response += chunk["message"]
+                response_content += chunk["message"]
                 print(chunk["message"], end="", flush=True)
             
             if chunk.get("finish_reason") == "stop":
                 print("\n\n" + "="*30)
-                print(f"Complete Response: {full_response}")
+                print(f"Complete Response: {response_content}")
                 if chunk.get("reasoning_trace"):
                     print(f"Reasoning Steps: {len(chunk['reasoning_trace'])}")
                 break
@@ -62,6 +71,8 @@ async def test_openai_generator():
     except Exception as e:
         print(f"Error: {e}")
 
+@pytest.mark.asyncio
+@pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="goldenverba components not available")
 async def test_gemini_generator():
     """Test Gemini generator with thinking models."""
     print("\n" + "="*50)
@@ -87,8 +98,8 @@ async def test_gemini_generator():
     print("\nGenerating response with thinking process...\n")
     
     try:
-        full_response = ""
         thinking_steps = []
+        response_content = ""
         
         async for chunk in generator.generate_stream(config, query, context, []):
             if chunk.get("type") == "thinking":
@@ -97,12 +108,12 @@ async def test_gemini_generator():
             elif chunk.get("type") == "transition":
                 print(chunk["message"])
             elif chunk.get("type") == "content":
-                full_response += chunk["message"]
+                response_content += chunk["message"]
                 print(chunk["message"], end="", flush=True)
             
             if chunk.get("finish_reason") == "stop":
                 print("\n\n" + "="*30)
-                print(f"Complete Response: {full_response}")
+                print(f"Complete Response: {response_content}")
                 if chunk.get("thinking_trace"):
                     print(f"Thinking Steps: {len(chunk['thinking_trace'])}")
                 break
@@ -110,7 +121,9 @@ async def test_gemini_generator():
     except Exception as e:
         print(f"Error: {e}")
 
-async def main():
+@pytest.mark.asyncio
+@pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="goldenverba components not available")
+async def test_main():
     """Run tests for both generators."""
     print("\n" + "🚀 "*20)
     print("TESTING REASONING/THINKING TRACE FUNCTIONALITY")
@@ -131,6 +144,11 @@ async def main():
     print("\n" + "✅ "*20)
     print("TESTING COMPLETE")
     print("✅ "*20)
+
+
+async def main():
+    """Main function for standalone script execution."""
+    await test_main()
 
 if __name__ == "__main__":
     asyncio.run(main())

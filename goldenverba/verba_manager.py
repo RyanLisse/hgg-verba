@@ -804,7 +804,7 @@ class ClientManager:
             if time_difference.total_seconds() / 60 > self.max_time:
                 clients_to_remove.append(cred_hash)
             client: WeaviateAsyncClient = client_data["client"]
-            if not await client.is_ready():
+            if not client.is_ready():
                 clients_to_remove.append(cred_hash)
 
         for cred_hash in clients_to_remove:
