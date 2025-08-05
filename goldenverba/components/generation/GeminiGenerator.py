@@ -34,15 +34,15 @@ class GeminiGenerator(Generator):
         
         # Available Gemini models as of August 2025
         models = [
-            "gemini-2.0-flash-thinking-exp-0827",  # Latest thinking model with explicit reasoning
-            "gemini-2.0-pro-exp-0827",             # Most advanced pro model
-            "gemini-1.5-pro-exp-0827",             # Updated pro with 2M context
-            "gemini-1.5-flash-exp-0827",           # Fast model with thinking traces
-            "gemini-1.5-flash-8b-exp-0827",        # Efficient 8B parameter model
-            "gemini-2.0-flash",                    # Stable multimodal model
-            "gemini-2.0-flash-lite",               # Cost-optimized model
-            "gemini-1.5-pro-002",                  # Previous stable version
-            "gemini-1.5-flash-002",                # Previous fast version
+            "gemini-2.5-deep-think",               # Advanced reasoning model (takes hours, parallel processing)
+            "gemini-2.5-pro",                      # State-of-the-art across advanced reasoning benchmarks
+            "gemini-2.5-flash",                    # Updated with improved performance
+            "gemini-2.5-flash-lite",               # Lowest latency and cost in 2.5 family
+            "gemini-2.0-flash-thinking-exp-0827",  # Previous thinking model
+            "gemini-2.0-pro-exp-0827",             # Previous pro model
+            "gemini-1.5-pro-exp-0827",             # 2M context window
+            "gemini-1.5-flash-exp-0827",           # Fast model
+            "gemini-1.5-flash-8b-exp-0827",        # Efficient 8B model
         ]
         
         self.config["Model"] = InputConfig(
@@ -60,6 +60,27 @@ class GeminiGenerator(Generator):
             type="bool",
             value=True,
             description="Display step-by-step thinking process for thinking models",
+            values=[],
+        )
+        
+        self.config["Enable Deep Think"] = InputConfig(
+            type="bool",
+            value=False,
+            description="Enable Deep Think mode (Gemini 2.5 only - may take hours for complex problems)",
+            values=[],
+        )
+        
+        self.config["Enable Google Search"] = InputConfig(
+            type="bool",
+            value=False,
+            description="Enable Google Search for Deep Think mode",
+            values=[],
+        )
+        
+        self.config["Enable Code Execution"] = InputConfig(
+            type="bool",
+            value=False,
+            description="Enable code execution for Deep Think mode",
             values=[],
         )
         
@@ -120,9 +141,13 @@ class GeminiGenerator(Generator):
         # Prepare the content
         contents = self.prepare_contents(query, context, conversation, system_message)
         
-        # Check if this is a thinking model
-        is_thinking_model = "thinking" in model.lower()
+        # Check model capabilities
+        is_thinking_model = "thinking" in model.lower() or "deep-think" in model.lower()
+        is_deep_think = "deep-think" in model.lower()
         show_thinking = config.get("Show Thinking Process", {}).get("value", True)
+        enable_deep_think = config.get("Enable Deep Think", {}).get("value", False)
+        enable_search = config.get("Enable Google Search", {}).get("value", False)
+        enable_code = config.get("Enable Code Execution", {}).get("value", False)
         temperature = config.get("Temperature", {}).get("value", 0.7)
         max_tokens = config.get("Max Output Tokens", {}).get("value", 8192)
         
@@ -130,16 +155,38 @@ class GeminiGenerator(Generator):
             # Configure generation parameters
             generation_config = {
                 "temperature": temperature,
-                "max_output_tokens": max_tokens,
+                "max_output_tokens": max_tokens if not is_deep_think else max_tokens * 10,  # Deep Think produces longer responses
                 "candidate_count": 1,
             }
             
+            # Configure Deep Think mode
+            if is_deep_think and enable_deep_think:
+                generation_config["deep_think"] = {
+                    "enabled": True,
+                    "parallel_agents": True,  # Enable multi-agent parallel processing
+                    "max_thinking_time": 3600,  # Max 1 hour (can take hours for complex problems)
+                    "tools": []
+                }
+                
+                if enable_search:
+                    generation_config["deep_think"]["tools"].append("google_search")
+                if enable_code:
+                    generation_config["deep_think"]["tools"].append("code_execution")
+                
+                # Notify user about Deep Think mode
+                yield {
+                    "message": "🧠 Deep Think mode activated. This may take several minutes for complex problems...\n",
+                    "finish_reason": None,
+                    "type": "system",
+                    "metadata": {"phase": "deep_think_init"}
+                }
+            
             # For thinking models, we'll parse the response differently
-            if is_thinking_model and show_thinking:
+            if (is_thinking_model or is_deep_think) and show_thinking:
                 # Add instructions to show thinking process
                 contents = contents.replace(
                     "Assistant:",
-                    "Assistant (show your step-by-step thinking process):"
+                    "Assistant (show your step-by-step thinking process, exploring multiple ideas in parallel):"
                 )
             
             # Generate content using the new client
@@ -159,10 +206,10 @@ class GeminiGenerator(Generator):
                 if hasattr(chunk, 'text') and chunk.text:
                     accumulated_text += chunk.text
                     
-                    # For thinking models, detect and parse thinking patterns
-                    if is_thinking_model and show_thinking:
+                    # For thinking models and Deep Think, detect and parse thinking patterns
+                    if (is_thinking_model or is_deep_think) and show_thinking:
                         # Look for thinking markers in the text
-                        if "<thinking>" in chunk.text or "Step " in chunk.text or "First," in chunk.text:
+                        if "<thinking>" in chunk.text or "Step " in chunk.text or "First," in chunk.text or "Agent " in chunk.text:
                             is_thinking_phase = True
                         
                         if is_thinking_phase and ("</thinking>" in chunk.text or "Final answer:" in chunk.text or "Therefore," in chunk.text):

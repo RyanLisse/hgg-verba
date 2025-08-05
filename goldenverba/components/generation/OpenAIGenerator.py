@@ -41,16 +41,17 @@ class OpenAIGenerator(Generator):
 
         # Updated models for August 2025
         models = [
-            "o1-preview",        # Latest reasoning model with thinking traces
-            "o1-mini",           # Smaller reasoning model with thinking traces
-            "gpt-4o-2025-08-01", # Latest GPT-4o with improved reasoning
-            "gpt-4o-mini",       # Cost-effective GPT-4o variant
-            "gpt-4-turbo-2025-08-01", # Latest GPT-4 Turbo
-            "o4-mini",           # Advanced reasoning model
-            "o3-mini",           # Reasoning model with traces  
-            "o3",                # Advanced reasoning model
-            "gpt-4o-2024-08-06", # Previous stable version
-            "gpt-4o-2024-05-13", # Legacy model
+            "o3",                # Smartest model to date, can "think with images"
+            "o4-mini",           # Fast, cost-efficient reasoning for math/coding/visual
+            "gpt-4.1",           # Flagship GPT-4.1 model
+            "gpt-4.1-mini",      # Smaller, faster GPT-4.1 variant
+            "gpt-4.1-nano",      # Most cost-effective GPT-4.1 variant
+            "o1-preview",        # Previous reasoning model
+            "o1-mini",           # Smaller o1 variant
+            "gpt-4o-2025-08-01", # Latest GPT-4o
+            "gpt-4o-mini",       # Cost-effective GPT-4o
+            # GPT-4.5 deprecated as of July 14, 2025
+            # GPT-5 coming soon (early August 2025)
         ]
 
         self.config["Model"] = InputConfig(
@@ -97,6 +98,13 @@ class OpenAIGenerator(Generator):
             type="bool",
             value=True,
             description="Show step-by-step reasoning process (for o1/o3/o4 models)",
+            values=[],
+        )
+        
+        self.config["Enable Image Analysis"] = InputConfig(
+            type="bool",
+            value=False,
+            description="Enable 'think with images' capability (o3/o4-mini only)",
             values=[],
         )
         
@@ -171,8 +179,15 @@ class OpenAIGenerator(Generator):
             
             # Check if this is a reasoning model that supports thinking traces
             is_reasoning_model = any(prefix in model for prefix in ["o1", "o3", "o4"])
+            # o3 and o4-mini support "think with images"
+            supports_image_thinking = model in ["o3", "o4-mini"]
             show_reasoning = config.get("Show Reasoning Traces", {}).get("value", True)
+            enable_images = config.get("Enable Image Analysis", {}).get("value", False)
             temperature = config.get("Temperature", {}).get("value", 0.7)
+            
+            # Add image analysis capability for o3/o4-mini
+            if supports_image_thinking and enable_images:
+                tools.append({"type": "image_analysis", "description": "Analyze images during thinking phase"})
             
             # Use the appropriate API based on model type
             if is_reasoning_model and show_reasoning:
