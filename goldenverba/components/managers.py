@@ -150,8 +150,34 @@ class WeaviateManager:
     ### Connection Handling
 
     async def connect_to_cluster(self, w_url, w_key):
-        if w_url is not None and w_key is not None:
-            msg.info(f"Connecting to Weaviate Cluster {w_url} with Auth")
+        # Check if this is a local deployment (no API key and localhost/docker URL)
+        is_local = (
+            not w_key or 
+            w_key == "" or 
+            (w_url and (
+                "localhost" in w_url or 
+                "127.0.0.1" in w_url or
+                "weaviate" in w_url or
+                "host.docker.internal" in w_url
+            ))
+        )
+        
+        if is_local and w_url:
+            msg.info(f"Connecting to Local Weaviate at {w_url}")
+            # Extract just the host from the URL
+            from urllib.parse import urlparse
+            parsed = urlparse(w_url)
+            host = parsed.hostname or "localhost"
+            port = parsed.port or 8080
+            return weaviate.use_async_with_local(
+                host=host,
+                port=port,
+                additional_config=AdditionalConfig(
+                    timeout=Timeout(init=60, query=300, insert=300)
+                ),
+            )
+        elif w_url is not None and w_key is not None:
+            msg.info(f"Connecting to Weaviate Cloud {w_url} with Auth")
             return weaviate.use_async_with_weaviate_cloud(
                 cluster_url=w_url,
                 auth_credentials=AuthApiKey(w_key),
@@ -160,7 +186,7 @@ class WeaviateManager:
                 ),
             )
         else:
-            raise Exception("No URL or API Key provided")
+            raise Exception("No URL provided for Weaviate connection")
 
     async def connect_to_docker(self, w_url):
         msg.info(f"Connecting to Weaviate Docker")
