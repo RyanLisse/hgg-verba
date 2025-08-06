@@ -36,7 +36,21 @@ const checkUrl = async (url: string): Promise<boolean> => {
 };
 
 export const detectHost = async (): Promise<string> => {
-  // Check for environment variable first
+  // Check if we're in a browser environment and not localhost
+  if (typeof window !== 'undefined') {
+    const currentOrigin = window.location.origin;
+
+    // If we're not on localhost, always try current origin first
+    if (!currentOrigin.includes('localhost')) {
+      const rootUrl = "/api/health";
+      const isRootHealthy = await checkUrl(rootUrl);
+      if (isRootHealthy) {
+        return currentOrigin;
+      }
+    }
+  }
+
+  // Check for environment variable
   const envApiUrl = process.env.NEXT_PUBLIC_VERBA_API_URL;
   if (envApiUrl) {
     const envHealthUrl = `${envApiUrl}/api/health`;
@@ -46,29 +60,22 @@ export const detectHost = async (): Promise<string> => {
     }
   }
 
-  // In production, try the current origin first (Railway deployment)
-  if (process.env.NODE_ENV === "production") {
-    const rootUrl = "/api/health";
-    const isRootHealthy = await checkUrl(rootUrl);
-    if (isRootHealthy) {
-      const root = window.location.origin;
-      return root;
+  // Only try localhost if we're actually on localhost or in development
+  if (typeof window === 'undefined' || window.location.origin.includes('localhost') || process.env.NODE_ENV === 'development') {
+    const localUrl = "http://localhost:8000/api/health";
+    const isLocalHealthy = await checkUrl(localUrl);
+    if (isLocalHealthy) {
+      return "http://localhost:8000";
     }
   }
 
-  // For development, try localhost
-  const localUrl = "http://localhost:8000/api/health";
-  const isLocalHealthy = await checkUrl(localUrl);
-  if (isLocalHealthy) {
-    return "http://localhost:8000";
-  }
-
-  // Fallback to current origin if localhost fails
-  const rootUrl = "/api/health";
-  const isRootHealthy = await checkUrl(rootUrl);
-  if (isRootHealthy) {
-    const root = window.location.origin;
-    return root;
+  // Final fallback to current origin
+  if (typeof window !== 'undefined') {
+    const rootUrl = "/api/health";
+    const isRootHealthy = await checkUrl(rootUrl);
+    if (isRootHealthy) {
+      return window.location.origin;
+    }
   }
 
   throw new Error("All health checks failed, please check the Verba Server");
