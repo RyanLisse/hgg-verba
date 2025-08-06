@@ -1,572 +1,478 @@
-"""
-Supabase Manager for Verba RAG Application
-Replaces WeaviateManager with PostgreSQL + pgvector implementation
-"""
+"""Supabase manager for Verba - handles all database operations with pgvector."""
 
-import asyncio
+import os
 import json
-import hashlib
-from datetime import datetime
+import asyncio
 from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
+from uuid import uuid4
+import numpy as np
+from datetime import datetime, timedelta
 
-import asyncpg
 from supabase import create_client, Client
+from supabase.client import AsyncClient
+from postgrest import AsyncPostgrestClient
+import asyncpg
 from pgvector.asyncpg import register_vector
-from wasabi import msg
 
-from goldenverba.components.document import Document
-from goldenverba.server.helpers import LoggerManager
-
-
-@dataclass
-class VectorSearchResult:
-    """Result from vector similarity search"""
-
-    chunk_id: str
-    document_id: str
-    content: str
-    document_title: str
-    doc_type: str
-    similarity: float
-    metadata: Dict[str, Any]
+from goldenverba.components.types import Document, Chunk
+from goldenverba.components.managers import Manager
 
 
 class SupabaseManager:
-    """
-    Manages Supabase connections and operations for Verba RAG application.
-    Provides vector search, document storage, and configuration management.
-    """
-
-    def __init__(self):
-        self.document_table = "verba_documents"
-        self.chunk_table = "verba_chunks"
-        self.config_table = "verba_config"
-        self.suggestion_table = "verba_suggestions"
-        self.embedding_cache_table = "verba_embedding_cache"
-        self.migration_log_table = "verba_migration_log"
-
-        # Configuration UUIDs (maintain compatibility with Weaviate version)
-        self.rag_config_uuid = "e0adcc12-9bad-4588-8a1e-bab0af6ed485"
-        self.theme_config_uuid = "baab38a7-cb51-4108-acd8-6edeca222820"
-        self.user_config_uuid = "f53f7738-08be-4d5a-b003-13eb4bf03ac7"
-
-        # Connection objects
-        self.client: Optional[Client] = None
-        self.pool: Optional[asyncpg.Pool] = None
-        self.embedding_table: Dict[str, str] = {}
-
-    async def connect(self, deployment: str, url: str, key: str) -> Optional[Client]:
-        """
-        Connect to Supabase with both REST and direct PostgreSQL connections.
-
+    """Manages all Supabase operations including vector search with pgvector."""
+    
+    def __init__(self, url: str = None, key: str = None):
+        """Initialize Supabase client.
+        
         Args:
-            deployment: Deployment type (should be "Supabase")
             url: Supabase project URL
-            key: Supabase service key or anon key
-
-        Returns:
-            Supabase client if successful, None otherwise
+            key: Supabase anon/service key
         """
-        try:
-            start_time = asyncio.get_event_loop().time()
-
-            # Create Supabase REST client
-            self.client = create_client(url, key)
-            msg.info(f"Connecting to Supabase at {url}")
-
-            # Extract database connection details
-            # Supabase format: https://xxx.supabase.co -> postgresql://postgres:[password]@db.xxx.supabase.co:5432/postgres
-            project_ref = url.replace("https://", "").replace(".supabase.co", "")
-            if key and key.startswith("eyJ"):  # JWT token
-                # For service role key, we need to use connection pooler
-                database_url = f"postgresql://postgres.{project_ref}:{key}@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
-            else:
-                # For direct connection (development)
-                database_url = f"postgresql://postgres:{key}@db.{project_ref}.supabase.co:5432/postgres"
-
-            # Create PostgreSQL connection pool for vector operations
+        self.url = url or os.environ.get("SUPABASE_URL")
+        self.key = key or os.environ.get("SUPABASE_KEY")
+        
+        if not self.url or not self.key:
+            raise ValueError("Supabase URL and key are required")
+        
+        # Sync client for simple operations
+        self.client: Client = create_client(self.url, self.key)
+        
+        # Async connection pool for vector operations
+        self.pool: Optional[asyncpg.Pool] = None
+        self.db_url = self._get_db_url()
+        
+    def _get_db_url(self) -> str:
+        """Extract database URL from Supabase URL."""
+        # Supabase URLs follow pattern: https://[project-ref].supabase.co
+        # DB connection: postgresql://postgres.[project-ref]:password@aws-0-[region].pooler.supabase.com:5432/postgres
+        
+        db_host = os.environ.get("SUPABASE_DB_HOST")
+        db_password = os.environ.get("SUPABASE_DB_PASSWORD", self.key)
+        db_name = os.environ.get("SUPABASE_DB_NAME", "postgres")
+        db_port = os.environ.get("SUPABASE_DB_PORT", "5432")
+        
+        if not db_host:
+            # Extract from Supabase URL
+            import re
+            match = re.search(r'https://([^.]+)\.supabase\.co', self.url)
+            if match:
+                project_ref = match.group(1)
+                db_host = f"aws-0-us-west-1.pooler.supabase.com"  # Default, should be configured
+                
+        return f"postgresql://postgres.{project_ref}:{db_password}@{db_host}:{db_port}/{db_name}"
+    
+    async def initialize(self):
+        """Initialize async connection pool."""
+        if not self.pool:
             self.pool = await asyncpg.create_pool(
-                database_url,
-                min_size=2,
+                self.db_url,
+                min_size=1,
                 max_size=10,
-                max_queries=50000,
-                max_inactive_connection_lifetime=300,
-                command_timeout=60,
-                server_settings={
-                    "application_name": "verba_rag",
-                    "jit": "off",  # Disable JIT for consistent performance
-                },
+                command_timeout=60
             )
-
-            # Register pgvector types
+            
+            # Register pgvector type
             async with self.pool.acquire() as conn:
                 await register_vector(conn)
-
-            # Verify connection and schema
-            await self._verify_schema()
-
-            end_time = asyncio.get_event_loop().time()
-            msg.good("Successfully connected to Supabase")
-            msg.info(f"Connection time: {end_time - start_time:.2f} seconds")
-
-            return self.client
-
-        except Exception as e:
-            msg.fail(f"Failed to connect to Supabase: {str(e)}")
-            await self.disconnect()
-            raise e
-
-    async def disconnect(self) -> bool:
-        """Close Supabase connections"""
-        try:
-            if self.pool:
-                await self.pool.close()
-                self.pool = None
-
-            self.client = None
-            msg.info("Disconnected from Supabase")
-            return True
-
-        except Exception as e:
-            msg.warn(f"Error during disconnect: {str(e)}")
-            return False
-
-    async def _verify_schema(self) -> bool:
-        """Verify that required tables and extensions exist"""
-        try:
-            async with self.pool.acquire() as conn:
-                # Check if required tables exist
-                tables_check = await conn.fetch("""
-                    SELECT table_name FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
-                    AND table_name IN ('verba_documents', 'verba_chunks', 'verba_config')
-                """)
-
-                if len(tables_check) != 3:
-                    raise Exception(
-                        "Required Verba tables not found. Please run migration scripts first."
-                    )
-
-                # Check pgvector extension
-                vector_check = await conn.fetchval("""
-                    SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector')
-                """)
-
-                if not vector_check:
-                    raise Exception(
-                        "pgvector extension not found. Please enable it in Supabase."
-                    )
-
-                msg.good("Schema verification successful")
-                return True
-
-        except Exception as e:
-            msg.fail(f"Schema verification failed: {str(e)}")
-            raise e
-
-    async def import_document(
-        self, documents: List[Document], logger: LoggerManager = None
-    ) -> bool:
-        """
-        Import documents with chunks and embeddings into Supabase.
-
+    
+    async def close(self):
+        """Close connection pool."""
+        if self.pool:
+            await self.pool.close()
+            self.pool = None
+    
+    async def insert_document(self, document: Document) -> str:
+        """Insert a document into the database.
+        
         Args:
-            documents: List of Document objects to import
-            logger: Optional logger for progress updates
-
+            document: Document object to insert
+            
         Returns:
-            True if successful, False otherwise
+            Document ID
+        """
+        doc_id = str(uuid4())
+        
+        data = {
+            "id": doc_id,
+            "name": document.name,
+            "type": document.type.upper(),
+            "path": document.path,
+            "content": document.content[:1000000] if document.content else None,  # Limit content size
+            "metadata": document.metadata or {},
+            "file_size": len(document.content) if document.content else 0,
+            "status": "PENDING"
+        }
+        
+        response = self.client.table("documents").insert(data).execute()
+        return doc_id
+    
+    async def insert_chunks(self, document_id: str, chunks: List[Chunk]) -> List[str]:
+        """Insert document chunks with embeddings.
+        
+        Args:
+            document_id: Parent document ID
+            chunks: List of chunk objects with embeddings
+            
+        Returns:
+            List of chunk IDs
         """
         if not self.pool:
-            raise Exception("Not connected to Supabase")
-
-        if logger:
-            logger.log(f"Starting import of {len(documents)} documents")
-
-        try:
-            async with self.pool.acquire() as conn:
-                async with conn.transaction():
-                    imported_count = 0
-
-                    for doc in documents:
-                        # Insert document
-                        doc_id = await conn.fetchval(
-                            """
-                            INSERT INTO verba_documents (title, content, metadata, doc_name, doc_type, doc_link, chunk_count)
-                            VALUES ($1, $2, $3, $4, $5, $6, $7)
-                            RETURNING id
-                        """,
-                            doc.title,
-                            doc.content,
-                            json.dumps(doc.metadata or {}),
-                            doc.doc_name,
-                            doc.doc_type,
-                            doc.doc_link,
-                            len(doc.chunks),
-                        )
-
-                        # Insert chunks with embeddings
-                        chunk_count = 0
-                        for chunk in doc.chunks:
-                            if hasattr(chunk, "embedding") and chunk.embedding:
-                                await conn.execute(
-                                    """
-                                    INSERT INTO verba_chunks (document_id, content, chunk_index, 
-                                                            start_char, end_char, embedding, metadata)
-                                    VALUES ($1, $2, $3, $4, $5, $6, $7)
-                                """,
-                                    doc_id,
-                                    chunk.content,
-                                    chunk.chunk_index,
-                                    getattr(chunk, "start_char", None),
-                                    getattr(chunk, "end_char", None),
-                                    chunk.embedding,
-                                    json.dumps(chunk.metadata or {}),
-                                )
-                                chunk_count += 1
-
-                        # Update actual chunk count
-                        await conn.execute(
-                            """
-                            UPDATE verba_documents SET chunk_count = $1 WHERE id = $2
-                        """,
-                            chunk_count,
-                            doc_id,
-                        )
-
-                        imported_count += 1
-
-                        if logger:
-                            logger.log(
-                                f"Imported document: {doc.title} ({chunk_count} chunks)"
-                            )
-
-            msg.good(f"Successfully imported {imported_count} documents")
-            return True
-
-        except Exception as e:
-            msg.fail(f"Document import failed: {str(e)}")
-            if logger:
-                logger.log(f"Import failed: {str(e)}")
-            return False
-
-    async def get_vectors(
+            await self.initialize()
+        
+        chunk_ids = []
+        
+        async with self.pool.acquire() as conn:
+            for i, chunk in enumerate(chunks):
+                chunk_id = str(uuid4())
+                
+                # Convert embedding to pgvector format
+                embedding = None
+                if hasattr(chunk, 'embedding') and chunk.embedding is not None:
+                    if isinstance(chunk.embedding, list):
+                        embedding = chunk.embedding
+                    elif isinstance(chunk.embedding, np.ndarray):
+                        embedding = chunk.embedding.tolist()
+                
+                await conn.execute("""
+                    INSERT INTO document_chunks (id, document_id, chunk_index, content, metadata, embedding)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                """, chunk_id, document_id, i, chunk.content, json.dumps(chunk.metadata or {}), embedding)
+                
+                chunk_ids.append(chunk_id)
+        
+        # Update document status and chunk count
+        self.client.table("documents").update({
+            "status": "COMPLETED",
+            "total_chunks": len(chunks)
+        }).eq("id", document_id).execute()
+        
+        return chunk_ids
+    
+    async def vector_search(
         self,
-        query_vector: List[float],
+        query_embedding: List[float],
         limit: int = 10,
-        doc_filter: Optional[Dict] = None,
-        similarity_threshold: float = 0.0,
-    ) -> List[VectorSearchResult]:
-        """
-        Perform vector similarity search.
-
+        threshold: float = 0.7,
+        filter_metadata: Dict[str, Any] = None
+    ) -> List[Dict[str, Any]]:
+        """Perform vector similarity search.
+        
         Args:
-            query_vector: Query embedding vector
+            query_embedding: Query vector
             limit: Maximum number of results
-            doc_filter: Optional document filtering criteria
-            similarity_threshold: Minimum similarity score
-
+            threshold: Minimum similarity threshold
+            filter_metadata: Optional metadata filters
+            
         Returns:
-            List of VectorSearchResult objects
+            List of matching chunks with similarity scores
         """
         if not self.pool:
-            raise Exception("Not connected to Supabase")
-
-        try:
-            async with self.pool.acquire() as conn:
-                # Build dynamic query with optional filtering
-                base_query = """
-                    SELECT c.id, c.document_id, c.content, c.metadata as chunk_metadata,
-                           d.title, d.doc_type, d.metadata as doc_metadata,
-                           1 - (c.embedding <=> $1) as similarity
-                    FROM verba_chunks c
-                    JOIN verba_documents d ON c.document_id = d.id
-                """
-
-                conditions = ["(1 - (c.embedding <=> $1)) >= $2"]
-                params = [query_vector, similarity_threshold]
-                param_count = 2
-
-                if doc_filter:
-                    if doc_filter.get("doc_type"):
-                        param_count += 1
-                        conditions.append(f"d.doc_type = ${param_count}")
-                        params.append(doc_filter["doc_type"])
-
-                    if doc_filter.get("doc_name"):
-                        param_count += 1
-                        conditions.append(f"d.doc_name = ${param_count}")
-                        params.append(doc_filter["doc_name"])
-
-                if conditions:
-                    base_query += " WHERE " + " AND ".join(conditions)
-
-                param_count += 1
-                base_query += f" ORDER BY c.embedding <=> $1 LIMIT ${param_count}"
-                params.append(limit)
-
-                rows = await conn.fetch(base_query, *params)
-
-                results = []
-                for row in rows:
-                    # Merge chunk and document metadata
-                    combined_metadata = {
-                        **(row["doc_metadata"] or {}),
-                        **(row["chunk_metadata"] or {}),
-                    }
-
-                    results.append(
-                        VectorSearchResult(
-                            chunk_id=str(row["id"]),
-                            document_id=str(row["document_id"]),
-                            content=row["content"],
-                            document_title=row["title"],
-                            doc_type=row["doc_type"],
-                            similarity=float(row["similarity"]),
-                            metadata=combined_metadata,
-                        )
-                    )
-
-                return results
-
-        except Exception as e:
-            msg.fail(f"Vector search failed: {str(e)}")
-            return []
-
-    async def get_embedding_cache(
-        self, embedder_name: str, content: str
-    ) -> Optional[List[float]]:
-        """
-        Retrieve cached embedding for content.
-
+            await self.initialize()
+        
+        async with self.pool.acquire() as conn:
+            # Build the query with optional metadata filtering
+            base_query = """
+                SELECT 
+                    c.id,
+                    c.document_id,
+                    c.content,
+                    c.metadata,
+                    d.name as document_name,
+                    1 - (c.embedding <=> $1::vector) as similarity
+                FROM document_chunks c
+                JOIN documents d ON c.document_id = d.id
+                WHERE c.embedding IS NOT NULL
+                    AND 1 - (c.embedding <=> $1::vector) > $2
+            """
+            
+            params = [query_embedding, threshold]
+            
+            if filter_metadata:
+                # Add JSONB containment check for metadata
+                base_query += " AND c.metadata @> $3::jsonb"
+                params.append(json.dumps(filter_metadata))
+            
+            base_query += f" ORDER BY c.embedding <=> $1::vector LIMIT {limit}"
+            
+            rows = await conn.fetch(base_query, *params)
+            
+            return [
+                {
+                    "id": row["id"],
+                    "document_id": row["document_id"],
+                    "document_name": row["document_name"],
+                    "content": row["content"],
+                    "metadata": json.loads(row["metadata"]) if row["metadata"] else {},
+                    "similarity": float(row["similarity"])
+                }
+                for row in rows
+            ]
+    
+    async def hybrid_search(
+        self,
+        query_text: str,
+        query_embedding: List[float],
+        limit: int = 10,
+        alpha: float = 0.5
+    ) -> List[Dict[str, Any]]:
+        """Perform hybrid search combining vector and text search.
+        
         Args:
-            embedder_name: Name of the embedder
-            content: Content to look up
-
+            query_text: Text query
+            query_embedding: Query vector
+            limit: Maximum number of results
+            alpha: Weight for vector search (0-1)
+            
         Returns:
-            Cached embedding vector or None if not found
+            List of matching chunks with combined scores
         """
         if not self.pool:
-            return None
-
-        try:
-            content_hash = hashlib.sha256(content.encode()).hexdigest()
-
-            async with self.pool.acquire() as conn:
-                embedding = await conn.fetchval(
-                    """
-                    SELECT embedding FROM verba_embedding_cache 
-                    WHERE embedder_name = $1 AND content_hash = $2
-                """,
-                    embedder_name,
-                    content_hash,
+            await self.initialize()
+        
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT * FROM hybrid_search_chunks($1, $2::vector, $3, $4)
+            """, query_text, query_embedding, limit, alpha)
+            
+            # Fetch document names
+            results = []
+            for row in rows:
+                doc = await conn.fetchrow(
+                    "SELECT name FROM documents WHERE id = $1",
+                    row["document_id"]
                 )
-
-                if embedding:
-                    return list(embedding)
-                return None
-
-        except Exception as e:
-            msg.warn(f"Embedding cache lookup failed: {str(e)}")
-            return None
-
-    async def store_embedding_cache(
-        self, embedder_name: str, content: str, embedding: List[float]
-    ) -> bool:
-        """
-        Store embedding in cache.
-
+                
+                results.append({
+                    "id": row["id"],
+                    "document_id": row["document_id"],
+                    "document_name": doc["name"] if doc else "Unknown",
+                    "content": row["content"],
+                    "metadata": json.loads(row["metadata"]) if row["metadata"] else {},
+                    "score": float(row["score"])
+                })
+            
+            return results
+    
+    async def get_documents(
+        self,
+        status: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Retrieve documents from database.
+        
         Args:
-            embedder_name: Name of the embedder
-            content: Original content
-            embedding: Computed embedding vector
-
+            status: Optional status filter
+            limit: Maximum number of results
+            offset: Pagination offset
+            
         Returns:
-            True if successful, False otherwise
+            List of documents
         """
-        if not self.pool:
+        query = self.client.table("documents").select("*")
+        
+        if status:
+            query = query.eq("status", status)
+        
+        query = query.order("created_at", desc=True)
+        query = query.range(offset, offset + limit - 1)
+        
+        response = query.execute()
+        return response.data
+    
+    async def delete_document(self, document_id: str) -> bool:
+        """Delete a document and all its chunks.
+        
+        Args:
+            document_id: Document ID to delete
+            
+        Returns:
+            Success status
+        """
+        try:
+            self.client.table("documents").delete().eq("id", document_id).execute()
+            return True
+        except Exception as e:
+            print(f"Error deleting document: {e}")
             return False
-
-        try:
-            content_hash = hashlib.sha256(content.encode()).hexdigest()
-
-            async with self.pool.acquire() as conn:
-                await conn.execute(
-                    """
-                    INSERT INTO verba_embedding_cache (embedder_name, content_hash, content, embedding)
-                    VALUES ($1, $2, $3, $4)
-                    ON CONFLICT (embedder_name, content_hash) DO UPDATE SET
-                        embedding = EXCLUDED.embedding,
-                        created_at = NOW()
-                """,
-                    embedder_name,
-                    content_hash,
-                    content,
-                    embedding,
-                )
-
-                return True
-
-        except Exception as e:
-            msg.warn(f"Embedding cache storage failed: {str(e)}")
-            return False
-
-    async def get_config(self, config_type: str) -> Optional[Dict[str, Any]]:
-        """
-        Retrieve configuration by type.
-
+    
+    async def save_configuration(
+        self,
+        config_type: str,
+        config_name: str,
+        config_data: Dict[str, Any],
+        set_active: bool = False
+    ) -> str:
+        """Save configuration to database.
+        
         Args:
-            config_type: Type of configuration ('rag', 'theme', 'user')
-
+            config_type: Type of configuration (e.g., 'rag', 'theme')
+            config_name: Name of configuration
+            config_data: Configuration data
+            set_active: Whether to set as active configuration
+            
         Returns:
-            Configuration data or None if not found
+            Configuration ID
         """
-        if not self.pool:
-            return None
-
-        try:
-            async with self.pool.acquire() as conn:
-                config_data = await conn.fetchval(
-                    """
-                    SELECT config_data FROM verba_config WHERE config_type = $1
-                """,
-                    config_type,
-                )
-
-                return config_data
-
-        except Exception as e:
-            msg.warn(f"Config retrieval failed: {str(e)}")
-            return None
-
-    async def set_config(self, config_type: str, config_data: Dict[str, Any]) -> bool:
-        """
-        Store configuration.
-
+        config_id = str(uuid4())
+        
+        # Deactivate other configs of same type if setting active
+        if set_active:
+            self.client.table("configurations").update({
+                "is_active": False
+            }).eq("config_type", config_type).execute()
+        
+        data = {
+            "id": config_id,
+            "config_type": config_type,
+            "config_name": config_name,
+            "config_data": config_data,
+            "is_active": set_active
+        }
+        
+        self.client.table("configurations").upsert(data).execute()
+        return config_id
+    
+    async def get_configuration(
+        self,
+        config_type: str,
+        config_name: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Retrieve configuration from database.
+        
         Args:
             config_type: Type of configuration
-            config_data: Configuration data to store
-
+            config_name: Optional specific configuration name
+            
         Returns:
-            True if successful, False otherwise
+            Configuration data or None
         """
-        if not self.pool:
-            return False
-
-        try:
-            async with self.pool.acquire() as conn:
-                await conn.execute(
-                    """
-                    INSERT INTO verba_config (config_type, config_data)
-                    VALUES ($1, $2)
-                    ON CONFLICT (config_type) DO UPDATE SET
-                        config_data = EXCLUDED.config_data,
-                        updated_at = NOW()
-                """,
-                    config_type,
-                    json.dumps(config_data),
-                )
-
-                return True
-
-        except Exception as e:
-            msg.warn(f"Config storage failed: {str(e)}")
-            return False
-
-    async def delete_documents(self, document_ids: List[str]) -> bool:
-        """
-        Delete documents and their associated chunks.
-
+        query = self.client.table("configurations").select("*").eq("config_type", config_type)
+        
+        if config_name:
+            query = query.eq("config_name", config_name)
+        else:
+            query = query.eq("is_active", True)
+        
+        response = query.execute()
+        
+        if response.data:
+            return response.data[0]["config_data"]
+        return None
+    
+    async def add_to_cache(
+        self,
+        query: str,
+        query_embedding: List[float],
+        response: str,
+        metadata: Dict[str, Any] = None
+    ) -> str:
+        """Add entry to semantic cache.
+        
         Args:
-            document_ids: List of document IDs to delete
-
+            query: Query text
+            query_embedding: Query vector
+            response: Cached response
+            metadata: Optional metadata
+            
         Returns:
-            True if successful, False otherwise
-        """
-        if not self.pool or not document_ids:
-            return False
-
-        try:
-            async with self.pool.acquire() as conn:
-                async with conn.transaction():
-                    # Delete documents (chunks will be deleted via CASCADE)
-                    deleted_count = await conn.execute(
-                        """
-                        DELETE FROM verba_documents WHERE id = ANY($1)
-                    """,
-                        document_ids,
-                    )
-
-                    msg.good(f"Deleted {deleted_count} documents")
-                    return True
-
-        except Exception as e:
-            msg.fail(f"Document deletion failed: {str(e)}")
-            return False
-
-    async def get_document_stats(self) -> Dict[str, Any]:
-        """
-        Get comprehensive document and chunk statistics.
-
-        Returns:
-            Dictionary with statistics
+            Cache entry ID
         """
         if not self.pool:
-            return {}
-
-        try:
-            async with self.pool.acquire() as conn:
-                stats = await conn.fetchrow("SELECT * FROM get_document_stats()")
-
-                return {
-                    "total_documents": stats["total_documents"],
-                    "total_chunks": stats["total_chunks"],
-                    "avg_chunks_per_document": float(
-                        stats["avg_chunks_per_document"] or 0
-                    ),
-                    "doc_types": stats["doc_types"] or {},
-                }
-
-        except Exception as e:
-            msg.warn(f"Stats retrieval failed: {str(e)}")
-            return {}
-
-    async def health_check(self) -> Dict[str, Any]:
-        """
-        Perform health check on Supabase connection and database.
-
+            await self.initialize()
+        
+        cache_id = str(uuid4())
+        
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO semantic_cache (id, query, query_embedding, response, metadata)
+                VALUES ($1, $2, $3::vector, $4, $5)
+            """, cache_id, query, query_embedding, response, json.dumps(metadata or {}))
+        
+        return cache_id
+    
+    async def search_cache(
+        self,
+        query_embedding: List[float],
+        threshold: float = 0.95
+    ) -> Optional[Dict[str, Any]]:
+        """Search semantic cache for similar queries.
+        
+        Args:
+            query_embedding: Query vector
+            threshold: Similarity threshold for cache hit
+            
         Returns:
-            Health status information
+            Cached response if found, None otherwise
         """
         if not self.pool:
-            return {"status": "disconnected", "error": "No connection pool"}
-
-        try:
-            async with self.pool.acquire() as conn:
-                # Check database connectivity
-                db_version = await conn.fetchval("SELECT version()")
-
-                # Check pgvector extension
-                vector_version = await conn.fetchval("""
-                    SELECT default_version FROM pg_available_extensions WHERE name = 'vector'
-                """)
-
-                # Get basic stats
-                stats = await self.get_document_stats()
-
+            await self.initialize()
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT 
+                    id,
+                    query,
+                    response,
+                    metadata,
+                    1 - (query_embedding <=> $1::vector) as similarity
+                FROM semantic_cache
+                WHERE query_embedding IS NOT NULL
+                    AND 1 - (query_embedding <=> $1::vector) > $2
+                    AND expires_at > NOW()
+                ORDER BY query_embedding <=> $1::vector
+                LIMIT 1
+            """, query_embedding, threshold)
+            
+            if row:
+                # Update hit count and last accessed
+                await conn.execute("""
+                    UPDATE semantic_cache 
+                    SET hit_count = hit_count + 1, last_accessed = NOW()
+                    WHERE id = $1
+                """, row["id"])
+                
                 return {
-                    "status": "healthy",
-                    "database_version": db_version,
-                    "pgvector_version": vector_version,
-                    "pool_size": self.pool.get_size(),
-                    "stats": stats,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "query": row["query"],
+                    "response": row["response"],
+                    "metadata": json.loads(row["metadata"]) if row["metadata"] else {},
+                    "similarity": float(row["similarity"])
                 }
-
-        except Exception as e:
-            return {
-                "status": "unhealthy",
-                "error": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
-            }
+        
+        return None
+    
+    async def add_suggestion(self, query: str) -> None:
+        """Add or update query suggestion.
+        
+        Args:
+            query: Query text to add to suggestions
+        """
+        # Check if query exists
+        existing = self.client.table("query_suggestions").select("*").eq("query", query).execute()
+        
+        if existing.data:
+            # Update frequency and last used
+            self.client.table("query_suggestions").update({
+                "frequency": existing.data[0]["frequency"] + 1,
+                "last_used": datetime.now().isoformat()
+            }).eq("query", query).execute()
+        else:
+            # Insert new suggestion
+            self.client.table("query_suggestions").insert({
+                "query": query,
+                "frequency": 1
+            }).execute()
+    
+    async def get_suggestions(self, prefix: str, limit: int = 10) -> List[str]:
+        """Get query suggestions based on prefix.
+        
+        Args:
+            prefix: Query prefix
+            limit: Maximum number of suggestions
+            
+        Returns:
+            List of suggested queries
+        """
+        response = self.client.table("query_suggestions").select("query").ilike("query", f"{prefix}%").order("frequency", desc=True).limit(limit).execute()
+        
+        return [row["query"] for row in response.data]

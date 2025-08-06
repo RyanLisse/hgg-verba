@@ -24,7 +24,9 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        "weaviate-client==4.9.6",
+        "supabase>=2.4.0",
+        "asyncpg>=0.29.0",
+        "pgvector>=0.2.5",
         "python-dotenv==1.0.0",
         "wasabi==1.1.2",
         "fastapi==0.111.1",
