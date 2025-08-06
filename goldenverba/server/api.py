@@ -1,28 +1,25 @@
+import asyncio
+import json
+import logging
+import os
+from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+from uuid import UUID
+
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
-import asyncio
-import logging
-import json
-
-
-
-# Set up logging
-logger = logging.getLogger(__name__)
-
-from goldenverba.server.helpers import LoggerManager, BatchManager
-
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
 from starlette.websockets import WebSocketDisconnect
+from dotenv import load_dotenv
 from wasabi import msg  # type: ignore[import]
+from langsmith import Client as LangSmithClient
 
 from goldenverba import verba_manager
+from goldenverba.server.helpers import LoggerManager, BatchManager
 
+# Import types
 from goldenverba.server.types import (
     ResetPayload,
     QueryPayload,
@@ -45,10 +42,9 @@ from goldenverba.server.types import (
     ChunksPayload,
     FeedbackPayload,
 )
-from datetime import datetime
 
-from langsmith import Client as LangSmithClient
-from uuid import UUID
+# Set up logging
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -100,8 +96,9 @@ async def check_same_origin(request: Request, call_next):
     allowed_origins = [
         str(request.base_url).rstrip("/"),
         "http://localhost:3000",  # Local development
-        "https://hgg-verba-production.up.railway.app",
-        "hgg-verba.railway.internal" 
+        "https://hgg-verba-production.up.railway.app",  # Update this to your Railway URL
+        "hgg-verba.railway.internal",
+        "*.up.railway.app",  # Allow all Railway apps (optional)
     ]
 
     if origin in allowed_origins:
@@ -238,6 +235,7 @@ async def websocket_generate_stream(websocket: WebSocket):
             msg.good(f"Received generate stream call for {payload.query}")
 
             full_text = ""
+            reasoning_text = ""
             async for chunk in manager.generate_stream_answer(
                 payload.rag_config,
                 payload.query,
@@ -248,9 +246,16 @@ async def websocket_generate_stream(websocket: WebSocket):
                 if isinstance(chunk.get("runId"), UUID):
                     chunk["runId"] = str(chunk["runId"])
 
-                full_text += chunk["message"]
+                # Handle different message types
+                if chunk.get("type") == "reasoning" or chunk.get("type") == "thinking":
+                    reasoning_text += chunk["message"]
+                elif chunk.get("type") != "transition":
+                    full_text += chunk["message"]
+                
                 if chunk["finish_reason"] == "stop":
                     chunk["full_text"] = full_text
+                    if reasoning_text:
+                        chunk["reasoning_text"] = reasoning_text
                 msg.good(f"Sending chunk: {chunk}")  # Log the chunk being sent
                 await websocket.send_json(chunk)
 
@@ -514,7 +519,7 @@ async def get_document(payload: GetDocumentPayload):
                 }
             )
         else:
-            msg.warn(f"Could't retrieve document")
+            msg.warn("Could't retrieve document")
             return JSONResponse(
                 content={
                     "error": "Couldn't retrieve requested document",

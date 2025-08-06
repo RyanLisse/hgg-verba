@@ -1,40 +1,47 @@
-import React, { useState } from 'react'
+import { MessageSquare, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import React, { useState } from "react";
+import type { IconType } from "react-icons";
 import VerbaButton from "../Navigation/VerbaButton";
-import { ThumbsUp, ThumbsDown, X, MessageSquare } from 'lucide-react';
-import { IconType } from 'react-icons';
 
 interface SimpleFeedbackProps {
   runId: string;
-  onSubmit: (runId: string, feedbackType: string, additionalFeedback: string) => void;
+  onSubmit: (
+    runId: string,
+    feedbackType: string,
+    additionalFeedback: string
+  ) => void;
 }
 
-export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [feedbackType, setFeedbackType] = useState<string | null>(null)
-  const [additionalFeedback, setAdditionalFeedback] = useState('')
+export default function SimpleFeedback({
+  runId,
+  onSubmit,
+}: SimpleFeedbackProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [feedbackType, setFeedbackType] = useState<string | null>(null);
+  const [additionalFeedback, setAdditionalFeedback] = useState("");
 
   const handleFeedback = (type: string) => {
-    if (type === 'positive') {
-      onSubmit(runId, type, '');
+    if (type === "positive") {
+      onSubmit(runId, type, "");
       resetFeedbackState();
     } else {
-      setFeedbackType('negative')
+      setFeedbackType("negative");
     }
-  }
+  };
 
   const handleSubmitFeedback = () => {
-    console.log('Submitting feedback:', { feedbackType, additionalFeedback });
+    // console.log("Submitting feedback:", { feedbackType, additionalFeedback });
     if (feedbackType) {
       onSubmit(runId, feedbackType, additionalFeedback);
     }
     resetFeedbackState();
-  }
+  };
 
   const resetFeedbackState = () => {
     setIsOpen(false);
     setFeedbackType(null);
-    setAdditionalFeedback('');
-  }
+    setAdditionalFeedback("");
+  };
 
   return (
     <>
@@ -47,11 +54,10 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
       />
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div 
+          <dialog
             className="bg-bg-alt-verba rounded-lg p-6 w-96 relative"
-            role="dialog"
-            aria-modal="true"
             aria-labelledby="feedback-title"
+            open
           >
             <VerbaButton
               Icon={X as IconType}
@@ -60,19 +66,18 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
               selected={false}
               disabled={false}
             />
-            <h2 
-              id="feedback-title"
-              className="text-xl font-bold mb-4"
-            >
-              {feedbackType === null ? "Was this helpful?" : "What could we improve?"}
+            <h2 id="feedback-title" className="text-xl font-bold mb-4">
+              {feedbackType === null
+                ? "Was this helpful?"
+                : "What could we improve?"}
             </h2>
-            
+
             {feedbackType === null ? (
               <div className="flex justify-center space-x-4 mt-4">
                 <VerbaButton
                   title="Yes"
                   Icon={ThumbsUp as IconType}
-                  onClick={() => handleFeedback('positive')}
+                  onClick={() => handleFeedback("positive")}
                   selected={false}
                   disabled={false}
                   selected_color="bg-success-verba"
@@ -80,7 +85,7 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
                 <VerbaButton
                   title="No"
                   Icon={ThumbsDown as IconType}
-                  onClick={() => handleFeedback('negative')}
+                  onClick={() => handleFeedback("negative")}
                   selected={false}
                   disabled={false}
                   selected_color="bg-error-verba"
@@ -88,11 +93,11 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
               </div>
             ) : (
               <>
-                <textarea 
-                  placeholder="Please provide your feedback..." 
+                <textarea
+                  placeholder="Please provide your feedback..."
                   value={additionalFeedback}
                   onChange={(e) => {
-                    console.log('Setting feedback:', e.target.value);
+                    // console.log("Setting feedback:", e.target.value);
                     setAdditionalFeedback(e.target.value);
                   }}
                   className="w-full p-2 rounded bg-bg-verba text-text-verba mt-4"
@@ -107,9 +112,9 @@ export default function SimpleFeedback({ runId, onSubmit }: SimpleFeedbackProps)
                 />
               </>
             )}
-          </div>
+          </dialog>
         </div>
       )}
     </>
-  )
+  );
 }

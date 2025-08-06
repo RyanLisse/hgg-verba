@@ -1,28 +1,28 @@
-import {
-  ConnectPayload,
-  HealthPayload,
-  RAGConfig,
-  QueryPayload,
-  Credentials,
-  DocumentsPreviewPayload,
-  DocumentPayload,
-  ChunkScore,
-  ContentPayload,
-  ChunksPayload,
-  RAGConfigResponse,
+import type {
   AllSuggestionsPayload,
-  MetadataPayload,
-  DatacountResponse,
-  SuggestionsPayload,
   ChunkPayload,
+  ChunkScore,
+  ChunksPayload,
+  ConnectPayload,
+  ContentPayload,
+  Credentials,
+  DatacountResponse,
   DocumentFilter,
-  VectorsPayload,
-  UserConfigResponse,
-  ThemeConfigResponse,
-  Theme,
-  UserConfig,
+  DocumentPayload,
+  DocumentsPreviewPayload,
+  HealthPayload,
   LabelsResponse,
+  MetadataPayload,
+  QueryPayload,
+  RAGConfig,
+  RAGConfigResponse,
+  SuggestionsPayload,
+  Theme,
+  ThemeConfigResponse,
   Themes,
+  UserConfig,
+  UserConfigResponse,
+  VectorsPayload,
 } from "./types";
 
 const checkUrl = async (url: string): Promise<boolean> => {
@@ -36,21 +36,49 @@ const checkUrl = async (url: string): Promise<boolean> => {
 };
 
 export const detectHost = async (): Promise<string> => {
-  const localUrl = "http://localhost:8000/api/health";
-  const rootUrl = "/api/health";
+  // Check if we're in a browser environment and not localhost
+  if (typeof window !== 'undefined') {
+    const currentOrigin = window.location.origin;
 
-  const isLocalHealthy = await checkUrl(localUrl);
-  if (isLocalHealthy) {
-    return "http://localhost:8000";
+    // If we're not on localhost, always try current origin first
+    if (!currentOrigin.includes('localhost')) {
+      const rootUrl = "/api/health";
+      const isRootHealthy = await checkUrl(rootUrl);
+      if (isRootHealthy) {
+        return currentOrigin;
+      }
+    }
   }
 
-  const isRootHealthy = await checkUrl(rootUrl);
-  if (isRootHealthy) {
-    const root = window.location.origin;
-    return root;
+  // Check for environment variable
+  const envApiUrl = process.env.NEXT_PUBLIC_VERBA_API_URL;
+  if (envApiUrl) {
+    const envHealthUrl = `${envApiUrl}/api/health`;
+    const isEnvHealthy = await checkUrl(envHealthUrl);
+    if (isEnvHealthy) {
+      return envApiUrl;
+    }
   }
 
-  throw new Error("Both health checks failed, please check the Verba Server");
+  // Only try localhost if we're actually on localhost or in development
+  if (typeof window === 'undefined' || window.location.origin.includes('localhost') || process.env.NODE_ENV === 'development') {
+    const localUrl = "http://localhost:8000/api/health";
+    const isLocalHealthy = await checkUrl(localUrl);
+    if (isLocalHealthy) {
+      return "http://localhost:8000";
+    }
+  }
+
+  // Final fallback to current origin
+  if (typeof window !== 'undefined') {
+    const rootUrl = "/api/health";
+    const isRootHealthy = await checkUrl(rootUrl);
+    if (isRootHealthy) {
+      return window.location.origin;
+    }
+  }
+
+  throw new Error("All health checks failed, please check the Verba Server");
 };
 
 export const fetchData = async <T>(endpoint: string): Promise<T | null> => {
@@ -121,10 +149,10 @@ export const fetchRAGConfig = async (
 
 // Endpoint /api/set_rag_config
 export const updateRAGConfig = async (
-  RAG: RAGConfig | null,
+  rag: RAGConfig | null,
   credentials: Credentials
 ): Promise<boolean> => {
-  if (!RAG) {
+  if (!rag) {
     return false;
   }
 
@@ -135,7 +163,7 @@ export const updateRAGConfig = async (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ rag_config: RAG, credentials: credentials }),
+      body: JSON.stringify({ ragConfig: rag, credentials: credentials }),
     });
 
     return response.status === 200;
@@ -168,7 +196,7 @@ export const fetchUserConfig = async (
 
 // Endpoint /api/set_user_config
 export const updateUserConfig = async (
-  user_config: UserConfig,
+  userConfig: UserConfig,
   credentials: Credentials
 ): Promise<boolean> => {
   try {
@@ -179,7 +207,7 @@ export const updateUserConfig = async (
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        user_config: user_config,
+        userConfig: userConfig,
         credentials: credentials,
       }),
     });
@@ -242,7 +270,7 @@ export const updateThemeConfig = async (
 // Endpoint /api/query
 export const sendUserQuery = async (
   query: string,
-  RAG: RAGConfig | null,
+  rag: RAGConfig | null,
   labels: string[],
   documentFilter: DocumentFilter[],
   credentials: Credentials
@@ -256,7 +284,7 @@ export const sendUserQuery = async (
       },
       body: JSON.stringify({
         query: query,
-        RAG: RAG,
+        rag: rag,
         labels: labels,
         documentFilter: documentFilter,
         credentials: credentials,
@@ -302,7 +330,7 @@ export const fetchSelectedDocument = async (
 
 // Endpoint /api/get_datacount
 export const fetchDatacount = async (
-  embedding_model: string,
+  embeddingModel: string,
   documentFilter: DocumentFilter[],
   credentials: Credentials
 ): Promise<DatacountResponse | null> => {
@@ -314,7 +342,7 @@ export const fetchDatacount = async (
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        embedding_model: embedding_model,
+        embeddingModel: embeddingModel,
         documentFilter: documentFilter,
         credentials: credentials,
       }),
@@ -382,7 +410,7 @@ export const fetchContent = async (
 };
 
 // Endpoint /api/get_vectors
-export const fetch_vectors = async (
+export const fetchVectors = async (
   uuid: string | null,
   showAll: boolean,
   credentials: Credentials
@@ -413,7 +441,7 @@ export const fetch_vectors = async (
 };
 
 // Endpoint /api/get_chunks
-export const fetch_chunks = async (
+export const fetchChunks = async (
   uuid: string | null,
   page: number,
   pageSize: number,
@@ -446,7 +474,7 @@ export const fetch_chunks = async (
 };
 
 // Endpoint /api/get_chunk
-export const fetch_chunk = async (
+export const fetchChunk = async (
   uuid: string | null,
   embedder: string,
   credentials: Credentials

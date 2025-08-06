@@ -1,33 +1,29 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useMemo,
-  useCallback,
-} from "react";
+import { Float, OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { extend } from "@react-three/fiber";
-import { OrbitControls, Float, PerspectiveCamera } from "@react-three/drei";
-import * as THREE from "three";
-import { MdCancel } from "react-icons/md";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoTriangleDown } from "react-icons/go";
+import { MdCancel } from "react-icons/md";
+import * as three from "three";
 
 import { vectorToColor } from "./util";
 
-import { fetch_chunk, fetch_vectors } from "@/app/api";
+import { fetchChunk, fetchVectors } from "@/app/api";
 
-import {
-  VectorsPayload,
-  VectorGroup,
+import type {
   ChunkPayload,
+  ChunkScore,
+  Credentials,
+  VectorGroup,
+  VectorsPayload,
   VerbaChunk,
   VerbaVector,
-  Credentials,
-  ChunkScore,
 } from "@/app/types";
 
 import { colors } from "./util";
 
+// biome-ignore lint/style/useNamingConvention: Three.js API requirement
 extend({ OrbitControls: OrbitControls });
 
 const Sphere: React.FC<{
@@ -37,7 +33,9 @@ const Sphere: React.FC<{
   documentTitle: string;
   multiplication: number;
   dynamicColor: boolean;
+  // biome-ignore lint/style/useNamingConvention: API response format
   chunk_id: string;
+  // biome-ignore lint/style/useNamingConvention: API response format
   chunk_uuid: string;
   setSelectedChunk: (c: string) => void;
   selectedChunk: string | null;
@@ -67,7 +65,7 @@ const Sphere: React.FC<{
   maxZ,
   chunkScores,
 }) => {
-  const ref = useRef<THREE.Mesh>(null!);
+  const ref = useRef<three.Mesh>(null);
   const hoverRef = useRef(false);
 
   const isHighlighted = useMemo(
@@ -76,11 +74,11 @@ const Sphere: React.FC<{
   );
 
   const sphereColor = useMemo(() => {
-    if (isHighlighted) return new THREE.Color("yellow");
-    if (selectedChunk === chunk_uuid) return new THREE.Color("green");
+    if (isHighlighted) return new three.Color("yellow");
+    if (selectedChunk === chunk_uuid) return new three.Color("green");
     return dynamicColor
       ? vectorToColor(vector, minX, maxX, minY, maxY, minZ, maxZ)
-      : new THREE.Color(color);
+      : new three.Color(color);
   }, [
     isHighlighted,
     selectedChunk,
@@ -120,7 +118,7 @@ const Sphere: React.FC<{
   useFrame(() => {
     if (ref.current) {
       ref.current.position.lerp(
-        new THREE.Vector3(
+        new three.Vector3(
           vector.x * multiplication,
           vector.y * multiplication,
           vector.z * multiplication
@@ -129,7 +127,7 @@ const Sphere: React.FC<{
       );
 
       // Update material color based on hover state
-      const material = ref.current.material as THREE.MeshBasicMaterial;
+      const material = ref.current.material as three.MeshBasicMaterial;
       material.color.set(hoverRef.current ? "blue" : sphereColor);
       material.opacity = hoverRef.current ? 1 : sphereOpacity;
       material.transparent = !hoverRef.current;
@@ -144,6 +142,12 @@ const Sphere: React.FC<{
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick(e as React.MouseEvent<HTMLDivElement>);
+          }
+        }}
       >
         <sphereGeometry args={[sphereRadius, 32, 32]} />
         <meshBasicMaterial
@@ -169,7 +173,7 @@ const VectorView: React.FC<VectorViewProps> = ({
   production,
   chunkScores,
 }) => {
-  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const _refs = useRef<(three.Mesh | null)[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [vectors, setVectors] = useState<VectorGroup[]>([]);
   const [embedder, setEmbedder] = useState("");
@@ -196,15 +200,15 @@ const VectorView: React.FC<VectorViewProps> = ({
 
   useEffect(() => {
     if (selectedDocument) {
-      fetchVectors();
+      fetchVectorsData();
     } else {
       setVectors([]);
     }
-  }, [showAll, selectedDocument]);
+  }, [selectedDocument]);
 
   useEffect(() => {
     if (selectedChunk) {
-      fetchChunk();
+      fetchChunkData();
     } else {
       setChunk(null);
     }
@@ -217,16 +221,16 @@ const VectorView: React.FC<VectorViewProps> = ({
   }
 
   const getVectorCount = () => {
-    let vector_count = 0;
-    for (const vector_group of vectors) {
-      vector_count += vector_group.chunks.length;
+    let vectorCount = 0;
+    for (const vectorGroup of vectors) {
+      vectorCount += vectorGroup.chunks.length;
     }
-    return vector_count;
+    return vectorCount;
   };
 
-  const fetchChunk = async () => {
+  const fetchChunkData = async () => {
     try {
-      const data: ChunkPayload | null = await fetch_chunk(
+      const data: ChunkPayload | null = await fetchChunk(
         selectedChunk,
         embedder,
         credentials
@@ -246,11 +250,11 @@ const VectorView: React.FC<VectorViewProps> = ({
     }
   };
 
-  const fetchVectors = async () => {
+  const fetchVectorsData = async () => {
     try {
       setIsFetching(true);
 
-      const data: VectorsPayload | null = await fetch_vectors(
+      const data: VectorsPayload | null = await fetchVectors(
         selectedDocument,
         showAll,
         credentials
@@ -304,9 +308,8 @@ const VectorView: React.FC<VectorViewProps> = ({
     if (index >= colors.length) {
       const randomIndex = Math.floor(Math.random() * colors.length);
       return colors[randomIndex];
-    } else {
-      return colors[index];
     }
+    return colors[index];
   }
 
   return (
@@ -318,7 +321,7 @@ const VectorView: React.FC<VectorViewProps> = ({
             <div className="flex gap-2 items-center">
               {isFetching && (
                 <div className="flex items-center justify-center text-text-alt-verba gap-2 h-full">
-                  <span className="loading loading-spinner loading-xs lg:loading-sm"></span>
+                  <span className="loading loading-spinner loading-xs lg:loading-sm" />
                 </div>
               )}
               <p className="text-text-alt-verba text-xs lg:text-sm font-bold">
@@ -351,7 +354,7 @@ const VectorView: React.FC<VectorViewProps> = ({
 
           <div className="flex gap-10 items-center justify-between min-w-[20vw]">
             <div className="flex flex-col gap-2 w-full">
-              {production != "Demo" && (
+              {production !== "Demo" && (
                 <div className="flex gap-2 items-center justify-between">
                   <p className="text-xs text-text-alt-verba">
                     Show All Documents
@@ -384,18 +387,15 @@ const VectorView: React.FC<VectorViewProps> = ({
               {/* Dropdown */}
               <div className="dropdown dropdown-bottom flex w-full justify-start items-center">
                 <button
+                  type="button"
                   tabIndex={0}
-                  role="button"
                   disabled={true}
                   className="btn btn-sm bg-button-verba hover:bg-button-hover-verba text-text-verba w-full flex justify-start border-none"
                 >
                   <GoTriangleDown size={15} />
                   <p>PCA</p>
                 </button>
-                <ul
-                  tabIndex={0}
-                  className="dropdown-content menu bg-base-100 rounded-box z-[1] w-full p-2 shadow"
-                ></ul>
+                <ul className="dropdown-content menu bg-base-100 rounded-box z-[1] w-full p-2 shadow" />
               </div>
               {/* Zoom */}
               <div className="flex items-center gap-2 w-full">
@@ -415,6 +415,7 @@ const VectorView: React.FC<VectorViewProps> = ({
 
             {chunk && (
               <button
+                type="button"
                 onClick={() => {
                   setChunk(null);
                   setSelectedChunk(null);
@@ -436,19 +437,19 @@ const VectorView: React.FC<VectorViewProps> = ({
         >
           <Canvas>
             <ambientLight intensity={1} />
-            <OrbitControls></OrbitControls>
+            <OrbitControls />
             <PerspectiveCamera makeDefault position={[0, 0, 0 + 150]} />
             <axesHelper args={[50]} />
-            {vectors.map((vector_group, index) =>
-              vector_group.chunks.map((chunk, v_index) => (
+            {vectors.map((vectorGroup, index) =>
+              vectorGroup.chunks.map((chunk, vIndex) => (
                 <Sphere
                   dynamicColor={dynamicColor}
                   multiplication={viewMultiplication}
-                  key={"Sphere_" + v_index + vector_group.name}
+                  key={`Sphere_${vIndex}${vectorGroup.name}`}
                   vector={chunk.vector}
                   color={selectColor(index)}
                   setHoverTitle={hoverTitleRef}
-                  documentTitle={vector_group.name}
+                  documentTitle={vectorGroup.name}
                   chunk_id={chunk.chunk_id}
                   setSelectedChunk={setSelectedChunk}
                   selectedChunk={selectedChunk}

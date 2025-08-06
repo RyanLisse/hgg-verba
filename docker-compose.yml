@@ -8,7 +8,14 @@ services:
     ports:
       - 8000:8000
     environment:
+      # Weaviate Configuration - choose one:
+      # For local Docker deployment (default):
       - WEAVIATE_URL_VERBA=http://weaviate:8080
+      # For Railway Weaviate deployment (uncomment and comment above):
+      # - WEAVIATE_URL_VERBA=https://weaviate-production-9dce.up.railway.app
+      # - WEAVIATE_API_KEY_VERBA=  # Leave empty for anonymous access
+      
+      # LLM Provider API Keys
       - OPENAI_API_KEY=$OPENAI_API_KEY
       - COHERE_API_KEY=$COHERE_API_KEY
       - OLLAMA_URL=http://host.docker.internal:11434
@@ -38,10 +45,10 @@ services:
       - '8080'
       - --scheme
       - http
-    image: semitechnologies/weaviate
+    image: cr.weaviate.io/semitechnologies/weaviate:1.31.9  # Updated to match Railway version
     ports:
       - 8080:8080
-      - 3000:8080
+      - 50051:50051  # gRPC port for faster communication
     volumes:
       - weaviate_data:/var/lib/weaviate
     restart: on-failure:0
@@ -50,15 +57,37 @@ services:
       interval: 5s
       timeout: 10s
       retries: 5
-      start_period: 10s
+      start_period: 15s
     environment:
-      OPENAI_APIKEY: $OPENAI_API_KEY
-      COHERE_APIKEY: $COHERE_API_KEY
+      # Core Configuration
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: true
       QUERY_DEFAULTS_LIMIT: 25
-      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
-      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
-      ENABLE_MODULES: 'e'
-      CLUSTER_HOSTNAME: 'node1'
+      DEFAULT_VECTORIZER_MODULE: none  # We handle vectorization in Python
+      
+      # Module Configuration
+      ENABLE_MODULES: text2vec-openai,text2vec-cohere,text2vec-huggingface,generative-openai,generative-cohere,generative-anthropic
+      
+      # OpenAI Module Configuration (for vectorization if needed)
+      OPENAI_APIKEY: ${OPENAI_API_KEY:-}
+      
+      # Anthropic Module Configuration
+      ANTHROPIC_APIKEY: ${ANTHROPIC_API_KEY:-}
+      
+      # Cohere Module Configuration
+      COHERE_APIKEY: ${COHERE_API_KEY:-}
+      
+      # Google Module Configuration (for Gemini)
+      GOOGLE_APIKEY: ${GOOGLE_API_KEY:-}
+      
+      # Performance Configuration
+      GOMEMLIMIT: 6GiB
+      GOMAXPROCS: 4
+      LIMIT_RESOURCES: false
+      
+      # Cluster Configuration
+      CLUSTER_HOSTNAME: node1
+      AUTOSCHEMA_ENABLED: 'false'  # We manage schema explicitly
 
 volumes:
   weaviate_data: {}

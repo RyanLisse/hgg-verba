@@ -1,20 +1,24 @@
 import numpy as np
 import os
 
+
 # Step 1: Standardize the data
-def standardize_data(X):
-    mean = np.mean(X, axis=0)
-    std_dev = np.std(X, axis=0)
-    return (X - mean) / std_dev
+def standardize_data(data):
+    mean = np.mean(data, axis=0)
+    std_dev = np.std(data, axis=0)
+    return (data - mean) / std_dev
+
 
 # Step 2: Compute the covariance matrix
-def compute_covariance_matrix(X):
-    return np.cov(X, rowvar=False)
+def compute_covariance_matrix(data):
+    return np.cov(data, rowvar=False)
+
 
 # Step 3: Perform eigenvalue decomposition of the covariance matrix
-def eigen_decomposition(C):
-    eigenvalues, eigenvectors = np.linalg.eig(C)
+def eigen_decomposition(covariance_matrix):
+    eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
     return eigenvalues, eigenvectors
+
 
 # Step 4: Sort the eigenvalues and their corresponding eigenvectors
 def sort_eigenvalues_eigenvectors(eigenvalues, eigenvectors):
@@ -23,27 +27,30 @@ def sort_eigenvalues_eigenvectors(eigenvalues, eigenvectors):
     sorted_eigenvectors = eigenvectors[:, idx]
     return sorted_eigenvalues, sorted_eigenvectors
 
+
 # Step 5: Select the top k eigenvectors (principal components)
 def select_top_k_components(eigenvectors, k):
     return eigenvectors[:, :k]
 
+
 # Step 6: Transform the original data to the new subspace
-def transform_data(X, components):
-    return X.dot(components)
+def transform_data(data, components):
+    return data.dot(components)
+
 
 # Function to perform PCA
-def pca(X, k):
-    print(X[:10])
-    X_standardized = standardize_data(X)
-    print(X_standardized[:10])
-    covariance_matrix = compute_covariance_matrix(X_standardized)
+def pca(data, k):
+    print(data[:10])
+    data_standardized = standardize_data(data)
+    print(data_standardized[:10])
+    covariance_matrix = compute_covariance_matrix(data_standardized)
     print(covariance_matrix)
     eigenvalues, eigenvectors = eigen_decomposition(covariance_matrix)
     print(eigenvalues, eigenvectors)
-    sorted_eigenvalues, sorted_eigenvectors = sort_eigenvalues_eigenvectors(eigenvalues, eigenvectors)
+    _, sorted_eigenvectors = sort_eigenvalues_eigenvectors(eigenvalues, eigenvectors)
     top_k_components = select_top_k_components(sorted_eigenvectors, k)
-    X_pca = transform_data(X_standardized, top_k_components)
-    return X_pca
+    data_pca = transform_data(data_standardized, top_k_components)
+    return data_pca
 
 
 def get_environment(config, value: str, env: str, error_msg: str) -> str:
@@ -52,5 +59,12 @@ def get_environment(config, value: str, env: str, error_msg: str) -> str:
     else:
         token = os.environ.get(env)
     if not token:
-        raise Exception(error_msg)
+        raise ValueError(error_msg)
     return token
+
+
+def strip_non_letters(text: str) -> str:
+    """Strip non-letter characters from text to create valid class names."""
+    import re
+
+    return re.sub(r"\W", "", text)

@@ -1,12 +1,6 @@
-import pytest
 import numpy as np
 from goldenverba.components.util import (
     standardize_data,
-    compute_covariance_matrix,
-    eigen_decomposition,
-    sort_eigenvalues_eigenvectors,
-    select_top_k_components,
-    transform_data,
     pca
 )
 

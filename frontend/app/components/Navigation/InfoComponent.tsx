@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import { FaInfo } from "react-icons/fa";
 import VerbaButton from "./VerbaButton";
 
 interface InfoComponentProps {
+  // biome-ignore lint/style/useNamingConvention: API parameter convention
   tooltip_text: string;
+  // biome-ignore lint/style/useNamingConvention: API parameter convention
   display_text: string;
 }
 
@@ -16,7 +19,7 @@ const InfoComponent: React.FC<InfoComponentProps> = ({
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
-    <div className={`items-center gap-2 flex`}>
+    <div className={"items-center gap-2 flex"}>
       <div className="relative">
         <VerbaButton
           title=""

@@ -1,5 +1,5 @@
-import { JSDOM } from "jsdom";
 import { expect, mock } from "bun:test";
+import { JSDOM } from "jsdom";
 
 // Set up DOM environment first
 const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>");
@@ -23,19 +23,19 @@ Object.defineProperty(global, "navigator", {
 
 // Mock Next.js font modules
 mock.module("next/font/google", () => ({
-  Plus_Jakarta_Sans: () => ({
+  plusJakartaSans: () => ({
     className: "mocked-font",
     style: { fontFamily: "Plus_Jakarta_Sans" },
   }),
-  Open_Sans: () => ({
+  openSans: () => ({
     className: "mocked-font",
     style: { fontFamily: "Open_Sans" },
   }),
-  PT_Mono: () => ({
+  ptMono: () => ({
     className: "mocked-font",
     style: { fontFamily: "PT_Mono" },
   }),
-  Inter: () => ({
+  inter: () => ({
     className: "mocked-font",
     style: { fontFamily: "Inter" },
   }),
@@ -43,21 +43,21 @@ mock.module("next/font/google", () => ({
 
 // Add test matchers
 expect.extend({
-  toBeInTheDocument(received: any) {
+  toBeInTheDocument(received: Element | null | undefined) {
     return {
       pass: received !== null && received !== undefined,
       message: () => "element should be in the document",
     };
   },
-  toBeDisabled(received: any) {
+  toBeDisabled(received: HTMLElement | null | undefined) {
     return {
-      pass: received?.disabled === true,
+      pass: (received as HTMLInputElement)?.disabled === true,
       message: () => "element should be disabled",
     };
   },
-  toHaveClass(received: any, className: string) {
+  toHaveClass(received: Element | null | undefined, className: string) {
     return {
-      pass: received?.className?.includes(className),
+      pass: received?.className?.includes(className) === true,
       message: () => `element should have class ${className}`,
     };
   },
@@ -66,16 +66,16 @@ expect.extend({
 // Add test matchers types
 declare global {
   namespace jest {
-    interface Matchers<R, T = {}> {
+    interface Matchers<R, _T = Record<string, never>> {
       toBeInTheDocument(): R;
       toBeDisabled(): R;
       toHaveClass(className: string): R;
       toHaveAttribute(attr: string, value?: string): R;
       toHaveTextContent(text: string): R;
       toHaveLength(length: number): R;
-      toHaveBeenCalledWith(...args: any[]): R;
+      toHaveBeenCalledWith(...args: unknown[]): R;
       toHaveBeenCalledTimes(times: number): R;
-      toHaveBeenLastCalledWith(...args: any[]): R;
+      toHaveBeenLastCalledWith(...args: unknown[]): R;
     }
   }
 }
@@ -83,7 +83,7 @@ declare global {
 // Add DOM element types
 declare global {
   interface Window {
-    HTMLElement: typeof HTMLElement;
-    HTMLInputElement: typeof HTMLInputElement;
+    htmlElement: typeof HTMLElement;
+    htmlInputElement: typeof HTMLInputElement;
   }
 }

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Credentials, NodePayload, CollectionPayload } from "@/app/types";
-import { IoTrash, IoDocumentSharp, IoReload } from "react-icons/io5";
-import { FaWrench } from "react-icons/fa";
 import { deleteAllDocuments, fetchMeta } from "@/app/api";
+import type { CollectionPayload, Credentials, NodePayload } from "@/app/types";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { FaWrench } from "react-icons/fa";
+import { IoDocumentSharp, IoReload, IoTrash } from "react-icons/io5";
 import UserModalComponent from "../Navigation/UserModal";
 
 import VerbaButton from "../Navigation/VerbaButton";
@@ -82,8 +83,8 @@ const InfoView: React.FC<InfoViewProps> = ({
     }
   };
 
-  const openModal = (modal_id: string) => {
-    const modal = document.getElementById(modal_id);
+  const openModal = (modalId: string) => {
+    const modal = document.getElementById(modalId);
     if (modal instanceof HTMLDialogElement) {
       modal.showModal();
     }
@@ -151,7 +152,7 @@ const InfoView: React.FC<InfoViewProps> = ({
             {nodePayload ? (
               <p className="text-text-verba">{nodePayload.weaviate_version}</p>
             ) : (
-              <span className="loading loading-spinner loading-sm"></span>
+              <span className="loading loading-spinner loading-sm" />
             )}
           </div>
 
@@ -165,7 +166,7 @@ const InfoView: React.FC<InfoViewProps> = ({
                   {nodePayload.node_count}
                 </p>
               ) : (
-                <span className="loading loading-spinner loading-sm"></span>
+                <span className="loading loading-spinner loading-sm" />
               )}
             </div>
 
@@ -173,7 +174,7 @@ const InfoView: React.FC<InfoViewProps> = ({
               <ul className="flex flex-col mt-2 list-disc list-inside">
                 {nodePayload.nodes.map((node) => (
                   <li
-                    key={"Node" + node.name}
+                    key={`Node${node.name}`}
                     className="text-sm text-text-verba flex justify-between"
                   >
                     <span className="w-64 truncate">{node.name}</span>
@@ -184,7 +185,7 @@ const InfoView: React.FC<InfoViewProps> = ({
                 ))}
               </ul>
             ) : (
-              <span className="loading loading-dots loading-sm mt-2"></span>
+              <span className="loading loading-dots loading-sm mt-2" />
             )}
           </div>
 
@@ -198,7 +199,7 @@ const InfoView: React.FC<InfoViewProps> = ({
                   {collectionPayload.collection_count}
                 </p>
               ) : (
-                <span className="loading loading-spinner loading-sm"></span>
+                <span className="loading loading-spinner loading-sm" />
               )}
             </div>
 
@@ -206,7 +207,7 @@ const InfoView: React.FC<InfoViewProps> = ({
               <ul className="flex flex-col mt-2 list-disc list-inside">
                 {collectionPayload.collections.map((collection) => (
                   <li
-                    key={"Collection" + collection.name}
+                    key={`Collection${collection.name}`}
                     className="text-sm text-text-verba flex justify-between"
                   >
                     <span className="w-128 truncate">{collection.name}</span>
@@ -215,7 +216,7 @@ const InfoView: React.FC<InfoViewProps> = ({
                 ))}
               </ul>
             ) : (
-              <span className="loading loading-dots loading-sm mt-2"></span>
+              <span className="loading loading-dots loading-sm mt-2" />
             )}
           </div>
         </div>

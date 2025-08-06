@@ -35,21 +35,13 @@ describe("StatusLabel", () => {
 
   test("updates text when status changes", () => {
     const { container, rerender } = render(
-      <StatusLabel
-        status={true}
-        true_text="Online"
-        false_text="Offline"
-      />
+      <StatusLabel status={true} true_text="Online" false_text="Offline" />
     );
 
     expect(within(container).getByText("Online")).toBeInTheDocument();
 
     rerender(
-      <StatusLabel
-        status={false}
-        true_text="Online"
-        false_text="Offline"
-      />
+      <StatusLabel status={false} true_text="Online" false_text="Offline" />
     );
 
     expect(within(container).getByText("Offline")).toBeInTheDocument();
@@ -57,17 +49,18 @@ describe("StatusLabel", () => {
 
   test("applies correct styling classes", () => {
     const { container } = render(
-      <StatusLabel
-        status={true}
-        true_text="Success"
-        false_text="Error"
-      />
+      <StatusLabel status={true} true_text="Success" false_text="Error" />
     );
 
     const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper).toHaveClass("p-2", "rounded-lg", "text-text-verba", "text-sm");
-    
+    expect(wrapper).toHaveClass(
+      "p-2",
+      "rounded-lg",
+      "text-text-verba",
+      "text-sm"
+    );
+
     const textElement = wrapper.firstChild as HTMLElement;
     expect(textElement).toHaveClass("text-xs", "text-text-verba");
   });
-}); 
+});

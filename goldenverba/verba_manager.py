@@ -762,8 +762,10 @@ class ClientManager:
 
         _credentials = credentials
 
-        if not _credentials.url and not _credentials.key:
+        # Handle both None and empty string cases for environment variable fallback
+        if not _credentials.url or _credentials.url.strip() == "":
             _credentials.url = os.environ.get("WEAVIATE_URL_VERBA", "")
+        if not _credentials.key or _credentials.key.strip() == "":
             _credentials.key = os.environ.get("WEAVIATE_API_KEY_VERBA", "")
 
         cred_hash = self.hash_credentials(_credentials)
@@ -802,7 +804,7 @@ class ClientManager:
             if time_difference.total_seconds() / 60 > self.max_time:
                 clients_to_remove.append(cred_hash)
             client: WeaviateAsyncClient = client_data["client"]
-            if not await client.is_ready():
+            if not client.is_ready():
                 clients_to_remove.append(cred_hash)
 
         for cred_hash in clients_to_remove:

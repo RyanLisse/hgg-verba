@@ -1,34 +1,34 @@
-export function Plus_Jakarta_Sans() {
+export function plusJakartaSans() {
   return {
-    className: 'mock-plus-jakarta-sans',
-    style: { fontFamily: 'Plus Jakarta Sans' }
+    className: "mock-plus-jakarta-sans",
+    style: { fontFamily: "Plus Jakarta Sans" },
   };
 }
 
 export function Inter() {
   return {
-    className: 'mock-inter',
-    style: { fontFamily: 'Inter' }
+    className: "mock-inter",
+    style: { fontFamily: "Inter" },
   };
 }
 
-export function Open_Sans() {
+export function openSans() {
   return {
-    className: 'mock-open-sans',
-    style: { fontFamily: 'Open Sans' }
+    className: "mock-open-sans",
+    style: { fontFamily: "Open Sans" },
   };
 }
 
-export function PT_Mono() {
+export function ptMono() {
   return {
-    className: 'mock-pt-mono',
-    style: { fontFamily: 'PT Mono' }
+    className: "mock-pt-mono",
+    style: { fontFamily: "PT Mono" },
   };
 }
 
 export default {
-  Plus_Jakarta_Sans,
+  plusJakartaSans,
   Inter,
-  Open_Sans,
-  PT_Mono
-}; 
+  openSans,
+  ptMono,
+};

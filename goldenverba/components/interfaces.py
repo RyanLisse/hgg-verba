@@ -1,6 +1,7 @@
 from goldenverba.components.document import Document
 from goldenverba.server.types import FileConfig
 from goldenverba.components.types import InputConfig
+from goldenverba.components.util import strip_non_letters
 
 from dotenv import load_dotenv
 
@@ -24,7 +25,6 @@ class VerbaComponent:
         self.type = ""
 
     def get_meta(self, envs, libs) -> dict:
-
         if len(self.config) > 0:
             config = {_c: self.config[_c].model_dump() for _c in self.config}
         else:
@@ -62,7 +62,7 @@ class Reader(VerbaComponent):
         self.type = "FILE"  # "URL"
         self.extension = ["txt", "md", "mdx", "py", "ts", "tsx", "js", "go", "css"]
 
-    async def load(self, config: dict, fileConfig: FileConfig) -> list[Document]:
+    async def load(self, config: dict, file_config: FileConfig) -> list[Document]:
         """Convert fileConfig into Verba Documents
         @parameter: fileConfig: FileConfig - FileConfiguration sent by the frontend
         @returns list[Document] - Verba documents
@@ -124,6 +124,7 @@ class Embedder(VerbaComponent):
         self.vectorizer = ""
 
     def embed(
+        self,
         documents: list[Document],
         client: Client,
         logging: list[dict],
@@ -181,14 +182,14 @@ class Embedder(VerbaComponent):
         return "VERBA_Cache_" + strip_non_letters(self.vectorizer)
 
     def search_documents(
-        self, client: Client, query: str, doc_type: str, page: int, pageSize: int
+        self, client: Client, query: str, doc_type: str, page: int, page_size: int
     ) -> list:
         """Search for documents from Weaviate
         @parameter query_string : str - Search query
         @returns list - Document list.
         """
         doc_class_name = "VERBA_Document_" + strip_non_letters(self.vectorizer)
-        offset = pageSize * (page - 1)
+        offset = page_size * (page - 1)
 
         if doc_type == "" or doc_type is None:
             query_results = (
@@ -198,7 +199,7 @@ class Embedder(VerbaComponent):
                 )
                 .with_bm25(query, properties=["doc_name"])
                 .with_additional(properties=["id"])
-                .with_limit(pageSize)
+                .with_limit(page_size)
                 .with_offset(offset)
                 .do()
             )
@@ -227,9 +228,8 @@ class Embedder(VerbaComponent):
         return results
 
     def get_need_vectorization(self) -> bool:
-        if self.vectorizer in EMBEDDINGS:
-            return True
-        return False
+        # Return True if vectorizer is set and not using Weaviate's built-in embedding
+        return bool(self.vectorizer) and self.vectorizer != "Weaviate"
 
     def vectorize_query(self, query: str):
         raise NotImplementedError(
@@ -378,7 +378,6 @@ class Retriever(VerbaComponent):
         labels,
         document_uuids,
     ):
-
         raise NotImplementedError("retrieve method must be implemented by a subclass.")
 
 

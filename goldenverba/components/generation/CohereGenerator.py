@@ -24,7 +24,7 @@ class CohereGenerator(Generator):
         # Try to get models dynamically, with June 2025 defaults as fallback
         try:
             models = get_models(self.url, os.getenv("COHERE_API_KEY", None), "chat")
-        except:
+        except Exception:
             # June 2025 models as fallback
             models = [
                 "command-a-03-2025",      # Latest flagship model (111B params, 256K context)

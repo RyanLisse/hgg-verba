@@ -24,7 +24,7 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-      "weaviate-client==4.9.6",
+        "weaviate-client==4.9.6",
         "python-dotenv==1.0.0",
         "wasabi==1.1.2",
         "fastapi==0.111.1",
@@ -40,14 +40,17 @@ setup(
         "langchain-text-splitters>=0.2.2",
         "langchain-openai>=0.2.0",
         "langsmith>=0.1.118",
-        "instructor>=1.4.1",
+        "instructor>=1.4.1",  # Core library for structured LLM outputs
+        "pydantic>=2.0.0",  # Required for structured output schemas
         "spacy==3.7.5",
-        "aiohttp==3.9.5",
+        "aiohttp>=3.10.0",  # Updated for LiteLLM compatibility
         "markdownify==0.13.1",
         "assemblyai==0.33.0",
         "beautifulsoup4==4.12.3",
         "langdetect==1.0.9",
-        "anthropic>=0.34.0",  # For Claude 4 models
+        "openai>=1.0.0",  # For OpenAI Responses API integration
+        "anthropic>=0.34.0",  # For Claude 4 models with Instructor
+        "litellm>=1.0.0",  # Unified LLM API for 100+ providers
     ],
     extras_require={
         "dev": ["pytest", "wheel", "twine", "black>=23.7.0", "setuptools"],
@@ -55,6 +58,10 @@ setup(
             "google-genai>=0.1.0",  # New Google Generative AI client
         ],
         "huggingface": [
+            "sentence-transformers==3.0.1",
+        ],
+        "all": [
+            "google-genai>=0.1.0",
             "sentence-transformers==3.0.1",
         ],
     },

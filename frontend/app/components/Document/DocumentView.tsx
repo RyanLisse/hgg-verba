@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
-import DocumentSearch from "./DocumentSearch";
+import type { Credentials, DocumentFilter, Theme } from "@/app/types";
+import type React from "react";
+import { useState } from "react";
 import DocumentExplorer from "./DocumentExplorer";
-import { Credentials, Theme, DocumentFilter } from "@/app/types";
+import DocumentSearch from "./DocumentSearch";
 
 interface DocumentViewProps {
   selectedTheme: Theme;

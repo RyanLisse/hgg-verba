@@ -112,15 +112,20 @@ def reset(url, api_key, deployment, full_reset):
 
 
 def main():
-    # Configure tracing
-    os.environ["LANGCHAIN_TRACING_V2"] = "true"
-    trace.configure_tracing(
-        project_name=os.getenv("LANGCHAIN_PROJECT", "default"),
-        api_key=os.getenv("LANGCHAIN_API_KEY"),
-        endpoint=os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com"),
-    )
-
-    # ... rest of your main function ...
+    # Configure tracing (optional)
+    if os.getenv("LANGCHAIN_API_KEY"):
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
+        try:
+            trace.configure_tracing(
+                project_name=os.getenv("LANGCHAIN_PROJECT", "default"),
+                api_key=os.getenv("LANGCHAIN_API_KEY"),
+                endpoint=os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com"),
+            )
+        except AttributeError:
+            # Skip tracing if not available
+            pass
+    
+    cli()
 
 if __name__ == "__main__":
     main()

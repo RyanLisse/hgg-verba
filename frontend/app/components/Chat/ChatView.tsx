@@ -1,17 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import ChatInterface from "./ChatInterface";
 
 import DocumentExplorer from "../Document/DocumentExplorer";
 
-import {
-  Credentials,
-  RAGConfig,
+import type {
   ChunkScore,
-  Theme,
+  Credentials,
   DocumentFilter,
-  PageType  // Add this import
+  PageType, // Add this import
+  RAGConfig,
+  Theme,
 } from "@/app/types";
 
 interface ChatViewProps {
@@ -22,9 +23,9 @@ interface ChatViewProps {
     type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
   ) => void;
   production: "Local" | "Demo" | "Production";
-  currentPage: PageType;  // Update this type
-  RAGConfig: RAGConfig | null;
-  setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
+  currentPage: PageType; // Update this type
+  ragConfig: RAGConfig | null;
+  setRagConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
   documentFilter: DocumentFilter[];
   setDocumentFilter: React.Dispatch<React.SetStateAction<DocumentFilter[]>>;
   labels: string[];
@@ -38,8 +39,8 @@ const ChatView: React.FC<ChatViewProps> = ({
   addStatusMessage,
   production,
   currentPage,
-  RAGConfig,
-  setRAGConfig,
+  ragConfig,
+  setRagConfig,
   documentFilter,
   setDocumentFilter,
   labels,
@@ -63,8 +64,8 @@ const ChatView: React.FC<ChatViewProps> = ({
           setSelectedDocument={setSelectedDocument}
           setSelectedChunkScore={setSelectedChunkScore}
           currentPage={currentPage}
-          RAGConfig={RAGConfig}
-          setRAGConfig={setRAGConfig}
+          ragConfig={ragConfig}
+          setragConfig={setRagConfig}
           documentFilter={documentFilter}
           setDocumentFilter={setDocumentFilter}
           labels={labels}

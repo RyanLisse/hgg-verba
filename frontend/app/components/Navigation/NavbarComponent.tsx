@@ -1,13 +1,18 @@
 "use client";
 
-import React from "react";
-import { IoChatbubbleSharp, IoDocumentSharp, IoAddCircle, IoSettingsSharp } from "react-icons/io5";
-import { TiThMenu } from "react-icons/ti";
+import type { PageType } from "@/app/types";
 import { closeOnClick } from "@/app/util";
-import VerbaButton from "./VerbaButton";
+import Image from "next/image";
+import type React from "react";
+import {
+  IoAddCircle,
+  IoChatbubbleSharp,
+  IoDocumentSharp,
+  IoSettingsSharp,
+} from "react-icons/io5";
+import { TiThMenu } from "react-icons/ti";
 import NavbarButton from "./NavButton";
-import { PageType } from "@/app/types"; 
-import Image from 'next/image';
+import VerbaButton from "./VerbaButton";
 
 interface NavbarProps {
   imageSrc: string;
@@ -47,10 +52,7 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="flex md:hidden flex-col items-center gap-3 justify-between">
           <div className="dropdown dropdown-hover">
             <VerbaButton Icon={TiThMenu} title="Menu" />
-            <ul
-              tabIndex={0}
-              className="dropdown-content dropdown-left z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-            >
+            <ul className="dropdown-content dropdown-left z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
               <li key={"Menu Button1"}>
                 <a
                   className={currentPage === "CHAT" ? "font-bold" : ""}
@@ -144,8 +146,10 @@ const Navbar: React.FC<NavbarProps> = ({
             />
           )}
           <div
-            className={`sm:h-[3vh] lg:h-[5vh] mx-1 hidden md:block bg-text-alt-verba w-px`}
-          ></div>
+            className={
+              "sm:h-[3vh] lg:h-[5vh] mx-1 hidden md:block bg-text-alt-verba w-px"
+            }
+          />
         </div>
       </div>
     </div>

@@ -175,13 +175,26 @@ Below is a comprehensive list of the API keys and variables you may require:
 
 Verba provides flexibility in connecting to Weaviate instances based on your needs. You have three options:
 
-1. **Local Deployment**: Use Weaviate Embedded which runs locally on your device (except Windows, choose the Docker/Cloud Deployment)
-2. **Docker Deployment**: Choose this option when you're running Verba's Dockerfile.
-3. **Cloud Deployment**: Use an existing Weaviate instance hosted on WCD to run Verba
+### 1. **🐳 Docker Deployment (Recommended)**
+The easiest and most reliable way! Our docker-compose includes a pre-configured Weaviate instance:
+- **Zero configuration** - Works out of the box
+- **Full data privacy** - Everything runs locally
+- **No costs** - No cloud fees or API limits
+- **Cross-platform** - Works on Windows, Mac, and Linux
+- Simply run `docker compose up -d` to start both Verba and Weaviate
 
-**🌩️ Weaviate Cloud Deployment (WCD)**
+### 2. **📦 Weaviate Embedded**
+Runs Weaviate directly in Python (not supported on Windows):
+- Good for quick testing
+- No Docker required
+- Limited to single-node deployment
 
-If you prefer a cloud-based solution, Weaviate Cloud (WCD) offers a scalable, managed environment. Learn how to set up a cloud cluster and get the API keys by following the [Weaviate Cluster Setup Guide](https://weaviate.io/developers/wcs/guides/create-instance).
+### 3. **☁️ Weaviate Cloud Deployment (WCD)**
+For production or managed hosting:
+- Scalable and managed by Weaviate
+- Free tier available (1M vectors)
+- Automatic backups and updates
+- Learn more: [Weaviate Cluster Setup Guide](https://weaviate.io/developers/wcs/guides/create-instance)
 
 **🐳 Docker Deployment**
 Another local alternative is deploying Weaviate using Docker. For more details, follow the [How to install Verba with Docker](#how-to-install-verba-with-docker) section.
@@ -304,6 +317,34 @@ Visit localhost:8000
 # How to install Verba with Docker
 
 Docker is a set of platform-as-a-service products that use OS-level virtualization to deliver software in packages called containers. To get started with deploying Verba using Docker, follow the steps below. If you need more detailed instructions on Docker usage, check out the [Docker Curriculum](https://docker-curriculum.com/).
+
+## 🚀 Quick Start with Local Weaviate
+
+The easiest way to get started is using our local deployment with Weaviate included:
+
+### For Linux/Mac:
+```bash
+git clone https://github.com/weaviate/Verba.git
+cd Verba
+./start-local.sh
+```
+
+### For Windows:
+```bash
+git clone https://github.com/weaviate/Verba.git
+cd Verba
+start-local.bat
+```
+
+This will:
+- ✅ Start a local Weaviate instance (no cloud required)
+- ✅ Launch Verba with automatic connection
+- ✅ Open your browser at http://localhost:8000
+- ✅ Keep all data locally on your machine
+
+For detailed local deployment instructions, see [LOCAL_DEPLOYMENT.md](LOCAL_DEPLOYMENT.md).
+
+## Manual Docker Setup
 
 0. **Clone the Verba repos**
    Ensure you have Git installed on your system. Then, open a terminal or command prompt and run the following command to clone the Verba repository:

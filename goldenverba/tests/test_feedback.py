@@ -2,7 +2,6 @@ import pytest
 from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 from goldenverba.server.api import app
-from goldenverba.server.types import FeedbackPayload
 
 @pytest.fixture
 def test_client():

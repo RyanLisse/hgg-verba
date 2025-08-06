@@ -1,4 +1,3 @@
-import pytest
 from goldenverba.components.interfaces import Retriever
 
 def test_retriever_interface():

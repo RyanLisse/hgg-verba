@@ -11,9 +11,8 @@ export async function getGitHubStars(): Promise<any> {
 
     if (data) {
       return data.stargazers_count;
-    } else {
-      return 0;
     }
+    return 0;
   } catch (error) {
     console.error("Failed to perform search:", error);
     return 0;

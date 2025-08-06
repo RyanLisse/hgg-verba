@@ -1,28 +1,34 @@
 import { describe, expect, test } from "bun:test";
+import type { Message, Theme } from "@/app/types";
 import { render, within } from "@testing-library/react";
 import ChatMessage from "../ChatMessage";
-import { Message, Theme } from "@/app/types";
 
 describe("ChatMessage", () => {
   const mockTheme: Theme = {
     theme: "light",
-    color: "#000000"
+    color: "#000000",
   };
 
   const defaultProps = {
-    message_index: 0,
+    messageIndex: 0,
     selectedTheme: mockTheme,
     selectedDocument: null,
-    setSelectedDocument: () => {},
-    setSelectedDocumentScore: () => {},
-    setSelectedChunkScore: () => {}
+    setSelectedDocument: () => {
+      // Test stub: intentionally empty for mock purposes
+    },
+    setSelectedDocumentScore: () => {
+      // Test stub: intentionally empty for mock purposes
+    },
+    setSelectedChunkScore: () => {
+      // Test stub: intentionally empty for mock purposes
+    },
   };
 
   test("renders user message correctly", () => {
     const message: Message = {
       role: "user",
       content: "Hello, world!",
-      type: "user"
+      type: "user",
     };
 
     const { container } = render(
@@ -38,7 +44,7 @@ describe("ChatMessage", () => {
     const message: Message = {
       role: "assistant",
       content: "**Hello**, *world*!",
-      type: "system"
+      type: "system",
     };
 
     const { container } = render(
@@ -56,7 +62,7 @@ describe("ChatMessage", () => {
     const message: Message = {
       role: "assistant",
       content: "Error occurred",
-      type: "error"
+      type: "error",
     };
 
     const { container } = render(
@@ -81,12 +87,12 @@ describe("ChatMessage", () => {
               source: "test.pdf",
               score: 0.8,
               content: "Test chunk content",
-              page: 1
-            }
-          ]
-        }
+              page: 1,
+            },
+          ],
+        },
       ],
-      type: "retrieval"
+      type: "retrieval",
     };
 
     const { container } = render(
@@ -111,13 +117,13 @@ describe("ChatMessage", () => {
               source: "test.pdf",
               score: 0.8,
               content: "Test chunk content",
-              page: 1
-            }
-          ]
-        }
+              page: 1,
+            },
+          ],
+        },
       ],
       type: "retrieval",
-      context: "Test context"
+      context: "Test context",
     };
 
     const { container } = render(
@@ -127,4 +133,4 @@ describe("ChatMessage", () => {
     const contextButton = container.querySelector(".btn-square");
     expect(contextButton).toBeInTheDocument();
   });
-}); 
+});

@@ -1,13 +1,9 @@
 import pytest
-from unittest.mock import Mock, patch
 from goldenverba.components.document import Document
 from goldenverba.components.managers import (
     ReaderManager,
     ChunkerManager,
     EmbeddingManager,
-    RetrieverManager,
-    GeneratorManager,
-    WeaviateManager,
 )
 
 @pytest.fixture

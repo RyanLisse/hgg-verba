@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Credentials, Suggestion } from "@/app/types";
-import { IoTrash, IoDocumentSharp, IoReload, IoCopy } from "react-icons/io5";
-import { FaWrench } from "react-icons/fa";
-import { fetchAllSuggestions, deleteSuggestion } from "@/app/api";
-import UserModalComponent from "../Navigation/UserModal";
-import { FaArrowAltCircleRight, FaArrowAltCircleLeft } from "react-icons/fa";
+import { deleteSuggestion, fetchAllSuggestions } from "@/app/api";
+import type { Credentials, Suggestion } from "@/app/types";
 import { formatDistanceToNow, parseISO } from "date-fns";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { FaWrench } from "react-icons/fa";
+import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
+import { IoCopy, IoDocumentSharp, IoReload, IoTrash } from "react-icons/io5";
+import UserModalComponent from "../Navigation/UserModal";
 
 import VerbaButton from "../Navigation/VerbaButton";
 
@@ -52,15 +53,15 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
   };
 
   const previousPage = () => {
-    if (page == 1) {
+    if (page === 1) {
       setPage(1);
     } else {
       setPage((prev) => prev - 1);
     }
   };
 
-  const openModal = (modal_id: string) => {
-    const modal = document.getElementById(modal_id);
+  const openModal = (modalId: string) => {
+    const modal = document.getElementById(modalId);
     if (modal instanceof HTMLDialogElement) {
       modal.showModal();
     }
@@ -87,10 +88,7 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
   };
 
   const handleCopy = (query: string) => {
-    navigator.clipboard.writeText(query).then(() => {
-      // You can add a toast notification here if you want
-      console.log("Copied to clipboard");
-    });
+    navigator.clipboard.writeText(query).then(() => {});
   };
 
   return (
@@ -107,9 +105,9 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
       <div className="flex-grow overflow-y-auto">
         <div className="gap-4 flex flex-col p-4 text-text-verba">
           <div className="flex flex-col gap-2">
-            {suggestions.map((suggestion, index) => (
+            {suggestions.map((suggestion, _index) => (
               <div
-                key={"Suggestion" + suggestion.uuid}
+                key={`Suggestion${suggestion.uuid}`}
                 className="flex items-center justify-between gap-2 p-4 border-2 bg-bg-alt-verba rounded-xl"
               >
                 <div className="flex flex-col items-start justify-start gap-2 w-2/3">
@@ -130,13 +128,13 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
                   />
                   <VerbaButton
                     onClick={() =>
-                      openModal("remove_suggestion" + suggestion.uuid)
+                      openModal(`remove_suggestion${suggestion.uuid}`)
                     }
                     Icon={IoTrash}
                   />
                 </div>
                 <UserModalComponent
-                  modal_id={"remove_suggestion" + suggestion.uuid}
+                  modal_id={`remove_suggestion${suggestion.uuid}`}
                   title={"Remove Suggestion"}
                   text={"Do you want to remove this suggestion?"}
                   triggerString="Delete"

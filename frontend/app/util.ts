@@ -1,25 +1,25 @@
-import { Inter, Plus_Jakarta_Sans, Open_Sans, PT_Mono } from "next/font/google";
-import { RAGConfig } from "./types";
+import { Inter, Open_Sans, PT_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import type { RAGConfig } from "./types";
 
 // Fonts
 const inter = Inter({ subsets: ["latin"] });
-const plus_jakarta_sans = Plus_Jakarta_Sans({ subsets: ["latin"] });
-const open_sans = Open_Sans({ subsets: ["latin"] });
-const pt_mono = PT_Mono({ subsets: ["latin"], weight: "400" });
-export type FontKey = "Inter" | "Plus_Jakarta_Sans" | "Open_Sans" | "PT_Mono";
+const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
+const openSans = Open_Sans({ subsets: ["latin"] });
+const ptMono = PT_Mono({ subsets: ["latin"], weight: "400" });
+export type FontKey = "Inter" | "plusJakartaSans" | "openSans" | "ptMono";
 
 export const fonts: Record<FontKey, typeof inter> = {
-  Inter: inter,
-  Plus_Jakarta_Sans: plus_jakarta_sans,
-  Open_Sans: open_sans,
-  PT_Mono: pt_mono,
+  inter: inter,
+  plusJakartaSans: plusJakartaSans,
+  openSans: openSans,
+  ptMono: ptMono,
 };
 
-export const chat_interface_info =
+export const chatInterfaceInfo =
   "Use the Chat Interface to interact with your data. Your query will be used to retrieve relevant information and to construct a response. You can choose between different Large Language Models (LLM) to create a response.";
-export const chunk_interface_info =
+export const chunkInterfaceInfo =
   "Use the Chunk Interface to browse through relevant chunks of your data, based on your last query. You can choose between different embeddings and retrieval techniques.";
-export const document_interface_info =
+export const documentInterfaceInfo =
   "Use the Document Viewer to inspect your data and extracts of context that were used to generate responses to your queries. You can switch between showing the whole document and only showing the specific extract.";
 
 export const getWebSocketApiHost = () => {
@@ -63,7 +63,6 @@ export const getImportWebSocketApiHost = () => {
   return `${protocol}//${host}/ws/import_files`;
 };
 
-export function logMessage(message: string, data?: any) {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${message}`, data);
+export function logMessage(_message: string, _data?: unknown) {
+  const _timestamp = new Date().toISOString();
 }

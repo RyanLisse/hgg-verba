@@ -45,6 +45,10 @@ pytest --cov=goldenverba  # With coverage
 
 # Run a specific test
 pytest goldenverba/tests/test_verba_manager.py::TestVerbaManager::test_initialization
+
+# Linting and formatting
+ruff check goldenverba    # Check code style
+black goldenverba         # Format code
 ```
 
 ### Frontend Development
@@ -61,10 +65,48 @@ npm run dev  # Runs on localhost:3000
 npm run build  # Builds and copies to ../goldenverba/server/frontend/out/
 
 # Run tests
-bun test --preload ./test/setup.ts
+npm run test              # Vitest tests
+npm run test:ui           # Vitest with UI
+npm run test:coverage     # Tests with coverage
+bun test --preload ./test/setup.ts  # Alternative Jest-based tests
 
-# Linting
-npm run lint
+# Linting and formatting
+npm run lint              # Biome check with auto-fix
+npm run lint:check        # Biome check only
+npm run format            # Biome format with auto-fix
+npm run format:check      # Biome format check only
+```
+
+### Makefile Commands
+The project includes a comprehensive Makefile for streamlined development:
+
+```bash
+# Setup and installation
+make setup              # Complete project setup (backend + frontend)
+make setup-backend      # Setup Python virtual environment and install backend dependencies
+make setup-frontend     # Install frontend dependencies
+
+# Development
+make dev                # Run both backend and frontend in development mode
+make backend            # Run backend server only
+make frontend           # Run frontend development server only
+make build              # Build frontend for production
+
+# Testing
+make test               # Run all tests (backend + frontend)
+make test-backend       # Run backend tests with coverage
+make test-frontend      # Run frontend tests with Vitest
+make test-ui            # Run frontend tests with Vitest UI
+
+# Code quality
+make lint               # Run linters (backend + frontend)
+make format             # Format code (backend + frontend)
+make check              # Run all checks (lint + tests)
+
+# Utilities
+make clean              # Clean build artifacts and logs
+make reset              # Reset project (clean + remove dependencies)
+make kill-ports         # Kill processes on default ports (8000, 3000)
 ```
 
 ### Docker Development
@@ -75,6 +117,12 @@ docker compose --env-file .env up -d --build
 # Services will be available at:
 # - Verba: localhost:8000
 # - Weaviate: localhost:8080
+
+# Docker commands via Makefile
+make docker-build       # Build Docker images
+make docker-up          # Start services with Docker Compose
+make docker-down        # Stop Docker services
+make docker-logs        # View Docker logs
 ```
 
 ## Component Extension Pattern
@@ -143,11 +191,15 @@ except Exception as e:
 - Unit tests for individual components in `goldenverba/tests/`
 - Mock Weaviate client for isolated testing
 - Use `pytest-asyncio` for async test functions
+- Run with `pytest --cov=goldenverba` for coverage reports
 
 ### Frontend Tests
-- Component tests using React Testing Library
+- **Vitest**: Primary testing framework with React Testing Library
+- **Jest**: Alternative testing framework (via Bun)
 - Tests located in `__tests__` folders next to components
 - Mock API responses for isolated testing
+- Test configuration in `vitest.config.ts` with happy-dom environment
+- Coverage reports available with `npm run test:coverage`
 
 ## Important Patterns
 
