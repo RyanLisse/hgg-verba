@@ -36,21 +36,42 @@ const checkUrl = async (url: string): Promise<boolean> => {
 };
 
 export const detectHost = async (): Promise<string> => {
-  const localUrl = "http://localhost:8000/api/health";
-  const rootUrl = "/api/health";
+  // Check for environment variable first
+  const envApiUrl = process.env.NEXT_PUBLIC_VERBA_API_URL;
+  if (envApiUrl) {
+    const envHealthUrl = `${envApiUrl}/api/health`;
+    const isEnvHealthy = await checkUrl(envHealthUrl);
+    if (isEnvHealthy) {
+      return envApiUrl;
+    }
+  }
 
+  // In production, try the current origin first (Railway deployment)
+  if (process.env.NODE_ENV === "production") {
+    const rootUrl = "/api/health";
+    const isRootHealthy = await checkUrl(rootUrl);
+    if (isRootHealthy) {
+      const root = window.location.origin;
+      return root;
+    }
+  }
+
+  // For development, try localhost
+  const localUrl = "http://localhost:8000/api/health";
   const isLocalHealthy = await checkUrl(localUrl);
   if (isLocalHealthy) {
     return "http://localhost:8000";
   }
 
+  // Fallback to current origin if localhost fails
+  const rootUrl = "/api/health";
   const isRootHealthy = await checkUrl(rootUrl);
   if (isRootHealthy) {
     const root = window.location.origin;
     return root;
   }
 
-  throw new Error("Both health checks failed, please check the Verba Server");
+  throw new Error("All health checks failed, please check the Verba Server");
 };
 
 export const fetchData = async <T>(endpoint: string): Promise<T | null> => {
