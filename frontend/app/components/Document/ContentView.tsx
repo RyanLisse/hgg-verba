@@ -10,7 +10,7 @@ import type {
   VerbaDocument,
 } from "@/app/types";
 import type React from "react";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
 import { HiSparkles } from "react-icons/hi2";
 import { IoNewspaper } from "react-icons/io5";

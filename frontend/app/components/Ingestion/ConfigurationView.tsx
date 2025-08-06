@@ -158,7 +158,7 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
         return prevFileMap;
       });
     },
-    [selectedFileData]
+    [selectedFileData, setFileMap]
   );
 
   const selectComponent = (componentN: string, selectedComponent: string) => {
@@ -198,7 +198,7 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
         setRAGConfig(newRAGConfig);
       }
     },
-    [ragConfig, credentials]
+    [ragConfig, credentials, addStatusMessage, setRAGConfig]
   );
 
   return (

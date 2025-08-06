@@ -22,6 +22,7 @@ import type { RAGConfig } from "@/app/types";
 interface FileSelectionViewProps {
   fileMap: FileMap;
   setFileMap: React.Dispatch<React.SetStateAction<FileMap>>;
+  // biome-ignore lint/style/useNamingConvention: External API parameter
   RAGConfig: RAGConfig | null;
   setRAGConfig: (r_: RAGConfig | null) => void;
   selectedFileData: string | null;
@@ -228,13 +229,13 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
         </div>
         <div className="flex gap-3 justify-center lg:justify-end">
           <div className="dropdown dropdown-hover">
-            <label>
+            <div role="button" tabIndex={0}>
               <VerbaButton
                 title="Files"
                 Icon={IoMdAddCircle}
                 onClick={() => document.getElementById("files_upload")?.click()}
               />
-            </label>
+            </div>
             <ul className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow">
               {RAGConfig &&
                 Object.entries(RAGConfig.Reader.components)
@@ -248,7 +249,7 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
                         closeOnClick();
                       }}
                     >
-                      <a>{component.name}</a>
+                      <button type="button">{component.name}</button>
                     </li>
                   ))}
             </ul>
@@ -262,9 +263,9 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
           />
 
           <div className="dropdown dropdown-hover">
-            <label>
+            <div role="button" tabIndex={0}>
               <VerbaButton title="Directory" Icon={GoFileDirectoryFill} />
-            </label>
+            </div>
             <ul className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow">
               {RAGConfig &&
                 Object.entries(RAGConfig.Reader.components)
@@ -277,8 +278,16 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
                         document.getElementById("dir_upload")?.click();
                         closeOnClick();
                       }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedDirReader(component.name);
+                          document.getElementById("dir_upload")?.click();
+                          closeOnClick();
+                        }
+                      }}
                     >
-                      <a>{component.name}</a>
+                      <button type="button">{component.name}</button>
                     </li>
                   ))}
             </ul>
@@ -293,9 +302,9 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
           />
 
           <div className="dropdown dropdown-hover">
-            <label>
+            <div role="button" tabIndex={0}>
               <VerbaButton title="URL" Icon={IoMdAddCircle} />
-            </label>
+            </div>
             <input id={"url_upload"} type="file" className="hidden" />
             <ul className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow">
               {RAGConfig &&
@@ -308,8 +317,15 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
                         handleAddURL(component.name);
                         closeOnClick();
                       }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          handleAddURL(component.name);
+                          closeOnClick();
+                        }
+                      }}
                     >
-                      <a>{component.name}</a>
+                      <button type="button">{component.name}</button>
                     </li>
                   ))}
             </ul>

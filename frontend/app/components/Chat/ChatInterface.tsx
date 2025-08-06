@@ -664,7 +664,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                               dropdown.blur();
                           }}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
+                            if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
                               if (!filterLabels.includes(label)) {
                                 setFilterLabels([...filterLabels, label]);

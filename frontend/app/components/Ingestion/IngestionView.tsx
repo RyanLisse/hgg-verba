@@ -20,6 +20,7 @@ import FileSelectionView from "./FileSelectionView";
 
 interface IngestionViewProps {
   credentials: Credentials;
+  // biome-ignore lint/style/useNamingConvention: External API parameter
   RAGConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
   addStatusMessage: (
@@ -30,6 +31,7 @@ interface IngestionViewProps {
 
 const IngestionView: React.FC<IngestionViewProps> = ({
   credentials,
+  // biome-ignore lint/style/useNamingConvention: External API parameter
   RAGConfig,
   setRAGConfig,
   addStatusMessage,
@@ -168,7 +170,7 @@ const IngestionView: React.FC<IngestionViewProps> = ({
         socket.close(1000, "Component unmounting");
       }
     };
-  }, [reconnect]);
+  }, [reconnect, addStatusMessage]);
 
   const reconnectToVerba = () => {
     setReconnect((prevState) => !prevState);

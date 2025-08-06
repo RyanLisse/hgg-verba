@@ -23,6 +23,7 @@ import type {
 
 import { colors } from "./util";
 
+// biome-ignore lint/style/useNamingConvention: Three.js API requirement
 extend({ OrbitControls: OrbitControls });
 
 const Sphere: React.FC<{
@@ -32,7 +33,9 @@ const Sphere: React.FC<{
   documentTitle: string;
   multiplication: number;
   dynamicColor: boolean;
+  // biome-ignore lint/style/useNamingConvention: API response format
   chunk_id: string;
+  // biome-ignore lint/style/useNamingConvention: API response format
   chunk_uuid: string;
   setSelectedChunk: (c: string) => void;
   selectedChunk: string | null;
@@ -62,7 +65,7 @@ const Sphere: React.FC<{
   maxZ,
   chunkScores,
 }) => {
-  const ref = useRef<three.Mesh>(null!);
+  const ref = useRef<three.Mesh>(null);
   const hoverRef = useRef(false);
 
   const isHighlighted = useMemo(
@@ -139,6 +142,12 @@ const Sphere: React.FC<{
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick(e as React.MouseEvent<HTMLDivElement>);
+          }
+        }}
       >
         <sphereGeometry args={[sphereRadius, 32, 32]} />
         <meshBasicMaterial
@@ -195,7 +204,7 @@ const VectorView: React.FC<VectorViewProps> = ({
     } else {
       setVectors([]);
     }
-  }, [showAll, selectedDocument]);
+  }, [selectedDocument]);
 
   useEffect(() => {
     if (selectedChunk) {
@@ -378,6 +387,7 @@ const VectorView: React.FC<VectorViewProps> = ({
               {/* Dropdown */}
               <div className="dropdown dropdown-bottom flex w-full justify-start items-center">
                 <button
+                  type="button"
                   tabIndex={0}
                   disabled={true}
                   className="btn btn-sm bg-button-verba hover:bg-button-hover-verba text-text-verba w-full flex justify-start border-none"
@@ -405,6 +415,7 @@ const VectorView: React.FC<VectorViewProps> = ({
 
             {chunk && (
               <button
+                type="button"
                 onClick={() => {
                   setChunk(null);
                   setSelectedChunk(null);

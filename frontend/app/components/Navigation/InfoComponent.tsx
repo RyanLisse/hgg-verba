@@ -6,7 +6,9 @@ import { FaInfo } from "react-icons/fa";
 import VerbaButton from "./VerbaButton";
 
 interface InfoComponentProps {
+  // biome-ignore lint/style/useNamingConvention: API parameter convention
   tooltip_text: string;
+  // biome-ignore lint/style/useNamingConvention: API parameter convention
   display_text: string;
 }
 

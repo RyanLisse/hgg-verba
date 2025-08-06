@@ -22,7 +22,7 @@ interface DocumentSearchComponentProps {
   production: "Local" | "Demo" | "Production";
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR",
+    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
   ) => void;
 }
 
@@ -43,7 +43,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
 
   const [labels, setLabels] = useState<string[]>([]);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [triggerSearch, setTriggerSearch] = useState(false);
+  const [_triggerSearch, setTriggerSearch] = useState(false);
 
   const [isFetching, setIsFetching] = useState(false);
 
@@ -80,7 +80,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
           selectedLabels,
           page,
           pageSize,
-          credentials,
+          credentials
         );
 
         if (data) {
@@ -101,7 +101,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
         setIsFetching(false);
       }
     },
-    [selectedLabels, page, credentials],
+    [selectedLabels, page, credentials]
   );
 
   useEffect(() => {
@@ -218,7 +218,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
                         document.activeElement as HTMLElement;
                       dropdownElement.blur();
                       const dropdown = dropdownElement.closest(
-                        ".dropdown",
+                        ".dropdown"
                       ) as HTMLElement;
                       if (dropdown) dropdown.blur();
                     }}
@@ -232,7 +232,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
                           document.activeElement as HTMLElement;
                         dropdownElement.blur();
                         const dropdown = dropdownElement.closest(
-                          ".dropdown",
+                          ".dropdown"
                         ) as HTMLElement;
                         if (dropdown) dropdown.blur();
                       }
@@ -245,7 +245,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
             </ul>
           </div>
           <div className="flex flex-wrap gap-2">
-            {selectedLabels.map((label, index) => (
+            {selectedLabels.map((label, _index) => (
               <VerbaButton
                 title={label}
                 key={`FilterDocumentLabel-${label}`}
@@ -281,7 +281,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
                   title={document.title}
                   selected={selectedDocument === document.uuid}
                   selected_color="bg-secondary-verba"
-                  key={document.title + index}
+                  key={`${document.title}-${document.uuid || index}`}
                   className="w-[200px] lg:w-[400px]"
                   text_class_name="truncate max-w-[150px] lg:max-w-[350px]"
                   onClick={() => setSelectedDocument(document.uuid)}

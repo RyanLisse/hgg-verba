@@ -136,12 +136,12 @@ const ComponentView: React.FC<ComponentViewProps> = ({
   }, [ragConfig]);
 
   function renderComponents(ragConfig: RAGConfig) {
-    return Object.entries(ragConfig[compoent_name].components)
+    return Object.entries(ragConfig[componentName].components)
       .filter(([_key, component]) => component.available)
       .map(([_key, component]) => (
         <li
-          key={`"ComponentDropdown_${component.name}
-}`          onClick={() => {
+          key={`ComponentDropdown_${component.name}`}
+          onClick={() => {
             if (!blocked) {
               selectComponent(componentName, component.name);
               closeOnClick();
@@ -164,8 +164,8 @@ const ComponentView: React.FC<ComponentViewProps> = ({
 
     return configValues.map((configValue) => (
       <li
-        key={`"ConfigValue${configValue}
-}`        className="lg:text-base text-sm"
+        key={`ConfigValue${configValue}`}
+        className="lg:text-base text-sm"
         onClick={() => {
           if (!blocked) {
             updateConfig(componentName, configKey, configValue);
@@ -234,7 +234,7 @@ const ComponentView: React.FC<ComponentViewProps> = ({
           </div>
 
           <div className="flex gap-2 items-center text-text-verba">
-            <p className="flex min-w-[8vw]" /p
+            <p className="flex min-w-[8vw]"></p>
             <p className="lg:text-sm text-xs text-text-alt-verba text-start">
               {
                 ragConfig[componentName].components[
@@ -251,7 +251,7 @@ const ComponentView: React.FC<ComponentViewProps> = ({
           .config,
       ).map(([configTitle, config]) => (
         <div key={`Configuration${configTitle}${componentName}`}>
-  }`        <div className="flex gap-3 justify-between items-center text-text-verba lg:text-base text-sm">
+          <div className="flex gap-3 justify-between items-center text-text-verba lg:text-base text-sm">
             <p className="flex min-w-[8vw]">{configTitle}</p>
 
             {/* Dropdown */}
@@ -268,7 +268,7 @@ const ComponentView: React.FC<ComponentViewProps> = ({
                 <ul
                   className="dropdown-content menu bg-base-100 max-h-[20vh] overflow-auto rounded-box z-[1] w-full p-2 shadow"
                 >
-                  {renderConfigOptions(RAGConfig, configTitle)}
+                  {renderConfigOptions(ragConfig, configTitle)}
                 </ul>
               </div>
             )}
@@ -331,12 +331,12 @@ const ComponentView: React.FC<ComponentViewProps> = ({
             )}
           </div>
           {config.type !== "bool" && (
-            <_div _className="flex gap-2 items-center text-text-verba">
-              <_p _className="flex min-w-[8vw]" />
-              <_p _className="lg:text-sm text-xs text-text-alt-verba text-start">
+            <div className="flex gap-2 items-center text-text-verba">
+              <p className="flex min-w-[8vw]"></p>
+              <p className="lg:text-sm text-xs text-text-alt-verba text-start">
                 {config.description}
-              </_p>
-            </_div>
+              </p>
+            </div>
           )}
         </div>
       ))}

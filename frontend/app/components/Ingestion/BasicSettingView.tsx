@@ -51,7 +51,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
   saveComponentConfig,
   setFileMap,
   blocked,
-  addStatusMessage,
+  addStatusMessage: _addStatusMessage,
 }) => {
   const [filename, setFilename] = useState("");
   const [source, setSource] = useState("");
@@ -496,7 +496,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
             </pre>
             <div className="modal-action">
               <form method="dialog">
-                <button className="btn text-text-verba bg-warning-verba border-none hover:bg-button-hover-verba ml-2">
+                <button type="button" className="btn text-text-verba bg-warning-verba border-none hover:bg-button-hover-verba ml-2">
                   Close
                 </button>
               </form>

@@ -9,6 +9,7 @@ import VerbaButton from "./VerbaButton";
 
 interface NavbarButtonProps {
   hide: boolean;
+  // biome-ignore lint/style/useNamingConvention: React component prop convention
   Icon: React.ComponentType;
   title: string;
   currentPage: PageType;
