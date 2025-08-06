@@ -1,6 +1,109 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --breakpoint-sm: 100px;
+  --breakpoint-md: 930px;
+  --breakpoint-lg: 1280px;
+  --breakpoint-full: 1700px;
+
+  /* Verba custom colors with default fallbacks */
+  --color-bg-verba: #fef7f7;
+  --color-bg-alt-verba: #ffffff;
+  --color-button-verba: #efefef;
+  --color-button-hover-verba: #dcdcdc;
+  --color-primary-verba: #fdff91;
+  --color-secondary-verba: #90ffa8;
+  --color-warning-verba: #ff8399;
+  --color-text-verba: #161616;
+  --color-text-alt-verba: #8e8e8e;
+  --color-text-verba-button: #161616;
+  --color-text-alt-verba-button: #8e8e8e;
+
+  /* Standard Tailwind colors - keeping core palette */
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-black: #000000;
+  --color-white: #ffffff;
+
+  /* Gray scale */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+
+  /* Essential colors used in project */
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+
+  --color-indigo-300: #a5b4fc;
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+
+  --color-green-300: #86efac;
+  --color-green-400: #4ade80;
+  --color-green-500: #22c55e;
+
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+
+  --color-yellow-300: #fde047;
+  --color-yellow-400: #facc15;
+  --color-yellow-500: #eab308;
+
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+
+  /* Safelist colors from original config */
+  --color-zinc-300: #d4d4d8;
+  --color-zinc-400: #a1a1aa;
+
+  --color-cyan-300: #67e8f9;
+  --color-cyan-400: #22d3ee;
+
+  --color-fuchsia-300: #f0abfc;
+  --color-fuchsia-400: #e879f9;
+
+  /* Animation keyframes */
+  --animate-spin: spin 1s linear infinite;
+
+  /* Gradient definitions */
+  --gradient-radial: radial-gradient(var(--tw-gradient-stops));
+  --gradient-conic: conic-gradient(
+    from 180deg at 50% 50%,
+    var(--tw-gradient-stops)
+  );
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* CSS Variables for dynamic theming (will be set by JavaScript) */
+:root {
+  --bg-verba: var(--color-bg-verba);
+  --bg-alt-verba: var(--color-bg-alt-verba);
+  --button-verba: var(--color-button-verba);
+  --button-hover-verba: var(--color-button-hover-verba);
+  --primary-verba: var(--color-primary-verba);
+  --secondary-verba: var(--color-secondary-verba);
+  --warning-verba: var(--color-warning-verba);
+  --text-verba: var(--color-text-verba);
+  --text-alt-verba: var(--color-text-alt-verba);
+  --text-verba-button: var(--color-text-verba-button);
+  --text-alt-verba-button: var(--color-text-alt-verba-button);
+}
 
 .react-colorful {
   height: 100px;
