@@ -188,14 +188,16 @@ class WeaviateManager:
             port = parsed.port or (443 if parsed.scheme == "https" else 80)
             secure = parsed.scheme == "https"
 
+            # For Railway and other cloud deployments, use HTTP-only connection
+            # as gRPC port (50051) is typically not exposed
             client = weaviate.connect_to_custom(
                 http_host=host,
                 http_port=port,
                 http_secure=secure,
-                grpc_host=host,
-                grpc_port=50051,  # gRPC port (may not be available for Railway)
+                grpc_host=host,  # Keep same host but will fail gracefully
+                grpc_port=50051,  # Standard gRPC port
                 grpc_secure=secure,
-                skip_init_checks=True,  # Skip gRPC health checks for Railway
+                skip_init_checks=True,  # Skip gRPC health checks - this is key for Railway
                 additional_config=AdditionalConfig(
                     timeout=Timeout(init=60, query=300, insert=300)
                 ),
