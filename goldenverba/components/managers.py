@@ -1,69 +1,65 @@
-from wasabi import msg
-
-import weaviate
-from weaviate.client import WeaviateAsyncClient
-from weaviate.auth import AuthApiKey
-from weaviate.classes.query import Filter, Sort, MetadataQuery
-from weaviate.collections.classes.data import DataObject
-from weaviate.classes.aggregate import GroupByAggregate
-from weaviate.classes.init import AdditionalConfig, Timeout
-
-import os
 import asyncio
 import json
+import os
 import re
 from datetime import datetime
 
+import weaviate
 from sklearn.decomposition import PCA
+from wasabi import msg
+from weaviate.auth import AuthApiKey
+from weaviate.classes.aggregate import GroupByAggregate
+from weaviate.classes.init import AdditionalConfig, Timeout
+from weaviate.classes.query import Filter, MetadataQuery, Sort
+from weaviate.client import WeaviateAsyncClient
+from weaviate.collections.classes.data import DataObject
 
-
-from goldenverba.components.document import Document
-from goldenverba.components.interfaces import (
-    Reader,
-    Chunker,
-    Embedding,
-    Retriever,
-    Generator,
-)
-from goldenverba.server.helpers import LoggerManager
-from goldenverba.server.types import FileConfig, FileStatus
-
-# Import Readers
-from goldenverba.components.reader.BasicReader import BasicReader
-from goldenverba.components.reader.GitReader import GitReader
-from goldenverba.components.reader.UnstructuredAPI import UnstructuredReader
-from goldenverba.components.reader.HTMLReader import HTMLReader
-from goldenverba.components.reader.FirecrawlReader import FirecrawlReader
+from goldenverba.components.chunking.CodeChunker import CodeChunker
+from goldenverba.components.chunking.HTMLChunker import HTMLChunker
+from goldenverba.components.chunking.JSONChunker import JSONChunker
+from goldenverba.components.chunking.MarkdownChunker import MarkdownChunker
+from goldenverba.components.chunking.RecursiveChunker import RecursiveChunker
+from goldenverba.components.chunking.SemanticChunker import SemanticChunker
+from goldenverba.components.chunking.SentenceChunker import SentenceChunker
 
 # Import Chunkers
 from goldenverba.components.chunking.TokenChunker import TokenChunker
-from goldenverba.components.chunking.SentenceChunker import SentenceChunker
-from goldenverba.components.chunking.RecursiveChunker import RecursiveChunker
-from goldenverba.components.chunking.HTMLChunker import HTMLChunker
-from goldenverba.components.chunking.MarkdownChunker import MarkdownChunker
-from goldenverba.components.chunking.CodeChunker import CodeChunker
-from goldenverba.components.chunking.JSONChunker import JSONChunker
-from goldenverba.components.chunking.SemanticChunker import SemanticChunker
+from goldenverba.components.document import Document
+from goldenverba.components.embedding.CohereEmbedder import CohereEmbedder
 
 # Import Embedders
 from goldenverba.components.embedding.OpenAIEmbedder import OpenAIEmbedder
-from goldenverba.components.embedding.CohereEmbedder import CohereEmbedder
-from goldenverba.components.embedding.WeaviateEmbedder import WeaviateEmbedder
-from goldenverba.components.embedding.VoyageAIEmbedder import VoyageAIEmbedder
 from goldenverba.components.embedding.SentenceTransformersEmbedder import (
     SentenceTransformersEmbedder,
 )
-
-# Import Retrievers
-from goldenverba.components.retriever.WindowRetriever import WindowRetriever
+from goldenverba.components.embedding.VoyageAIEmbedder import VoyageAIEmbedder
+from goldenverba.components.embedding.WeaviateEmbedder import WeaviateEmbedder
+from goldenverba.components.generation.AnthrophicGenerator import AnthropicGenerator
 
 # Import Generators
 from goldenverba.components.generation.CohereGenerator import CohereGenerator
-from goldenverba.components.generation.AnthrophicGenerator import AnthropicGenerator
-from goldenverba.components.generation.OpenAIGenerator import OpenAIGenerator
 from goldenverba.components.generation.GeminiGenerator import GeminiGenerator
 from goldenverba.components.generation.LiteLLMGenerator import LiteLLMGenerator
+from goldenverba.components.generation.OpenAIGenerator import OpenAIGenerator
+from goldenverba.components.interfaces import (
+    Chunker,
+    Embedding,
+    Generator,
+    Reader,
+    Retriever,
+)
 
+# Import Readers
+from goldenverba.components.reader.BasicReader import BasicReader
+from goldenverba.components.reader.FirecrawlReader import FirecrawlReader
+from goldenverba.components.reader.GitReader import GitReader
+from goldenverba.components.reader.HTMLReader import HTMLReader
+from goldenverba.components.reader.UnstructuredAPI import UnstructuredReader
+
+# Import Retrievers
+from goldenverba.components.retriever.WindowRetriever import WindowRetriever
+from goldenverba.server.helpers import LoggerManager
+from goldenverba.server.types import FileConfig, FileStatus
 
 try:
     import tiktoken
@@ -631,13 +627,26 @@ class WeaviateManager:
     async def get_labels(self, client: WeaviateAsyncClient) -> list[str]:
         if await self.verify_collection(client, self.document_collection_name):
             document_collection = client.collections.get(self.document_collection_name)
-            aggregation = await document_collection.aggregate.over_all(
-                group_by=GroupByAggregate(prop="labels"), total_count=True
-            )
-            return [
-                aggregation_group.grouped_by.value
-                for aggregation_group in aggregation.groups
-            ]
+            try:
+                aggregation = await document_collection.aggregate.over_all(
+                    group_by=GroupByAggregate(prop="labels"), total_count=True
+                )
+                if (
+                    aggregation
+                    and hasattr(aggregation, "groups")
+                    and aggregation.groups
+                ):
+                    return [
+                        aggregation_group.grouped_by.value
+                        for aggregation_group in aggregation.groups
+                        if hasattr(aggregation_group, "grouped_by")
+                        and aggregation_group.grouped_by
+                    ]
+                return []
+            except Exception as e:
+                msg.fail(f"Error retrieving labels: {str(e)}")
+                return []
+        return []
 
     ### Chunks Retrieval
 
@@ -981,27 +990,38 @@ class WeaviateManager:
             else:
                 filters = None
 
-            response = await embedder_collection.aggregate.over_all(
-                filters=filters,
-                group_by=GroupByAggregate(prop="doc_uuid"),
-                total_count=True,
-            )
-            return len(response.groups)
+            try:
+                response = await embedder_collection.aggregate.over_all(
+                    filters=filters,
+                    group_by=GroupByAggregate(prop="doc_uuid"),
+                    total_count=True,
+                )
+                if response and hasattr(response, "groups") and response.groups:
+                    return len(response.groups)
+                return 0
+            except Exception as e:
+                msg.fail(f"Error retrieving datacount: {str(e)}")
+                return 0
+        return 0
 
     async def get_chunk_count(
         self, client: WeaviateAsyncClient, embedder: str, doc_uuid: str
     ) -> int:
         if await self.verify_embedding_collection(client, embedder):
             embedder_collection = client.collections.get(self.embedding_table[embedder])
-            response = await embedder_collection.aggregate.over_all(
-                filters=Filter.by_property("doc_uuid").equal(doc_uuid),
-                group_by=GroupByAggregate(prop="doc_uuid"),
-                total_count=True,
-            )
-            if response.groups:
-                return response.groups[0].total_count
-            else:
+            try:
+                response = await embedder_collection.aggregate.over_all(
+                    filters=Filter.by_property("doc_uuid").equal(doc_uuid),
+                    group_by=GroupByAggregate(prop="doc_uuid"),
+                    total_count=True,
+                )
+                if response and hasattr(response, "groups") and response.groups:
+                    return response.groups[0].total_count or 0
                 return 0
+            except Exception as e:
+                msg.fail(f"Error retrieving chunk count: {str(e)}")
+                return 0
+        return 0
 
 
 class ReaderManager:
