@@ -5,10 +5,16 @@ import SimpleFeedback from "../SimpleFeedback";
 
 describe("SimpleFeedback", () => {
   const mockRunId = "test-run-id";
-  let mockOnSubmit: any;
+  let mockOnSubmit: (
+    runId: string,
+    feedbackType: string,
+    additionalFeedback: string
+  ) => void;
 
   beforeEach(() => {
-    mockOnSubmit = mock(() => {});
+    mockOnSubmit = mock(() => {
+      // Test mock: intentionally empty for mock purposes
+    });
   });
 
   test("renders feedback button correctly", () => {

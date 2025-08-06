@@ -18,35 +18,38 @@ const DocumentMetaView: React.FC<DocumentMetaViewProps> = ({
   const [document, setDocument] = useState<VerbaDocument | null>(null);
 
   useEffect(() => {
-    handleFetchDocument();
-  }, [selectedDocument]);
-
-  const handleFetchDocument = async () => {
-    try {
-      setIsFetching(true);
-
-      const data = await fetchSelectedDocument(selectedDocument, credentials);
-
-      if (data) {
-        if (data.error !== "") {
-          setDocument(null);
-          setIsFetching(false);
+    const handleFetchDocument = async () => {
+      try {
+        setIsFetching(true);
+        if (selectedDocument) {
+          const response = await fetchSelectedDocument(
+            selectedDocument,
+            credentials
+          );
+          if (response?.document) {
+            setDocument(response.document);
+          } else {
+            setDocument(null);
+          }
         } else {
-          setDocument(data.document);
-          setIsFetching(false);
+          setDocument(null);
         }
+      } catch (e) {
+        console.error("Error fetching document:", e);
+        setDocument(null);
+      } finally {
+        setIsFetching(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch document:", error);
-      setIsFetching(false);
-    }
-  };
+    };
+
+    handleFetchDocument();
+  }, [selectedDocument, credentials]);
 
   return (
     <div className="flex flex-col h-full">
       {isFetching ? (
         <div className="flex items-center justify-center h-full">
-          <span className="loading loading-spinner loading-md text-text-verba bg-text-alt-verba"></span>
+          <span className="loading loading-spinner loading-md text-text-verba bg-text-alt-verba" />
         </div>
       ) : (
         document && (
@@ -85,6 +88,7 @@ const DocumentMetaView: React.FC<DocumentMetaViewProps> = ({
                 Source
               </p>
               <button
+                type="button"
                 className="text-text-verba truncate max-w-full"
                 onClick={() => window.open(document.source, "_blank")}
                 title={document.source}

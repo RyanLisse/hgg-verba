@@ -1,30 +1,30 @@
 "use client";
 
-import type React from "react";
-import { useState } from "react";
 import type {
   ChunkScore,
-  Message,
   Citation,
+  Message,
   StructuredResponse,
   Theme,
 } from "@/app/types";
-import ReactMarkdown from "react-markdown";
-import { FaDatabase } from "react-icons/fa";
+import type React from "react";
+import { useState } from "react";
 import { BiError } from "react-icons/bi";
-import { IoNewspaper, IoDocumentAttach } from "react-icons/io5";
+import { FaDatabase } from "react-icons/fa";
 import {
   FaBrain,
   FaChevronDown,
   FaChevronUp,
-  FaLightbulb,
-  FaQuestion,
-  FaEye,
   FaClock,
   FaExclamationTriangle,
+  FaEye,
+  FaLightbulb,
+  FaQuestion,
 } from "react-icons/fa";
-import { HiSparkles, HiCog } from "react-icons/hi2";
+import { HiCog, HiSparkles } from "react-icons/hi2";
+import { IoDocumentAttach, IoNewspaper } from "react-icons/io5";
 import { RiRobot2Fill } from "react-icons/ri";
+import ReactMarkdown from "react-markdown";
 
 import VerbaButton from "../Navigation/VerbaButton";
 

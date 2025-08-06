@@ -42,7 +42,7 @@ export default function Home() {
     Weaviate: WeaviateTheme,
     WCD: WCDTheme,
   });
-  const [selectedTheme, setSelectedTheme] = useState<Theme>(themes["WCD"]);
+  const [selectedTheme, setSelectedTheme] = useState<Theme>(themes.WCD);
 
   // Login States
   const [isHealthy, setIsHealthy] = useState(false);
@@ -58,7 +58,7 @@ export default function Home() {
   const [RAGConfig, setRAGConfig] = useState<null | RAGConfig>(null);
   const [documentFilter, setDocumentFilter] = useState<DocumentFilter[]>([]);
   const [statusMessages, setStatusMessages] = useState<StatusMessage[]>([]);
-  const [labels, setLabels] = useState<string[]>([]);
+  const [labels, _setLabels] = useState<string[]>([]);
   const [filterLabels, setFilterLabels] = useState<string[]>([]);
 
   // Define fontClassName
@@ -92,9 +92,8 @@ export default function Home() {
             key: healthData.deployments.WEAVIATE_API_KEY_VERBA,
           });
           return; // Exit if successful
-        } else {
-          console.warn("Could not retrieve health data");
         }
+        console.warn("Could not retrieve health data");
       } catch (error) {
         console.error("Error during initial fetch:", error);
       }
@@ -171,7 +170,7 @@ export default function Home() {
     }
   }, [connect, isHealthy]);
 
-  const isValidTheme = (theme: Theme): boolean => {
+  const _isValidTheme = (theme: Theme): boolean => {
     const requiredAttributes = [
       "primary_color",
       "secondary_color",
@@ -270,8 +269,8 @@ export default function Home() {
           {currentPage === "IMPORT_DATA" && (
             <IngestionView
               credentials={credentials}
-              RAGConfig={RAGConfig}
-              setRAGConfig={setRAGConfig}
+              ragConfig={RAGConfig}
+              setragConfig={setRAGConfig}
               addStatusMessage={addStatusMessage}
             />
           )}

@@ -58,7 +58,7 @@ const DocumentExplorer: React.FC<DocumentExplorerProps> = ({
     "Content" | "Chunks" | "Metadata" | "Config" | "Vector Space" | "Graph"
   >("Content");
 
-  const [isFetching, setIsFetching] = useState(false);
+  const [_isFetching, setIsFetching] = useState(false);
   const [document, setDocument] = useState<VerbaDocument | null>(null);
 
   useEffect(() => {
@@ -101,7 +101,7 @@ const DocumentExplorer: React.FC<DocumentExplorerProps> = ({
   };
 
   if (!selectedDocument) {
-    return <div></div>;
+    return <div />;
   }
 
   return (

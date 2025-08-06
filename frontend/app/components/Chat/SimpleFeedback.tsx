@@ -54,11 +54,10 @@ export default function SimpleFeedback({
       />
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div
+          <dialog
             className="bg-bg-alt-verba rounded-lg p-6 w-96 relative"
-            role="dialog"
-            aria-modal="true"
             aria-labelledby="feedback-title"
+            open
           >
             <VerbaButton
               Icon={X as IconType}
@@ -113,7 +112,7 @@ export default function SimpleFeedback({
                 />
               </>
             )}
-          </div>
+          </dialog>
         </div>
       )}
     </>

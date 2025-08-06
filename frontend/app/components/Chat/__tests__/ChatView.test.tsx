@@ -96,7 +96,9 @@ describe("ChatView", () => {
         },
         theme: "light" as const,
       },
-      addStatusMessage: () => {},
+      addStatusMessage: () => {
+        // Test stub: intentionally empty for mock purposes
+      },
       production: "Local" as const,
       currentPage: "CHAT" as PageType,
       RAGConfig: {
@@ -145,12 +147,18 @@ describe("ChatView", () => {
           },
         },
       },
-      setRAGConfig: () => {},
+      setRAGConfig: () => {
+        // Test stub: intentionally empty for mock purposes
+      },
       documentFilter: [],
-      setDocumentFilter: () => {},
+      setDocumentFilter: () => {
+        // Test stub: intentionally empty for mock purposes
+      },
       labels: ["Label1", "Label2", "Label3"],
       filterLabels: [],
-      setFilterLabels: () => {},
+      setFilterLabels: () => {
+        // Test stub: intentionally empty for mock purposes
+      },
     };
 
     const { container } = render(<ChatView {...mockProps} />);

@@ -17,7 +17,7 @@ const InfoComponent: React.FC<InfoComponentProps> = ({
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
-    <div className={`items-center gap-2 flex`}>
+    <div className={"items-center gap-2 flex"}>
       <div className="relative">
         <VerbaButton
           title=""

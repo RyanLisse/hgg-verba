@@ -71,15 +71,14 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
         addStatusMessage("Cleared all files", "WARNING");
         setSelectedFileData(null);
         return {};
-      } else {
-        if (filename === selectedFileData) {
-          setSelectedFileData(null);
-        }
-        addStatusMessage("Cleared selected file", "WARNING");
-        const newFileMap: FileMap = { ...prevFileMap };
-        delete newFileMap[filename];
-        return newFileMap;
       }
+      if (filename === selectedFileData) {
+        setSelectedFileData(null);
+      }
+      addStatusMessage("Cleared selected file", "WARNING");
+      const newFileMap: FileMap = { ...prevFileMap };
+      delete newFileMap[filename];
+      return newFileMap;
     });
   };
 
@@ -107,7 +106,7 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
         const file = files[i];
         const newRAGConfig: RAGConfig = JSON.parse(JSON.stringify(RAGConfig));
         if (selectedReader) {
-          newRAGConfig["Reader"].selected = selectedReader;
+          newRAGConfig.Reader.selected = selectedReader;
         }
         const filename = file.name;
         let fileID = file.name;
@@ -150,10 +149,10 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
     if (RAGConfig) {
       const newFileMap: FileMap = { ...fileMap };
       const newRAGConfig: RAGConfig = JSON.parse(JSON.stringify(RAGConfig));
-      newRAGConfig["Reader"].selected = URLReader;
+      newRAGConfig.Reader.selected = URLReader;
 
       const now = new Date();
-      const filename = "New " + URLReader + " Job";
+      const filename = `New ${URLReader} Job`;
       const fileID = now.toISOString();
       const extension = "URL";
 
@@ -229,23 +228,20 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
         </div>
         <div className="flex gap-3 justify-center lg:justify-end">
           <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
+            <label>
               <VerbaButton
                 title="Files"
                 Icon={IoMdAddCircle}
                 onClick={() => document.getElementById("files_upload")?.click()}
               />
             </label>
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
-            >
+            <ul className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow">
               {RAGConfig &&
-                Object.entries(RAGConfig["Reader"].components)
-                  .filter(([key, component]) => component.type !== "URL")
+                Object.entries(RAGConfig.Reader.components)
+                  .filter(([_key, component]) => component.type !== "URL")
                   .map(([key, component]) => (
                     <li
-                      key={"File_" + component.name + key}
+                      key={`File_${component.name}${key}`}
                       onClick={() => {
                         setSelectedFileReader(component.name);
                         document.getElementById("files_upload")?.click();
@@ -266,19 +262,16 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
           />
 
           <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
+            <label>
               <VerbaButton title="Directory" Icon={GoFileDirectoryFill} />
             </label>
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
-            >
+            <ul className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow">
               {RAGConfig &&
-                Object.entries(RAGConfig["Reader"].components)
-                  .filter(([key, component]) => component.type !== "URL")
+                Object.entries(RAGConfig.Reader.components)
+                  .filter(([_key, component]) => component.type !== "URL")
                   .map(([key, component]) => (
                     <li
-                      key={"Dir_" + component.name + key}
+                      key={`Dir_${component.name}${key}`}
                       onClick={() => {
                         setSelectedDirReader(component.name);
                         document.getElementById("dir_upload")?.click();
@@ -300,20 +293,17 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
           />
 
           <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
+            <label>
               <VerbaButton title="URL" Icon={IoMdAddCircle} />
             </label>
             <input id={"url_upload"} type="file" className="hidden" />
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
-            >
+            <ul className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow">
               {RAGConfig &&
-                Object.entries(RAGConfig["Reader"].components)
-                  .filter(([key, component]) => component.type === "URL")
+                Object.entries(RAGConfig.Reader.components)
+                  .filter(([_key, component]) => component.type === "URL")
                   .map(([key, component]) => (
                     <li
-                      key={"URL_" + component.name + key}
+                      key={`URL_${component.name}${key}`}
                       onClick={() => {
                         handleAddURL(component.name);
                         closeOnClick();
@@ -331,7 +321,7 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
       <div className="bg-bg-alt-verba rounded-2xl flex flex-col p-6 items-center h-full w-full overflow-auto">
         {Object.entries(fileMap).map(([key, fileData]) => (
           <FileComponent
-            key={"FileComponent_" + key}
+            key={`FileComponent_${key}`}
             fileData={fileData}
             handleDeleteFile={handleDeleteFile}
             selectedFileData={selectedFileData}
@@ -374,7 +364,7 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
             >
               <TbPlugConnected size={15} />
               <p>Reconnecting...</p>
-              <span className="loading loading-spinner loading-xs"></span>
+              <span className="loading loading-spinner loading-xs" />
             </button>
           </div>
         </div>

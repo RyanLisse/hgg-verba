@@ -27,11 +27,17 @@ interface VerbaButtonProps {
 
 const VerbaButton: React.FC<VerbaButtonProps> = ({
   title = "",
-  key = "Button" + title,
+  key = `Button${title}`,
   Icon,
-  onClick = () => {},
-  onMouseEnter = () => {},
-  onMouseLeave = () => {},
+  onClick = () => {
+    // Default stub: intentionally empty
+  },
+  onMouseEnter = () => {
+    // Default stub: intentionally empty
+  },
+  onMouseLeave = () => {
+    // Default stub: intentionally empty
+  },
   disabled = false,
   className = "",
   text_class_name = "",
@@ -50,23 +56,20 @@ const VerbaButton: React.FC<VerbaButtonProps> = ({
     <button
       type={type}
       key={key}
-      className={
-        className +
-        ` btn rounded-lg flex-grow items-center justify-center border-none ${circle ? "btn-circle" : ""} ${button_size} hover:bg-button-hover-verba hover:text-text-verba-button ${selected ? selected_color + " shadow-md " + selected_text_color : " bg-button-verba shadow-none text-text-alt-verba-button"} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`
-      }
+      className={`${className} btn rounded-lg flex-grow items-center justify-center border-none ${circle ? "btn-circle" : ""} ${button_size} hover:bg-button-hover-verba hover:text-text-verba-button ${selected ? `${selected_color} shadow-md ${selected_text_color}` : " bg-button-verba shadow-none text-text-alt-verba-button"} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       onClick={(e) => !disabled && onClick(e, ...onClickParams)}
       disabled={disabled}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       {loading ? (
-        <span className="text-text-verba-button loading loading-spinner loading-sm"></span>
+        <span className="text-text-verba-button loading loading-spinner loading-sm" />
       ) : (
         <>
           <div className="flex gap-2 items-center">
             {Icon && <Icon size={icon_size} className="w-[20px]" />}
             {title && (
-              <p title={title} className={text_size + " " + text_class_name}>
+              <p title={title} className={`${text_size} ${text_class_name}`}>
                 {title}
               </p>
             )}

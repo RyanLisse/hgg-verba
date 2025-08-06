@@ -6,7 +6,7 @@ import type {
   DocumentsPreviewPayload,
 } from "@/app/types";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FaSearch, FaTrash } from "react-icons/fa";
 import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
 import { IoMdAddCircle } from "react-icons/io";
@@ -22,7 +22,7 @@ interface DocumentSearchComponentProps {
   production: "Local" | "Demo" | "Production";
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR",
   ) => void;
 }
 
@@ -63,43 +63,46 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
     if (!documents) {
       return;
     }
-    if (page == 1) {
+    if (page === 1) {
       setPage(Math.ceil(totalDocuments / pageSize));
     } else {
       setPage((prev) => prev - 1);
     }
   };
 
-  const fetchAllDocuments = async (_userInput?: string) => {
-    try {
-      setIsFetching(true);
+  const fetchAllDocuments = useCallback(
+    async (_userInput?: string) => {
+      try {
+        setIsFetching(true);
 
-      const data: DocumentsPreviewPayload | null = await retrieveAllDocuments(
-        _userInput ? _userInput : "",
-        selectedLabels,
-        page,
-        pageSize,
-        credentials
-      );
+        const data: DocumentsPreviewPayload | null = await retrieveAllDocuments(
+          _userInput ? _userInput : "",
+          selectedLabels,
+          page,
+          pageSize,
+          credentials,
+        );
 
-      if (data) {
-        if (data.error !== "") {
-          console.error(data.error);
-          setIsFetching(false);
-          setDocuments(null);
-          setTotalDocuments(0);
-        } else {
-          setDocuments(data.documents);
-          setLabels(data.labels);
-          setIsFetching(false);
-          setTotalDocuments(data.totalDocuments);
+        if (data) {
+          if (data.error !== "") {
+            console.error(data.error);
+            setIsFetching(false);
+            setDocuments(null);
+            setTotalDocuments(0);
+          } else {
+            setDocuments(data.documents);
+            setLabels(data.labels);
+            setIsFetching(false);
+            setTotalDocuments(data.totalDocuments);
+          }
         }
+      } catch (error) {
+        console.error("Failed to fetch document:", error);
+        setIsFetching(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch document:", error);
-      setIsFetching(false);
-    }
-  };
+    },
+    [selectedLabels, page, credentials],
+  );
 
   useEffect(() => {
     setTriggerSearch(true);
@@ -107,7 +110,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
 
   useEffect(() => {
     fetchAllDocuments(userInput);
-  }, [page, triggerSearch, selectedLabels]);
+  }, [fetchAllDocuments, userInput]);
 
   const handleSearch = () => {
     fetchAllDocuments(userInput);
@@ -119,7 +122,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
     fetchAllDocuments("");
   };
 
-  const handleKeyDown = (e: any) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault(); // Prevent new line
       handleSearch(); // Submit form
@@ -127,20 +130,20 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
   };
 
   const handleDeleteDocument = async (d: string) => {
-    if (production == "Demo") {
+    if (production === "Demo") {
       return;
     }
     const response = await deleteDocument(d, credentials);
     addStatusMessage("Deleted document", "WARNING");
     if (response) {
-      if (d == selectedDocument) {
+      if (d === selectedDocument) {
         setSelectedDocument(null);
       }
       fetchAllDocuments(userInput);
     }
   };
 
-  const addLabel = (l: string) => {
+  const _addLabel = (l: string) => {
     setSelectedLabels((prev) => [...prev, l]);
   };
 
@@ -191,7 +194,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
       <div className="bg-bg-alt-verba rounded-2xl flex flex-col p-6 gap-3 items-center h-full w-full overflow-auto">
         <div className="flex flex-col w-full justify-start gap-2">
           <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
+            <button type="button">
               <VerbaButton
                 title="Label"
                 className="btn-sm min-w-min"
@@ -201,14 +204,12 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
                 selected={false}
                 disabled={false}
               />
-            </label>
-            <ul
-              tabIndex={0}
-              className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-            >
-              {labels.map((label, index) => (
-                <li key={"Label" + index}>
-                  <a
+            </button>
+            <ul className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+              {labels.map((label) => (
+                <li key={`Label-${label}`}>
+                  <button
+                    type="button"
                     onClick={() => {
                       if (!selectedLabels.includes(label)) {
                         setSelectedLabels([...selectedLabels, label]);
@@ -217,13 +218,28 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
                         document.activeElement as HTMLElement;
                       dropdownElement.blur();
                       const dropdown = dropdownElement.closest(
-                        ".dropdown"
+                        ".dropdown",
                       ) as HTMLElement;
                       if (dropdown) dropdown.blur();
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        if (!selectedLabels.includes(label)) {
+                          setSelectedLabels([...selectedLabels, label]);
+                        }
+                        const dropdownElement =
+                          document.activeElement as HTMLElement;
+                        dropdownElement.blur();
+                        const dropdown = dropdownElement.closest(
+                          ".dropdown",
+                        ) as HTMLElement;
+                        if (dropdown) dropdown.blur();
+                      }
+                    }}
                   >
                     {label}
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -232,7 +248,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
             {selectedLabels.map((label, index) => (
               <VerbaButton
                 title={label}
-                key={"FilterDocumentLabel" + index}
+                key={`FilterDocumentLabel-${label}`}
                 Icon={MdCancel}
                 className="btn-sm min-w-min max-w-[200px]"
                 icon_size={12}
@@ -250,50 +266,49 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
 
         {isFetching && (
           <div className="flex items-center justify-center gap-2">
-            <span className="loading loading-spinner loading-sm text-text-alt-verba"></span>
+            <span className="loading loading-spinner loading-sm text-text-alt-verba" />
           </div>
         )}
 
         <div className="flex flex-col w-full">
-          {documents &&
-            documents.map((document, index) => (
-              <div
-                key={"Document" + index + document.title}
-                className="flex justify-between items-center gap-2 rounded-2xl p-1 w-full"
-              >
-                <div className="flex justify-between items-center w-full gap-2">
-                  <VerbaButton
-                    title={document.title}
-                    selected={selectedDocument == document.uuid}
-                    selected_color="bg-secondary-verba"
-                    key={document.title + index}
-                    className="w-[200px] lg:w-[400px]"
-                    text_class_name="truncate max-w-[150px] lg:max-w-[350px]"
-                    onClick={() => setSelectedDocument(document.uuid)}
-                  />
-                  {production !== "Demo" && (
-                    <VerbaButton
-                      Icon={FaTrash}
-                      selected={selectedDocument == document.uuid}
-                      selected_color="bg-warning-verba"
-                      className="max-w-min"
-                      key={document.title + index + "delete"}
-                      onClick={() => {
-                        openDeleteModal("remove_document" + document.uuid);
-                      }}
-                    />
-                  )}
-                </div>
-                <UserModalComponent
-                  modal_id={"remove_document" + document.uuid}
-                  title={"Remove Document"}
-                  text={"Do you want to remove " + document.title + "?"}
-                  triggerString="Delete"
-                  triggerValue={document.uuid}
-                  triggerAccept={handleDeleteDocument}
+          {documents?.map((document, index) => (
+            <div
+              key={`Document${index}${document.title}`}
+              className="flex justify-between items-center gap-2 rounded-2xl p-1 w-full"
+            >
+              <div className="flex justify-between items-center w-full gap-2">
+                <VerbaButton
+                  title={document.title}
+                  selected={selectedDocument === document.uuid}
+                  selected_color="bg-secondary-verba"
+                  key={document.title + index}
+                  className="w-[200px] lg:w-[400px]"
+                  text_class_name="truncate max-w-[150px] lg:max-w-[350px]"
+                  onClick={() => setSelectedDocument(document.uuid)}
                 />
+                {production !== "Demo" && (
+                  <VerbaButton
+                    Icon={FaTrash}
+                    selected={selectedDocument === document.uuid}
+                    selected_color="bg-warning-verba"
+                    className="max-w-min"
+                    key={`${document.title + index}delete`}
+                    onClick={() => {
+                      openDeleteModal(`remove_document${document.uuid}`);
+                    }}
+                  />
+                )}
               </div>
-            ))}{" "}
+              <UserModalComponent
+                modal_id={`remove_document${document.uuid}`}
+                title={"Remove Document"}
+                text={`Do you want to remove ${document.title}?`}
+                triggerString="Delete"
+                triggerValue={document.uuid}
+                triggerAccept={handleDeleteDocument}
+              />
+            </div>
+          ))}{" "}
         </div>
       </div>
 

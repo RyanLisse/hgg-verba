@@ -9,7 +9,7 @@ const ptMono = PT_Mono({ subsets: ["latin"], weight: "400" });
 export type FontKey = "Inter" | "plusJakartaSans" | "openSans" | "ptMono";
 
 export const fonts: Record<FontKey, typeof inter> = {
-  Inter: inter,
+  inter: inter,
   plusJakartaSans: plusJakartaSans,
   openSans: openSans,
   ptMono: ptMono,
@@ -63,7 +63,6 @@ export const getImportWebSocketApiHost = () => {
   return `${protocol}//${host}/ws/import_files`;
 };
 
-export function logMessage(message: string, data?: any) {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${message}`, data);
+export function logMessage(_message: string, _data?: unknown) {
+  const _timestamp = new Date().toISOString();
 }

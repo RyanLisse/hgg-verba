@@ -120,7 +120,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
     if (bytes === 0) return "0 B";
 
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    const size = bytes / Math.pow(1024, i);
+    const size = bytes / 1024 ** i;
     return `${size.toFixed(2)} ${sizes[i]}`;
   };
 
@@ -188,7 +188,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
   if (selectedFileData) {
     return (
       <div className="flex flex-col justify-start gap-3 rounded-2xl p-1 w-full ">
-        {selectedFileData && fileMap[selectedFileData].status != "READY" && (
+        {selectedFileData && fileMap[selectedFileData].status !== "READY" && (
           <div className="divider  text-text-alt-verba">Import Status</div>
         )}
 
@@ -196,7 +196,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
           {selectedFileData &&
             Object.entries(fileMap[selectedFileData].status_report).map(
               ([status, statusReport]) => (
-                <div className="flex" key={"Status" + status}>
+                <div className="flex" key={`Status${status}`}>
                   <p className="flex min-w-[8vw] gap-2 items-center text-text-verba">
                     {statusReport.status === "DONE" && (
                       <FaCheckCircle size={15} />
@@ -211,11 +211,8 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
                       type="text"
                       className="grow w-full"
                       value={
-                        statusReport.took != 0
-                          ? statusReport.message +
-                            " (" +
-                            statusReport.took +
-                            "s)"
+                        statusReport.took !== 0
+                          ? `${statusReport.message} (${statusReport.took}s)`
                           : statusReport.message
                       }
                       disabled={true}
@@ -227,11 +224,11 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         </div>
 
         <ComponentView
-          RAGConfig={fileMap[selectedFileData].rag_config}
-          component_name="Reader"
+          ragConfig={fileMap[selectedFileData].rag_config}
+          componentName="Reader"
           selectComponent={selectComponent}
           updateConfig={updateConfig}
-          skip_component={true}
+          skipComponent={true}
           saveComponentConfig={saveComponentConfig}
           blocked={fileMap[selectedFileData].block}
         />
@@ -253,7 +250,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
+          <p className="flex min-w-[8vw]" />
           <p className="text-sm text-text-alt-verba text-start">
             Add a Title to the document. If you are adding a URL, all URL will
             have a have their corresponding URL as filename.
@@ -275,7 +272,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
+          <p className="flex min-w-[8vw]" />
           <p className="text-sm text-text-alt-verba text-start">
             Add a link to reference the original source of the document. You can
             access it through the Document Explorer via the View Source button
@@ -314,14 +311,14 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
+          <p className="flex min-w-[8vw]" />
           <p className="text-sm text-text-alt-verba text-start">
             Add or remove labels for Document Filtering
           </p>
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
+          <p className="flex min-w-[8vw]" />
           <div className="flex flex-wrap gap-2">
             {renderLabelBoxes(fileMap[selectedFileData])}
           </div>
@@ -344,7 +341,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
+          <p className="flex min-w-[8vw]" />
           <p className="text-sm text-text-alt-verba text-start">
             Overwrite existing documents with the same name.
           </p>
@@ -364,7 +361,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
+          <p className="flex min-w-[8vw]" />
           <p className="text-sm text-text-alt-verba text-start">
             Add metadata to the document to improve retrieval and generation.
             Metadata will added to the context sent to the embedding and
@@ -409,18 +406,18 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
             <input
               type="text"
               className="grow w-full"
-              value={fileMap[selectedFileData].rag_config["Reader"].selected}
+              value={fileMap[selectedFileData].rag_config.Reader.selected}
               disabled={true}
             />
           </label>
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
+          <p className="flex min-w-[8vw]" />
           <p className="text-sm text-text-alt-verba text-start">
             {selectedFileData &&
-              fileMap[selectedFileData].rag_config["Reader"].components[
-                fileMap[selectedFileData].rag_config["Reader"].selected
+              fileMap[selectedFileData].rag_config.Reader.components[
+                fileMap[selectedFileData].rag_config.Reader.selected
               ].description}
           </p>
         </div>
@@ -432,18 +429,18 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
             <input
               type="text"
               className="grow w-full"
-              value={fileMap[selectedFileData].rag_config["Chunker"].selected}
+              value={fileMap[selectedFileData].rag_config.Chunker.selected}
               disabled={true}
             />
           </label>
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
+          <p className="flex min-w-[8vw]" />
           <p className="text-sm text-text-alt-verba text-start">
             {selectedFileData &&
-              fileMap[selectedFileData].rag_config["Chunker"].components[
-                fileMap[selectedFileData].rag_config["Chunker"].selected
+              fileMap[selectedFileData].rag_config.Chunker.components[
+                fileMap[selectedFileData].rag_config.Chunker.selected
               ].description}
           </p>
         </div>
@@ -455,23 +452,23 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
             <input
               type="text"
               className="grow w-full"
-              value={fileMap[selectedFileData].rag_config["Embedder"].selected}
+              value={fileMap[selectedFileData].rag_config.Embedder.selected}
               disabled={true}
             />
           </label>
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
+          <p className="flex min-w-[8vw]" />
           <p className="text-sm text-text-alt-verba text-start">
             {selectedFileData &&
-              fileMap[selectedFileData].rag_config["Embedder"].components[
-                fileMap[selectedFileData].rag_config["Embedder"].selected
+              fileMap[selectedFileData].rag_config.Embedder.components[
+                fileMap[selectedFileData].rag_config.Embedder.selected
               ].description}
           </p>
         </div>
 
-        <div className="divider"></div>
+        <div className="divider" />
 
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Debug</p>
@@ -508,9 +505,8 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         </dialog>
       </div>
     );
-  } else {
-    return <div></div>;
   }
+  return <div />;
 };
 
 export default BasicSettingView;

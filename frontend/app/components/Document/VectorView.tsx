@@ -164,7 +164,7 @@ const VectorView: React.FC<VectorViewProps> = ({
   production,
   chunkScores,
 }) => {
-  const refs = useRef<(three.Mesh | null)[]>([]);
+  const _refs = useRef<(three.Mesh | null)[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [vectors, setVectors] = useState<VectorGroup[]>([]);
   const [embedder, setEmbedder] = useState("");
@@ -299,9 +299,8 @@ const VectorView: React.FC<VectorViewProps> = ({
     if (index >= colors.length) {
       const randomIndex = Math.floor(Math.random() * colors.length);
       return colors[randomIndex];
-    } else {
-      return colors[index];
     }
+    return colors[index];
   }
 
   return (
@@ -313,7 +312,7 @@ const VectorView: React.FC<VectorViewProps> = ({
             <div className="flex gap-2 items-center">
               {isFetching && (
                 <div className="flex items-center justify-center text-text-alt-verba gap-2 h-full">
-                  <span className="loading loading-spinner loading-xs lg:loading-sm"></span>
+                  <span className="loading loading-spinner loading-xs lg:loading-sm" />
                 </div>
               )}
               <p className="text-text-alt-verba text-xs lg:text-sm font-bold">
@@ -346,7 +345,7 @@ const VectorView: React.FC<VectorViewProps> = ({
 
           <div className="flex gap-10 items-center justify-between min-w-[20vw]">
             <div className="flex flex-col gap-2 w-full">
-              {production != "Demo" && (
+              {production !== "Demo" && (
                 <div className="flex gap-2 items-center justify-between">
                   <p className="text-xs text-text-alt-verba">
                     Show All Documents
@@ -380,17 +379,13 @@ const VectorView: React.FC<VectorViewProps> = ({
               <div className="dropdown dropdown-bottom flex w-full justify-start items-center">
                 <button
                   tabIndex={0}
-                  role="button"
                   disabled={true}
                   className="btn btn-sm bg-button-verba hover:bg-button-hover-verba text-text-verba w-full flex justify-start border-none"
                 >
                   <GoTriangleDown size={15} />
                   <p>PCA</p>
                 </button>
-                <ul
-                  tabIndex={0}
-                  className="dropdown-content menu bg-base-100 rounded-box z-[1] w-full p-2 shadow"
-                ></ul>
+                <ul className="dropdown-content menu bg-base-100 rounded-box z-[1] w-full p-2 shadow" />
               </div>
               {/* Zoom */}
               <div className="flex items-center gap-2 w-full">
@@ -431,7 +426,7 @@ const VectorView: React.FC<VectorViewProps> = ({
         >
           <Canvas>
             <ambientLight intensity={1} />
-            <OrbitControls></OrbitControls>
+            <OrbitControls />
             <PerspectiveCamera makeDefault position={[0, 0, 0 + 150]} />
             <axesHelper args={[50]} />
             {vectors.map((vectorGroup, index) =>
@@ -439,7 +434,7 @@ const VectorView: React.FC<VectorViewProps> = ({
                 <Sphere
                   dynamicColor={dynamicColor}
                   multiplication={viewMultiplication}
-                  key={"Sphere_" + vIndex + vectorGroup.name}
+                  key={`Sphere_${vIndex}${vectorGroup.name}`}
                   vector={chunk.vector}
                   color={selectColor(index)}
                   setHoverTitle={hoverTitleRef}

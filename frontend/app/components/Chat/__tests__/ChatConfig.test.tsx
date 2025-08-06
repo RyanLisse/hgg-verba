@@ -5,12 +5,12 @@ import ChatConfig from "../ChatConfig";
 
 describe("ChatConfig", () => {
   const mockConfig: RAGConfig = {
-    Embedder: {
+    embedder: {
       selected: "OpenAIEmbeddings",
       components: {
-        OpenAIEmbeddings: {
+        openAiEmbeddings: {
           config: {
-            Model: {
+            model: {
               value: "text-embedding-3-large",
               type: "string",
               values: ["text-embedding-3-large"],
@@ -19,12 +19,12 @@ describe("ChatConfig", () => {
         },
       },
     },
-    Generator: {
+    generator: {
       selected: "ChatOpenAI",
       components: {
-        ChatOpenAI: {
+        chatOpenAi: {
           config: {
-            Model: {
+            model: {
               value: "gpt-4",
               type: "string",
               values: ["gpt-4", "gpt-3.5-turbo"],
@@ -33,12 +33,12 @@ describe("ChatConfig", () => {
         },
       },
     },
-    Retriever: {
+    retriever: {
       selected: "MultiQueryRetriever",
       components: {
-        MultiQueryRetriever: {
+        multiQueryRetriever: {
           config: {
-            search_type: {
+            searchType: {
               value: "similarity",
               type: "string",
               values: ["similarity", "mmr"],
@@ -56,11 +56,19 @@ describe("ChatConfig", () => {
   };
 
   const defaultProps = {
-    RAGConfig: mockConfig,
-    setRAGConfig: mock(() => {}),
-    onSave: mock(() => {}),
-    onReset: mock(() => {}),
-    addStatusMessage: mock((message: string, type: string) => {}),
+    ragConfig: mockConfig,
+    setRAGConfig: mock(() => {
+      // Mock function for setting RAG config
+    }),
+    onSave: mock(() => {
+      // Mock function for save callback
+    }),
+    onReset: mock(() => {
+      // Mock function for reset callback
+    }),
+    addStatusMessage: mock((_message: string, _type: string) => {
+      // Mock function for status messages
+    }),
     credentials: mockCredentials,
     production: "Local" as const,
   };
@@ -111,7 +119,9 @@ describe("ChatConfig", () => {
   });
 
   test("calls onSave when save button is clicked", () => {
-    const mockOnSave = mock(() => {});
+    const mockOnSave = mock(() => {
+      // Mock save function
+    });
     const { container } = render(
       <ChatConfig {...defaultProps} onSave={mockOnSave} />
     );
@@ -122,7 +132,9 @@ describe("ChatConfig", () => {
   });
 
   test("calls onReset when reset button is clicked", () => {
-    const mockOnReset = mock(() => {});
+    const mockOnReset = mock(() => {
+      // Mock reset function
+    });
     const { container } = render(
       <ChatConfig {...defaultProps} onReset={mockOnReset} />
     );
@@ -134,16 +146,18 @@ describe("ChatConfig", () => {
 
   test("renders empty div when RAGConfig is null", () => {
     const { container } = render(
-      <ChatConfig {...defaultProps} RAGConfig={null} />
+      <ChatConfig {...defaultProps} ragConfig={null} />
     );
 
     expect(container.firstChild?.textContent).toBe("");
   });
 
   test("updates config when component is selected", () => {
-    const mockSetRAGConfig = mock(() => {});
+    const mockSetRAGConfig = mock(() => {
+      // Mock setRAGConfig function
+    });
     const { container } = render(
-      <ChatConfig {...defaultProps} setRAGConfig={mockSetRAGConfig} />
+      <ChatConfig {...defaultProps} setragConfig={mockSetRAGConfig} />
     );
 
     // Find and click the Embedder component

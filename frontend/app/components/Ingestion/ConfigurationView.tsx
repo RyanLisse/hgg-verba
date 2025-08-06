@@ -24,7 +24,7 @@ import ComponentView from "./ComponentView";
 
 interface ConfigurationViewProps {
   selectedFileData: string | null;
-  RAGConfig: RAGConfig | null;
+  ragConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
   setSelectedFileData: (f: string | null) => void;
   fileMap: FileMap;
@@ -42,7 +42,7 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
   fileMap,
   addStatusMessage,
   setFileMap,
-  RAGConfig,
+  ragConfig,
   setRAGConfig,
   setSelectedFileData,
   credentials,
@@ -97,12 +97,12 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
   const resetConfig = () => {
     addStatusMessage("Resetting pipeline settings", "WARNING");
     setFileMap((prevFileMap) => {
-      if (selectedFileData && RAGConfig) {
+      if (selectedFileData && ragConfig) {
         const newFileMap: FileMap = { ...prevFileMap };
         const newFileData: FileData = JSON.parse(
           JSON.stringify(prevFileMap[selectedFileData])
         );
-        newFileData.rag_config = RAGConfig;
+        newFileData.rag_config = ragConfig;
         newFileMap[selectedFileData] = newFileData;
         return newFileMap;
       }
@@ -186,11 +186,11 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
       selectedComponent: string,
       componentConfig: RAGComponentConfig
     ) => {
-      if (!RAGConfig) return;
+      if (!ragConfig) return;
 
-      addStatusMessage("Saving " + selectedComponent + " config", "SUCCESS");
+      addStatusMessage(`Saving ${selectedComponent} config`, "SUCCESS");
 
-      const newRAGConfig = JSON.parse(JSON.stringify(RAGConfig));
+      const newRAGConfig = JSON.parse(JSON.stringify(ragConfig));
       newRAGConfig[componentN].selected = selectedComponent;
       newRAGConfig[componentN].components[selectedComponent] = componentConfig;
       const response = await updateRAGConfig(newRAGConfig, credentials);
@@ -198,7 +198,7 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
         setRAGConfig(newRAGConfig);
       }
     },
-    [RAGConfig, credentials]
+    [ragConfig, credentials]
   );
 
   return (
@@ -262,8 +262,8 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
         {selectedSetting === "Pipeline" && selectedFileData && (
           <div className="flex flex-col gap-10 w-full">
             <ComponentView
-              RAGConfig={fileMap[selectedFileData].rag_config}
-              component_name="Chunker"
+              ragConfig={fileMap[selectedFileData].rag_config}
+              componentName="Chunker"
               selectComponent={selectComponent}
               updateConfig={updateConfig}
               saveComponentConfig={saveComponentConfig}
@@ -271,8 +271,8 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
               skip_component={false}
             />
             <ComponentView
-              RAGConfig={fileMap[selectedFileData].rag_config}
-              component_name="Embedder"
+              ragConfig={fileMap[selectedFileData].rag_config}
+              componentName="Embedder"
               selectComponent={selectComponent}
               updateConfig={updateConfig}
               saveComponentConfig={saveComponentConfig}

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 import { BiError } from "react-icons/bi";
 import { FaHammer } from "react-icons/fa";
 import { IoIosSend } from "react-icons/io";
@@ -49,7 +50,7 @@ interface ChatInterfaceProps {
   setSelectedDocument: (s: string | null) => void;
   setSelectedChunkScore: (c: ChunkScore[]) => void;
   currentPage: PageType;
-  RAGConfig: RAGConfig | null;
+  ragConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
   selectedTheme: Theme;
   production: "Local" | "Demo" | "Production";
@@ -66,7 +67,9 @@ interface ChatInterfaceProps {
 
 interface WebSocketMessage {
   message: string;
+  // biome-ignore lint/style/useNamingConvention: API response format matches backend
   finish_reason: string | null;
+  // biome-ignore lint/style/useNamingConvention: API response format matches backend
   full_text?: string;
   cached?: boolean;
   distance?: string;
@@ -76,7 +79,9 @@ interface WebSocketMessage {
     phase?: string;
     model?: string;
   };
+  // biome-ignore lint/style/useNamingConvention: API response format matches backend
   reasoning_trace?: string[];
+  // biome-ignore lint/style/useNamingConvention: API response format matches backend
   thinking_trace?: string[];
 }
 
@@ -85,8 +90,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   credentials,
   setSelectedDocument,
   setSelectedChunkScore,
-  currentPage,
-  RAGConfig,
+  // currentPage is passed but not used in this component
+  ragConfig,
   selectedTheme,
   setRAGConfig,
   addStatusMessage,
@@ -135,8 +140,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
 
   // Retrieve current embedder model
-  const currentEmbedding = RAGConfig
-    ? (RAGConfig.Embedder.components[RAGConfig.Embedder.selected].config.Model
+  const currentEmbedding = ragConfig
+    ? (ragConfig.Embedder.components[ragConfig.Embedder.selected].config.Model
         .value as string)
     : "No Config found";
 
@@ -178,7 +183,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         isInReasoningPhase.current = true;
         reasoningSteps.current.push(newMessageContent);
         // Show reasoning in preview with special formatting
-        setPreviewText((prev) => prev + `\n🤔 ${newMessageContent}`);
+        setPreviewText((prev) => `${prev}\n🤔 ${newMessageContent}`);
       } else if (wsMessage.type === "transition") {
         // Transition from reasoning to answer
         isInReasoningPhase.current = false;
@@ -245,9 +250,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     ws.on("close", (event: CloseEvent) => {
       if (event.wasClean) {
-        console.log(
-          `WebSocket closed cleanly, code=${event.code}, reason=${event.reason}`
-        );
+        // Clean WebSocket closure - no action needed
       }
     });
 
@@ -270,15 +273,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [addStatusMessage]);
 
   /**
-   * When RAGConfig changes, retrieve the current document count.
+   * When ragConfig changes, retrieve the current document count.
    */
   useEffect(() => {
-    if (RAGConfig) {
+    if (ragConfig) {
       retrieveDatacount();
     } else {
       setCurrentDatacount(0);
     }
-  }, [RAGConfig]);
+  }, [ragConfig]);
 
   /**
    * Reload from server the RAGConfig.
@@ -309,7 +312,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       addStatusMessage("Sending query...", "INFO");
       const data = await sendUserQuery(
         sendInput,
-        RAGConfig,
+        ragConfig,
         filterLabels,
         documentFilter,
         credentials
@@ -350,7 +353,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     ]);
 
     addStatusMessage(
-      "Received " + Object.entries(data.documents).length + " documents",
+      `Received ${Object.entries(data.documents).length} documents`,
       "SUCCESS"
     );
 
@@ -390,7 +393,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         query,
         context,
         conversation: filteredMessages,
-        rag_config: RAGConfig,
+        // biome-ignore lint/style/useNamingConvention: API expects snake_case
+        rag_config: ragConfig,
       };
       socket.send(data);
     } else {
@@ -430,7 +434,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
     } catch (error) {
       console.error("Failed to fetch from API:", error);
-      addStatusMessage("Failed to fetch datacount: " + error, "ERROR");
+      addStatusMessage(`Failed to fetch datacount: ${error}`, "ERROR");
     }
   };
 
@@ -448,7 +452,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
    */
   const onSaveConfig = async () => {
     try {
-      const response = await updateRAGConfig(RAGConfig, credentials);
+      const response = await updateRAGConfig(ragConfig, credentials);
       if (response) {
         addStatusMessage("Config saved successfully", "SUCCESS");
         // Refresh the config from server to ensure it's persisted
@@ -477,8 +481,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     try {
       // If your retriever config has "Suggestion" key, then call suggestions
       if (
-        RAGConfig &&
-        RAGConfig.Retriever.components[RAGConfig.Retriever.selected].config
+        ragConfig?.Retriever.components[ragConfig.Retriever.selected].config
           .Suggestion?.value
       ) {
         const suggestions = await fetchSuggestions(userInput, 3, credentials);
@@ -633,24 +636,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className="flex gap-2 justify-start items-center">
               <div className="flex gap-2">
                 <div className="dropdown dropdown-hover">
-                  <label tabIndex={0}>
-                    <VerbaButton
-                      title="Label"
-                      className="btn-sm min-w-min"
-                      icon_size={12}
-                      text_class_name="text-xs"
-                      Icon={IoMdAddCircle}
-                      selected={false}
-                      disabled={false}
-                    />
-                  </label>
-                  <ul
-                    tabIndex={0}
-                    className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-                  >
-                    {labels.map((label, index) => (
-                      <li key={"Label" + index}>
-                        <a
+                  <VerbaButton
+                    title="Label"
+                    className="btn-sm min-w-min"
+                    icon_size={12}
+                    text_class_name="text-xs"
+                    Icon={IoMdAddCircle}
+                    selected={false}
+                    disabled={false}
+                  />
+                  <ul className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                    {labels.map((label, _index) => (
+                      <li key={`Label-${label}`}>
+                        <button
+                          type="button"
                           onClick={() => {
                             if (!filterLabels.includes(label)) {
                               setFilterLabels([...filterLabels, label]);
@@ -664,9 +663,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             if (dropdown instanceof HTMLElement)
                               dropdown.blur();
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              if (!filterLabels.includes(label)) {
+                                setFilterLabels([...filterLabels, label]);
+                              }
+                              const dropdownElement =
+                                document.activeElement as HTMLElement;
+                              dropdownElement.blur();
+                              const dropdown =
+                                dropdownElement.closest(".dropdown");
+                              if (dropdown instanceof HTMLElement)
+                                dropdown.blur();
+                            }
+                          }}
                         >
                           {label}
-                        </a>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -691,10 +705,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {filterLabels.map((label, index) => (
+              {filterLabels.map((label, _index) => (
                 <VerbaButton
                   title={label}
-                  key={"FilterLabel" + index}
+                  key={`FilterLabel-${label}`}
                   Icon={MdCancel}
                   className="btn-sm min-w-min max-w-[200px]"
                   icon_size={12}
@@ -707,10 +721,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   }}
                 />
               ))}
-              {documentFilter.map((filter, index) => (
+              {documentFilter.map((filter) => (
                 <VerbaButton
                   title={filter.title}
-                  key={"DocumentFilter" + index}
+                  key={`DocumentFilter-${filter.title}`}
                   Icon={MdCancel}
                   className="btn-sm min-w-min max-w-[200px]"
                   icon_size={12}
@@ -746,7 +760,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
           {messages.map((message, index) => (
             <div
-              key={"Message_" + index}
+              key={`Message_${index}_${message.type}_${message.content.slice(0, 50)}`}
               className={message.type === "user" ? "text-right" : ""}
             >
               <ChatMessage
@@ -777,12 +791,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           {isFetching.current && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
-                <span className="text-text-alt-verba loading loading-dots loading-md"></span>
+                <span className="text-text-alt-verba loading loading-dots loading-md" />
                 <p className="text-text-alt-verba">
                   {fetchingStatus === "CHUNKS" && "Retrieving..."}
                   {fetchingStatus === "RESPONSE" && "Generating..."}
                 </p>
                 <button
+                  type="button"
                   onClick={() => {
                     setFetchingStatus("DONE");
                     isFetching.current = false;
@@ -800,7 +815,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <ChatConfig
             addStatusMessage={addStatusMessage}
             production={production}
-            RAGConfig={RAGConfig}
+            ragConfig={ragConfig}
             credentials={credentials}
             setRAGConfig={setRAGConfig}
             onReset={onResetConfig}
@@ -820,9 +835,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   placeholder={
                     currentDatacount > 0
                       ? currentDatacount >= 100
-                        ? `Chatting with more than 100 documents...`
+                        ? "Chatting with more than 100 documents..."
                         : `Chatting with ${currentDatacount} documents...`
-                      : `No documents detected...`
+                      : "No documents detected..."
                   }
                   onKeyDown={handleKeyDown}
                   value={userInput}
@@ -861,10 +876,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             {currentSuggestions.length > 0 && (
               <div className="mt-2">
                 <p className="text-sm text-text-alt-verba mb-1">Suggestions:</p>
-                <ul className="flex flex-wrap gap-2 w-full">
-                  {currentSuggestions.map((suggestion, index) => (
-                    <li
-                      key={index}
+                <div className="flex flex-wrap gap-2 w-full">
+                  {currentSuggestions.map((suggestion, _index) => (
+                    <button
+                      key={`suggestion-${suggestion.query}`}
+                      type="button"
                       className="p-2 bg-button-verba hover:bg-secondary-verba text-text-alt-verba rounded-xl hover:text-text-verba cursor-pointer text-xs lg:text-sm"
                       onClick={() => {
                         setUserInput(suggestion.query);
@@ -872,17 +888,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       }}
                     >
                       {suggestion.query.length > 50
-                        ? suggestion.query.substring(0, 50) + "..."
+                        ? `${suggestion.query.substring(0, 50)}...`
                         : suggestion.query}
-                    </li>
+                    </button>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
           </div>
         ) : (
           <div className="flex gap-2 items-center justify-end w-full">
             <button
+              type="button"
               onClick={reconnectToVerba}
               className="flex btn border-none text-text-verba bg-button-verba hover:bg-button-hover-verba gap-2 items-center"
             >
@@ -893,7 +910,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   : "Reconnect"}
               </p>
               {socketStatus === "RECONNECTING" && (
-                <span className="loading loading-spinner loading-xs"></span>
+                <span className="loading loading-spinner loading-xs" />
               )}
             </button>
           </div>

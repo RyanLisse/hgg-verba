@@ -13,9 +13,15 @@ describe("ChatMessage", () => {
     messageIndex: 0,
     selectedTheme: mockTheme,
     selectedDocument: null,
-    setSelectedDocument: () => {},
-    setSelectedDocumentScore: () => {},
-    setSelectedChunkScore: () => {},
+    setSelectedDocument: () => {
+      // Test stub: intentionally empty for mock purposes
+    },
+    setSelectedDocumentScore: () => {
+      // Test stub: intentionally empty for mock purposes
+    },
+    setSelectedChunkScore: () => {
+      // Test stub: intentionally empty for mock purposes
+    },
   };
 
   test("renders user message correctly", () => {

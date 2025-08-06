@@ -27,7 +27,7 @@ const FileComponent: React.FC<FileComponentProps> = ({
 }) => {
   const openDeleteModal = () => {
     const modal = document.getElementById(
-      "remove_file_" + fileMap[fileData.fileID].filename
+      `remove_file_${fileMap[fileData.fileID].filename}`
     );
     if (modal instanceof HTMLDialogElement) {
       modal.showModal();
@@ -36,17 +36,17 @@ const FileComponent: React.FC<FileComponentProps> = ({
 
   return (
     <div className="flex justify-between items-center gap-2 rounded-2xl p-1 w-full">
-      {fileMap[fileData.fileID].status != "READY" ? (
+      {fileMap[fileData.fileID].status !== "READY" ? (
         <div className="flex gap-2">
-          {fileMap[fileData.fileID].status != "DONE" &&
-            fileMap[fileData.fileID].status != "ERROR" && (
+          {fileMap[fileData.fileID].status !== "DONE" &&
+            fileMap[fileData.fileID].status !== "ERROR" && (
               <VerbaButton
                 title={statusTextMap[fileMap[fileData.fileID].status]}
                 text_class_name="text-xs"
                 className="w-[120px]"
               />
             )}
-          {fileMap[fileData.fileID].status == "DONE" && (
+          {fileMap[fileData.fileID].status === "DONE" && (
             <VerbaButton
               title={statusTextMap[fileMap[fileData.fileID].status]}
               Icon={FaCheckCircle}
@@ -55,7 +55,7 @@ const FileComponent: React.FC<FileComponentProps> = ({
               selected_color={"bg-secondary-verba"}
             />
           )}
-          {fileMap[fileData.fileID].status == "ERROR" && (
+          {fileMap[fileData.fileID].status === "ERROR" && (
             <VerbaButton
               title={statusTextMap[fileMap[fileData.fileID].status]}
               Icon={MdError}
@@ -68,7 +68,7 @@ const FileComponent: React.FC<FileComponentProps> = ({
       ) : (
         <div className="flex gap-2">
           <VerbaButton
-            title={fileMap[fileData.fileID].rag_config["Reader"].selected}
+            title={fileMap[fileData.fileID].rag_config.Reader.selected}
             className="w-[120px]"
             text_class_name="truncate w-[100px]"
           />
@@ -99,14 +99,12 @@ const FileComponent: React.FC<FileComponentProps> = ({
       />
 
       <UserModalComponent
-        modal_id={"remove_file_" + fileMap[fileData.fileID].filename}
+        modal_id={`remove_file_${fileMap[fileData.fileID].filename}`}
         title={"Remove File"}
         text={
           fileMap[fileData.fileID].isURL
             ? "Do you want to remove the URL?"
-            : "Do you want to remove " +
-              fileMap[fileData.fileID].filename +
-              " from the selection?"
+            : `Do you want to remove ${fileMap[fileData.fileID].filename} from the selection?`
         }
         triggerString="Delete"
         triggerValue={fileMap[fileData.fileID].fileID}

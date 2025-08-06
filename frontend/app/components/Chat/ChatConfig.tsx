@@ -11,7 +11,7 @@ import ComponentView from "../Ingestion/ComponentView";
 import VerbaButton from "../Navigation/VerbaButton";
 
 interface ChatConfigProps {
-  RAGConfig: RAGConfig | null;
+  ragConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
   onSave: () => void; // New parameter for handling save
   onReset: () => void; // New parameter for handling reset
@@ -24,7 +24,7 @@ interface ChatConfigProps {
 }
 
 const ChatConfig: React.FC<ChatConfigProps> = ({
-  RAGConfig,
+  ragConfig,
   setRAGConfig,
   addStatusMessage,
   onSave,
@@ -74,11 +74,11 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
       selectedComponent: string,
       componentConfig: RAGComponentConfig
     ) => {
-      if (!RAGConfig) return;
+      if (!ragConfig) return;
 
       addStatusMessage(`Saving ${selectedComponent} Config`, "SUCCESS");
 
-      const newRAGConfig = JSON.parse(JSON.stringify(RAGConfig));
+      const newRAGConfig = JSON.parse(JSON.stringify(ragConfig));
       newRAGConfig[componentN].selected = selectedComponent;
       newRAGConfig[componentN].components[selectedComponent] = componentConfig;
       const response = await updateRAGConfig(newRAGConfig, credentials);
@@ -86,10 +86,10 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
         setRAGConfig(newRAGConfig);
       }
     },
-    [RAGConfig, addStatusMessage, credentials, setRAGConfig]
+    [ragConfig, addStatusMessage, credentials, setRAGConfig]
   );
 
-  if (RAGConfig) {
+  if (ragConfig) {
     return (
       <div className="flex flex-col justify-start rounded-2xl w-full p-4 ">
         <div className="sticky flex flex-col gap-2 w-full top-0 z-20 justify-end">
@@ -114,24 +114,24 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
 
         <div className="flex flex-col justify-start gap-3 rounded-2xl w-full p-6 ">
           <ComponentView
-            RAGConfig={RAGConfig}
-            component_name="Embedder"
+            ragConfig={ragConfig}
+            componentName="Embedder"
             selectComponent={selectComponent}
             updateConfig={updateConfig}
             saveComponentConfig={saveComponentConfig}
             blocked={production === "Demo"}
           />
           <ComponentView
-            RAGConfig={RAGConfig}
-            component_name="Generator"
+            ragConfig={ragConfig}
+            componentName="Generator"
             selectComponent={selectComponent}
             updateConfig={updateConfig}
             saveComponentConfig={saveComponentConfig}
             blocked={production === "Demo"}
           />{" "}
           <ComponentView
-            RAGConfig={RAGConfig}
-            component_name="Retriever"
+            ragConfig={ragConfig}
+            componentName="Retriever"
             selectComponent={selectComponent}
             updateConfig={updateConfig}
             saveComponentConfig={saveComponentConfig}

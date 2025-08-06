@@ -71,15 +71,20 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
       const setting = prev[title];
       if (isTextFieldSetting(setting)) {
         return { ...prev, [title]: { ...setting, text: value } };
-      } else if (isImageFieldSetting(setting)) {
+      }
+      if (isImageFieldSetting(setting)) {
         return { ...prev, [title]: { ...setting, src: value } };
-      } else if (isCheckboxSetting(setting)) {
+      }
+      if (isCheckboxSetting(setting)) {
         return { ...prev, [title]: { ...(setting as object), checked: value } };
-      } else if (isColorSetting(setting)) {
+      }
+      if (isColorSetting(setting)) {
         return { ...prev, [title]: { ...(setting as object), color: value } };
-      } else if (isSelectSetting(setting)) {
+      }
+      if (isSelectSetting(setting)) {
         return { ...prev, [title]: { ...setting, value: value } };
-      } else if (isNumberFieldSetting(setting)) {
+      }
+      if (isNumberFieldSetting(setting)) {
         return { ...prev, [title]: { ...(setting as object), value: value } };
       }
       return prev;
@@ -98,7 +103,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
     title: keyof Theme,
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    if (event.target.files && event.target.files[0]) {
+    if (event.target.files?.[0]) {
       const reader = new FileReader();
       reader.onload = (e) => {
         if (typeof e.target?.result === "string") {
@@ -168,7 +173,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
               className="select bg-bg-verba"
             >
               {settingType.options.map((template) => (
-                <option key={"Select_" + template} value={template}>
+                <option key={`Select_${template}`} value={template}>
                   {template}
                 </option>
               ))}
@@ -246,7 +251,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
     );
   };
 
-  const handleThemeChange = (newTheme: Theme) => {
+  const _handleThemeChange = (newTheme: Theme) => {
     setSelectedTheme(newTheme);
     addStatusMessage(`Theme changed to ${newTheme.theme_name}`, "SUCCESS");
   };

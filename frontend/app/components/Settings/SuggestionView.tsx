@@ -53,7 +53,7 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
   };
 
   const previousPage = () => {
-    if (page == 1) {
+    if (page === 1) {
       setPage(1);
     } else {
       setPage((prev) => prev - 1);
@@ -88,10 +88,7 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
   };
 
   const handleCopy = (query: string) => {
-    navigator.clipboard.writeText(query).then(() => {
-      // You can add a toast notification here if you want
-      console.log("Copied to clipboard");
-    });
+    navigator.clipboard.writeText(query).then(() => {});
   };
 
   return (
@@ -108,9 +105,9 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
       <div className="flex-grow overflow-y-auto">
         <div className="gap-4 flex flex-col p-4 text-text-verba">
           <div className="flex flex-col gap-2">
-            {suggestions.map((suggestion, index) => (
+            {suggestions.map((suggestion, _index) => (
               <div
-                key={"Suggestion" + suggestion.uuid}
+                key={`Suggestion${suggestion.uuid}`}
                 className="flex items-center justify-between gap-2 p-4 border-2 bg-bg-alt-verba rounded-xl"
               >
                 <div className="flex flex-col items-start justify-start gap-2 w-2/3">
@@ -131,13 +128,13 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
                   />
                   <VerbaButton
                     onClick={() =>
-                      openModal("remove_suggestion" + suggestion.uuid)
+                      openModal(`remove_suggestion${suggestion.uuid}`)
                     }
                     Icon={IoTrash}
                   />
                 </div>
                 <UserModalComponent
-                  modal_id={"remove_suggestion" + suggestion.uuid}
+                  modal_id={`remove_suggestion${suggestion.uuid}`}
                   title={"Remove Suggestion"}
                   text={"Do you want to remove this suggestion?"}
                   triggerString="Delete"

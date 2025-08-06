@@ -166,19 +166,31 @@ describe("ChatInterface", () => {
         deployment: "Local" as const,
         key: "test-key",
       },
-      setSelectedDocument: () => {},
-      setSelectedChunkScore: () => {},
+      setSelectedDocument: () => {
+        // Test stub: intentionally empty for mock purposes
+      },
+      setSelectedChunkScore: () => {
+        // Test stub: intentionally empty for mock purposes
+      },
       currentPage: "CHAT" as PageType,
-      RAGConfig: mockConfig,
-      setRAGConfig: () => {},
+      ragConfig: mockConfig,
+      setRAGConfig: () => {
+        // Test stub: intentionally empty for mock purposes
+      },
       selectedTheme: mockTheme,
       production: "Local" as const,
-      addStatusMessage: () => {},
+      addStatusMessage: () => {
+        // Test stub: intentionally empty for mock purposes
+      },
       documentFilter: [],
-      setDocumentFilter: () => {},
+      setDocumentFilter: () => {
+        // Test stub: intentionally empty for mock purposes
+      },
       labels: ["Label1", "Label2", "Label3"],
       filterLabels: [],
-      setFilterLabels: () => {},
+      setFilterLabels: () => {
+        // Test stub: intentionally empty for mock purposes
+      },
     };
 
     const { container } = render(<ChatInterface {...mockProps} />);
