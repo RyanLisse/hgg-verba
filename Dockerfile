@@ -70,4 +70,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
     CMD python -c "import os, requests; requests.get(f'http://localhost:{os.getenv(\"PORT\", \"8080\")}/api/health', timeout=10)" || exit 1
 
 EXPOSE 8080
-CMD ["verba", "start", "--host", "0.0.0.0"]
+CMD ["sh", "-c", "verba start --host 0.0.0.0 --port ${PORT:-8080}"]
