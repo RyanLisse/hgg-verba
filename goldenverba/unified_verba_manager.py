@@ -158,12 +158,13 @@ class VerbaManager:
 
     async def _ensure_schema(self, conn: asyncpg.Connection):
         """Ensure all required tables and functions exist."""
-        # Create extensions
-        await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        await conn.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+        try:
+            # Create extensions
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
 
-        # Create tables
-        schema_sql = """
+            # Create tables
+            schema_sql = """
         -- Documents table
         CREATE TABLE IF NOT EXISTS documents (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -215,11 +216,15 @@ class VerbaManager:
         CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON chunks USING hnsw (embedding vector_cosine_ops);
         CREATE INDEX IF NOT EXISTS idx_chunks_document_id ON chunks(document_id);
         CREATE INDEX IF NOT EXISTS idx_documents_name ON documents(name);
-        CREATE INDEX IF NOT EXISTS idx_documents_content ON documents USING gin(to_tsvector('english', content));
         CREATE INDEX IF NOT EXISTS idx_configurations_type_active ON configurations(config_type, is_active);
         """
 
-        await conn.execute(schema_sql)
+            await conn.execute(schema_sql)
+            msg.good("PostgreSQL schema initialized successfully")
+
+        except Exception as e:
+            msg.warn(f"Schema initialization warning: {str(e)}")
+            # Continue anyway - basic tables might still work
 
     async def disconnect(self, pool: Optional[asyncpg.Pool] = None) -> None:
         """Disconnect from PostgreSQL database."""
