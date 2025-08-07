@@ -1,11 +1,8 @@
+import os
+
 import click
 import uvicorn
-import os
 from dotenv import load_dotenv
-from langsmith import trace
-
-from goldenverba import verba_manager
-from goldenverba.server.types import Credentials
 
 load_dotenv()
 
@@ -41,72 +38,59 @@ def start(port, host, prod, workers):
     """
     Run the FastAPI application.
     """
+    # Use PORT environment variable if available, otherwise use the provided port
+    actual_port = int(os.getenv("PORT", port))
+
     uvicorn.run(
-        "goldenverba.server.api:app",
+        "goldenverba.server.api_postgresql:app",
         host=host,
-        port=port,
+        port=actual_port,
         reload=(not prod),
         workers=workers,
     )
 
 
-@click.option(
-    "--url",
-    default=os.getenv("WEAVIATE_URL_VERBA"),
-    help="Weaviate URL",
-)
-@click.option(
-    "--api_key",
-    default=os.getenv("WEAVIATE_API_KEY_VERBA"),
-    help="Weaviate API Key",
-)
-@click.option(
-    "--deployment",
-    default="",
-    help="Deployment (Local, Weaviate, Docker)",
-)
-@click.option(
-    "--full_reset",
-    default=False,
-    help="Full reset (True, False)",
-)
 @cli.command()
-def reset(url, api_key, deployment, full_reset):
+@click.option(
+    "--confirm",
+    is_flag=True,
+    help="Confirm the reset operation",
+)
+def reset(confirm):
     """
-    Run the FastAPI application.
+    Reset the PostgreSQL database (removes all data).
     """
+    if not confirm:
+        click.echo(
+            "This will delete all data in the database. Use --confirm to proceed."
+        )
+        return
+
     import asyncio
 
-    manager = verba_manager.VerbaManager()
+    from goldenverba.components.postgresql_manager import PostgreSQLManager
 
     async def async_reset():
-        if url is not None and api_key is not None:
-            if deployment == "" or deployment == "Weaviate":
-                client = await manager.connect(
-                    Credentials(deployment="Weaviate", url=url, key=api_key)
-                )
-            elif deployment == "Docker":
-                client = await manager.connect(
-                    Credentials(deployment="Docker", url=url, key=api_key)
-                )
-            else:
-                raise ValueError("Invalid deployment")
-        else:
-            if deployment == "" or deployment == "Local":
-                client = await manager.connect(
-                    Credentials(deployment="Local", url="", key="")
-                )
-            else:
-                raise ValueError("Invalid deployment")
+        manager = PostgreSQLManager()
+        try:
+            await manager.connect()
 
-        if not full_reset:
-            await manager.reset_rag_config(client)
-            await manager.reset_theme_config(client)
-            await manager.reset_user_config(client)
-        else:
-            await manager.weaviate_manager.delete_all(client)
+            # Drop and recreate all tables
+            async with manager.pool.acquire() as conn:
+                await conn.execute("DROP SCHEMA public CASCADE;")
+                await conn.execute("CREATE SCHEMA public;")
+                await conn.execute("GRANT ALL ON SCHEMA public TO postgres;")
+                await conn.execute("GRANT ALL ON SCHEMA public TO public;")
 
-        await client.close()
+            # Reinitialize schema
+            await manager._init_schema()
+            click.echo("✅ Database reset completed successfully")
+
+        except Exception as e:
+            click.echo(f"❌ Reset failed: {e}")
+        finally:
+            if manager.pool:
+                await manager.disconnect()
 
     asyncio.run(async_reset())
 
@@ -116,16 +100,21 @@ def main():
     if os.getenv("LANGCHAIN_API_KEY"):
         os.environ["LANGCHAIN_TRACING_V2"] = "true"
         try:
+            from langsmith import trace
+
             trace.configure_tracing(
                 project_name=os.getenv("LANGCHAIN_PROJECT", "default"),
                 api_key=os.getenv("LANGCHAIN_API_KEY"),
-                endpoint=os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com"),
+                endpoint=os.getenv(
+                    "LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com"
+                ),
             )
-        except AttributeError:
+        except (ImportError, AttributeError):
             # Skip tracing if not available
             pass
-    
+
     cli()
+
 
 if __name__ == "__main__":
     main()

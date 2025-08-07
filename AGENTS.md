@@ -11,19 +11,36 @@ It uses Weaviate as the vector database and supports multiple LLM providers thro
 - **Storage**: Weaviate for vectors and configuration persistence
 
 ## Essential Commands
+
+**With uv (Recommended):**
 ```bash
 # Backend
-pip install -e .                    # Install in development mode
-verba start --port 8000            # Start server
-verba reset --deployment Local     # Reset configuration
+uv sync --group dev                # Install dependencies
+uv run verba start --port 8000     # Start server
+uv run verba reset --deployment Local # Reset configuration
 
-# Frontend (from frontend/)
-npm install --legacy-peer-deps     # Install dependencies
-npm run dev                        # Development server (localhost:3000)
-npm run build                      # Build and copy to backend
+# Code quality
+uv run ruff format goldenverba     # Format code
+uv run ruff check goldenverba      # Lint code
+uv run ty check goldenverba        # Type check (preview)
 
 # Testing
-pytest                             # Backend tests
+uv run pytest                     # Backend tests
+```
+
+**With pip (Alternative):**
+```bash
+# Backend
+pip install -e ".[dev]"           # Install in development mode
+verba start --port 8000           # Start server
+verba reset --deployment Local    # Reset configuration
+```
+
+**Frontend (from frontend/):**
+```bash
+npm install --legacy-peer-deps    # Install dependencies
+npm run dev                       # Development server (localhost:3000)
+npm run build                     # Build and copy to backend
 bun test --preload ./test/setup.ts # Frontend tests
 ```
 

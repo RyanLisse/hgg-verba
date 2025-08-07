@@ -1,10 +1,9 @@
 from wasabi import msg
 
 from goldenverba.components.chunk import Chunk
-from goldenverba.components.interfaces import Chunker
 from goldenverba.components.document import Document
+from goldenverba.components.interfaces import Chunker, Embedding
 from goldenverba.components.types import InputConfig
-from goldenverba.components.interfaces import Embedding
 
 
 class SentenceChunker(Chunker):
@@ -12,7 +11,7 @@ class SentenceChunker(Chunker):
     SentenceChunker for Verba built with spacy.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Sentence"
         self.description = "Splits documents based on word tokens"
@@ -38,12 +37,10 @@ class SentenceChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         units = int(config["Sentences"].value)
         overlap = int(config["Overlap"].value)
 
         for document in documents:
-
             doc = document.spacy_doc
 
             # Skip if document already contains chunks
@@ -75,7 +72,6 @@ class SentenceChunker(Chunker):
             split_id_counter = 0
             char_end_i = -1
             while i < len(sentences):
-
                 # index at the sentence level
                 start_i = i
                 end_i = min(i + units, len(sentences))
@@ -87,9 +83,11 @@ class SentenceChunker(Chunker):
                 # need to convert to index at the character level
                 char_start_i = char_end_i + 1
                 if i > 0:
-                    char_start_i -= sum([len(s) for s in sentences[start_i:(start_i + overlap)]]) + 1
+                    char_start_i -= (
+                        sum([len(s) for s in sentences[start_i : (start_i + overlap)]])
+                        + 1
+                    )
                 char_end_i = char_start_i + len(chunk_text)
-
 
                 doc_chunk = Chunk(
                     content=chunk_text,

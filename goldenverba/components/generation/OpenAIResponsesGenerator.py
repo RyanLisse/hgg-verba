@@ -1,20 +1,26 @@
 # OpenAIResponsesGenerator.py - Enhanced OpenAI generator using Responses API
+import logging
 import os
-from dotenv import load_dotenv
-from goldenverba.components.interfaces import Generator
-from goldenverba.components.types import InputConfig
-from goldenverba.components.util import get_environment
-from goldenverba.components.schemas import (
-    RAGResponse, EnhancedRAGResponse, Citation, ConfidenceLevel, SourceType
-)
+import time
+from collections.abc import AsyncIterator
+
 import instructor
+from dotenv import load_dotenv
 from instructor.mode import Mode
 from langsmith import traceable
 from langsmith.run_helpers import get_current_run_tree
 from openai import AsyncOpenAI
-import logging
-import time
-from typing import List, Dict, AsyncIterator
+
+from goldenverba.components.interfaces import Generator
+from goldenverba.components.schemas import (
+    Citation,
+    ConfidenceLevel,
+    EnhancedRAGResponse,
+    RAGResponse,
+    SourceType,
+)
+from goldenverba.components.types import InputConfig
+from goldenverba.components.util import get_environment
 
 load_dotenv()
 
@@ -28,7 +34,7 @@ class OpenAIResponsesGenerator(Generator):
     Supports web search, file search, and advanced reasoning traces.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "OpenAI Responses"
         self.description = "Enhanced OpenAI generator using Responses API with structured outputs, web search, and advanced reasoning"
@@ -36,15 +42,15 @@ class OpenAIResponsesGenerator(Generator):
 
         # Updated models for August 2025 - Responses API compatible
         models = [
-            "o3",                # Smartest model to date, can "think with images"
-            "o4-mini",           # Fast, cost-efficient reasoning for math/coding/visual
-            "gpt-4.1",           # Flagship GPT-4.1 model
-            "gpt-4.1-mini",      # Smaller, faster GPT-4.1 variant
-            "gpt-4.1-nano",      # Most cost-effective GPT-4.1 variant
-            "o1-preview",        # Previous reasoning model
-            "o1-mini",           # Smaller o1 variant
-            "gpt-4o-2025-08-01", # Latest GPT-4o
-            "gpt-4o-mini",       # Cost-effective GPT-4o
+            "o3",  # Smartest model to date, can "think with images"
+            "o4-mini",  # Fast, cost-efficient reasoning for math/coding/visual
+            "gpt-4.1",  # Flagship GPT-4.1 model
+            "gpt-4.1-mini",  # Smaller, faster GPT-4.1 variant
+            "gpt-4.1-nano",  # Most cost-effective GPT-4.1 variant
+            "o1-preview",  # Previous reasoning model
+            "o1-mini",  # Smaller o1 variant
+            "gpt-4o-2025-08-01",  # Latest GPT-4o
+            "gpt-4o-mini",  # Cost-effective GPT-4o
         ]
 
         self.config["Model"] = InputConfig(
@@ -142,23 +148,23 @@ class OpenAIResponsesGenerator(Generator):
 
         # Regular OpenAI client for Responses API
         self.client = AsyncOpenAI(api_key=openai_key, base_url=openai_url)
-        
+
         # Instructor client for structured outputs
         self.instructor_client = instructor.from_openai(
             AsyncOpenAI(api_key=openai_key, base_url=openai_url),
-            mode=Mode.RESPONSES_TOOLS  # Use Responses API mode
+            mode=Mode.RESPONSES_TOOLS,  # Use Responses API mode
         )
 
     @traceable
     async def generate_structured_response(
-        self, 
-        messages: List[Dict], 
-        model: str, 
-        config: Dict,
-        response_format: str = "enhanced"
+        self,
+        messages: list[dict],
+        model: str,
+        config: dict,
+        response_format: str = "enhanced",
     ) -> EnhancedRAGResponse:
         """Generate a structured response using the Responses API."""
-        
+
         logger.info(f"Generating structured response with model: {model}")
         start_time = time.time()
 
@@ -192,7 +198,7 @@ class OpenAIResponsesGenerator(Generator):
                 temperature=float(config.get("Temperature", {}).get("value", "0.7")),
                 max_tokens=config.get("Max Tokens", {}).get("value", 4096),
                 store=True,  # Enable state management
-                max_retries=2
+                max_retries=2,
             )
 
             # Add metadata
@@ -206,7 +212,7 @@ class OpenAIResponsesGenerator(Generator):
             if run:
                 response.token_usage = {
                     "run_id": run.id,
-                    "generation_time": generation_time
+                    "generation_time": generation_time,
                 }
 
             logger.info(f"Structured response generated in {generation_time:.2f}s")
@@ -220,7 +226,7 @@ class OpenAIResponsesGenerator(Generator):
                 confidence_level=ConfidenceLevel.LOW,
                 model_name=model,
                 error_messages=[str(e)],
-                generation_time=time.time() - start_time
+                generation_time=time.time() - start_time,
             )
 
     async def generate_stream(
@@ -231,7 +237,7 @@ class OpenAIResponsesGenerator(Generator):
         conversation: list[dict] = [],
     ):
         """Generate streaming response with structured output support."""
-        
+
         if not self.client or not self.instructor_client:
             await self.initialize_client(config)
 
@@ -248,13 +254,15 @@ class OpenAIResponsesGenerator(Generator):
                 structured_response = await self.generate_structured_response(
                     messages, model, config, response_format
                 )
-                
+
                 # Stream the structured response
                 async for chunk in self.stream_structured_response(structured_response):
                     yield chunk
             else:
                 # Fall back to regular streaming
-                async for chunk in self.generate_regular_stream(messages, model, config):
+                async for chunk in self.generate_regular_stream(
+                    messages, model, config
+                ):
                     yield chunk
 
         except Exception as e:
@@ -262,28 +270,30 @@ class OpenAIResponsesGenerator(Generator):
             yield {
                 "message": f"Error: {str(e)}",
                 "finish_reason": "error",
-                "runId": "error"
+                "runId": "error",
             }
 
-    def stream_structured_response(self, response: EnhancedRAGResponse) -> AsyncIterator[dict]:
+    def stream_structured_response(
+        self, response: EnhancedRAGResponse
+    ) -> AsyncIterator[dict]:
         """Stream a structured response in chunks."""
         run_id = response.token_usage.get("run_id", "structured_response")
-        
+
         # Stream reasoning trace if available
         if response.reasoning_trace and response.reasoning_trace.reasoning_steps:
             yield {
                 "message": "## 🧠 Reasoning Process\n\n",
                 "finish_reason": None,
                 "runId": run_id,
-                "type": "reasoning_header"
+                "type": "reasoning_header",
             }
-            
+
             for step in response.reasoning_trace.reasoning_steps:
                 yield {
                     "message": f"**Step {step.step_number}:** {step.description}\n{step.content}\n\n",
                     "finish_reason": None,
                     "runId": run_id,
-                    "type": "reasoning_step"
+                    "type": "reasoning_step",
                 }
 
         # Stream main answer
@@ -291,17 +301,19 @@ class OpenAIResponsesGenerator(Generator):
             "message": "## 📝 Answer\n\n",
             "finish_reason": None,
             "runId": run_id,
-            "type": "answer_header"
+            "type": "answer_header",
         }
 
         # Stream answer in chunks for better UX
-        answer_chunks = [response.answer[i:i+100] for i in range(0, len(response.answer), 100)]
+        answer_chunks = [
+            response.answer[i : i + 100] for i in range(0, len(response.answer), 100)
+        ]
         for chunk in answer_chunks:
             yield {
                 "message": chunk,
                 "finish_reason": None,
                 "runId": run_id,
-                "type": "content"
+                "type": "content",
             }
 
         # Stream citations if available
@@ -310,16 +322,16 @@ class OpenAIResponsesGenerator(Generator):
                 "message": "\n\n## 📚 Sources\n\n",
                 "finish_reason": None,
                 "runId": run_id,
-                "type": "citations_header"
+                "type": "citations_header",
             }
-            
+
             for i, citation in enumerate(response.citations, 1):
                 citation_text = f"{i}. **{citation.title or 'Source'}** - {citation.content_snippet}\n"
                 yield {
                     "message": citation_text,
                     "finish_reason": None,
                     "runId": run_id,
-                    "type": "citation"
+                    "type": "citation",
                 }
 
         # Stream key insights if available
@@ -328,15 +340,15 @@ class OpenAIResponsesGenerator(Generator):
                 "message": "\n\n## 💡 Key Insights\n\n",
                 "finish_reason": None,
                 "runId": run_id,
-                "type": "insights_header"
+                "type": "insights_header",
             }
-            
+
             for insight in response.key_insights:
                 yield {
                     "message": f"• {insight}\n",
                     "finish_reason": None,
                     "runId": run_id,
-                    "type": "insight"
+                    "type": "insight",
                 }
 
         # Stream follow-up questions if available
@@ -345,15 +357,15 @@ class OpenAIResponsesGenerator(Generator):
                 "message": "\n\n## ❓ Follow-up Questions\n\n",
                 "finish_reason": None,
                 "runId": run_id,
-                "type": "followup_header"
+                "type": "followup_header",
             }
-            
+
             for question in response.follow_up_questions:
                 yield {
                     "message": f"• {question}\n",
                     "finish_reason": None,
                     "runId": run_id,
-                    "type": "followup"
+                    "type": "followup",
                 }
 
         # Final metadata
@@ -362,54 +374,59 @@ class OpenAIResponsesGenerator(Generator):
             "model": response.model_name,
             "generation_time": response.generation_time,
             "sources_used": len(response.citations),
-            "tools_used": response.tools_used
+            "tools_used": response.tools_used,
         }
 
         yield {
             "message": "",
             "finish_reason": "stop",
             "runId": run_id,
-            "metadata": metadata
+            "metadata": metadata,
         }
 
-    async def generate_regular_stream(self, messages: List[Dict], model: str, config: Dict):
+    async def generate_regular_stream(
+        self, messages: list[dict], model: str, config: dict
+    ):
         """Fall back to regular streaming for non-structured output."""
         temperature = float(config.get("Temperature", {}).get("value", "0.7"))
-        
+
         response_stream = await self.client.chat.completions.create(
             model=model,
             messages=messages,
             stream=True,
             temperature=temperature,
-            max_tokens=config.get("Max Tokens", {}).get("value", 4096)
+            max_tokens=config.get("Max Tokens", {}).get("value", 4096),
         )
-        
+
         run_id = "regular_stream"
-        
+
         async for chunk in response_stream:
-            if hasattr(chunk, 'choices') and chunk.choices:
+            if hasattr(chunk, "choices") and chunk.choices:
                 delta = chunk.choices[0].delta
-                
-                if hasattr(delta, 'content') and delta.content:
+
+                if hasattr(delta, "content") and delta.content:
                     yield {
                         "message": delta.content,
                         "finish_reason": None,
                         "runId": run_id,
-                        "type": "content"
+                        "type": "content",
                     }
-                
-                if hasattr(chunk.choices[0], 'finish_reason') and chunk.choices[0].finish_reason:
+
+                if (
+                    hasattr(chunk.choices[0], "finish_reason")
+                    and chunk.choices[0].finish_reason
+                ):
                     yield {
                         "message": "",
                         "finish_reason": chunk.choices[0].finish_reason,
-                        "runId": run_id
+                        "runId": run_id,
                     }
 
     def prepare_messages(
         self, query: str, context: str, conversation: list[dict], system_message: str
     ) -> list[dict]:
         """Prepare messages with enhanced context for Responses API."""
-        
+
         # Enhanced system message for structured outputs
         enhanced_system = f"""{system_message}
 
@@ -449,22 +466,24 @@ Please provide a comprehensive response using the context provided above.""",
 
         return messages
 
-    def extract_citations_from_context(self, context: str, max_citations: int = 5) -> List[Citation]:
+    def extract_citations_from_context(
+        self, context: str, max_citations: int = 5
+    ) -> list[Citation]:
         """Extract citations from the provided context."""
         citations = []
-        
+
         # Simple extraction - in practice, this would be more sophisticated
-        context_chunks = context.split('\n\n')[:max_citations]
-        
+        context_chunks = context.split("\n\n")[:max_citations]
+
         for i, chunk in enumerate(context_chunks):
             if len(chunk.strip()) > 50:  # Only meaningful chunks
                 citation = Citation(
                     source_id=f"context_chunk_{i}",
                     source_type=SourceType.CHUNK,
-                    title=f"Context Source {i+1}",
+                    title=f"Context Source {i + 1}",
                     content_snippet=chunk[:200] + "..." if len(chunk) > 200 else chunk,
-                    confidence_score=0.8
+                    confidence_score=0.8,
                 )
                 citations.append(citation)
-        
+
         return citations

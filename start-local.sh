@@ -30,6 +30,7 @@ port_available() {
 # Header
 print_color "=====================================" "$BLUE"
 print_color "   Verba Local Deployment Startup    " "$BLUE"
+print_color "   (PostgreSQL + uv optimized)       " "$BLUE"
 print_color "=====================================" "$BLUE"
 echo
 
@@ -59,11 +60,11 @@ fi
 
 print_color "✓ Docker and Docker Compose are installed and running" "$GREEN"
 
-# Check ports
+# Check ports (only need 8000 for Verba now)
 print_color "\nChecking port availability..." "$YELLOW"
 
 PORTS_OK=true
-for port in 8000 8080 50051; do
+for port in 8000; do
     if port_available $port; then
         print_color "✓ Port $port is available" "$GREEN"
     else
@@ -73,7 +74,7 @@ for port in 8000 8080 50051; do
 done
 
 if [ "$PORTS_OK" = false ]; then
-    print_color "\nSome required ports are in use. Please free them or modify docker-compose.yml" "$YELLOW"
+    print_color "\nPort 8000 is in use. Please free it or modify the configuration" "$YELLOW"
     read -p "Continue anyway? (y/n) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -92,18 +93,15 @@ if [ ! -f .env ]; then
     elif [ -f .env.example ]; then
         print_color "Creating .env from .env.example template..." "$YELLOW"
         cp .env.example .env
-        # Update for local deployment
-        sed -i.bak 's|WEAVIATE_URL_VERBA=.*|WEAVIATE_URL_VERBA=http://localhost:8080|' .env
-        sed -i.bak 's|WEAVIATE_API_KEY_VERBA=.*|WEAVIATE_API_KEY_VERBA=|' .env
-        rm -f .env.bak
-        print_color "✓ Created .env file configured for local deployment" "$GREEN"
+        # Update for local deployment with PostgreSQL
+        print_color "✓ Created .env file configured for PostgreSQL deployment" "$GREEN"
     else
         print_color "Warning: No .env file found" "$YELLOW"
-        print_color "Creating minimal .env for local deployment..." "$YELLOW"
+        print_color "Creating minimal .env for PostgreSQL deployment..." "$YELLOW"
         cat > .env << EOF
-# Verba Local Deployment Configuration
-WEAVIATE_URL_VERBA=http://localhost:8080
-WEAVIATE_API_KEY_VERBA=
+# Verba Local Deployment Configuration - PostgreSQL
+# Configure your PostgreSQL connection details here
+# DATABASE_URL=postgresql://user:password@localhost:5432/verba
 
 # Add your API keys here
 OPENAI_API_KEY=
@@ -155,36 +153,16 @@ if docker compose ps | grep -q "verba.*running"; then
 fi
 
 # Start services
-print_color "Starting Weaviate and Verba..." "$YELLOW"
+print_color "Starting Verba with PostgreSQL backend..." "$YELLOW"
 docker compose up -d
 
 # Wait for services to be ready
-print_color "\nWaiting for services to start..." "$YELLOW"
-
-# Wait for Weaviate
-WEAVIATE_READY=false
-for i in {1..30}; do
-    if curl -s http://localhost:8080/v1/.well-known/ready >/dev/null 2>&1; then
-        WEAVIATE_READY=true
-        break
-    fi
-    echo -n "."
-    sleep 2
-done
-echo
-
-if [ "$WEAVIATE_READY" = true ]; then
-    print_color "✓ Weaviate is ready" "$GREEN"
-else
-    print_color "✗ Weaviate failed to start" "$RED"
-    print_color "Check logs with: docker compose logs weaviate" "$YELLOW"
-    exit 1
-fi
+print_color "\nWaiting for Verba to start..." "$YELLOW"
 
 # Wait for Verba
 VERBA_READY=false
 for i in {1..30}; do
-    if curl -s http://localhost:8000 >/dev/null 2>&1; then
+    if curl -s http://localhost:8000/health >/dev/null 2>&1; then
         VERBA_READY=true
         break
     fi
@@ -198,6 +176,7 @@ if [ "$VERBA_READY" = true ]; then
 else
     print_color "✗ Verba failed to start" "$RED"
     print_color "Check logs with: docker compose logs verba" "$YELLOW"
+    print_color "Make sure your DATABASE_URL is configured correctly" "$YELLOW"
     exit 1
 fi
 
@@ -208,14 +187,18 @@ print_color "=====================================" "$GREEN"
 echo
 print_color "Access points:" "$BLUE"
 print_color "  • Verba UI:      http://localhost:8000" "$GREEN"
-print_color "  • Weaviate API:  http://localhost:8080" "$GREEN"
-print_color "  • Weaviate gRPC: localhost:50051" "$GREEN"
+print_color "  • Health check:  http://localhost:8000/health" "$GREEN"
+echo
+print_color "Database:" "$BLUE"
+print_color "  • Using PostgreSQL with pgvector" "$GREEN"
+print_color "  • Configure DATABASE_URL in .env" "$YELLOW"
 echo
 print_color "Useful commands:" "$BLUE"
 print_color "  • View logs:      docker compose logs -f" "$YELLOW"
 print_color "  • Stop services:  docker compose down" "$YELLOW"
-print_color "  • Reset data:     docker compose down -v" "$YELLOW"
 print_color "  • View status:    docker compose ps" "$YELLOW"
+print_color "  • Development:    uv run verba start" "$YELLOW"
+print_color "  • Direct install: uvx goldenverba start" "$YELLOW"
 echo
 
 # Open browser if available

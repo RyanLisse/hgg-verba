@@ -1,5 +1,5 @@
 import os
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 try:
     from google import genai
@@ -19,8 +19,8 @@ except ImportError:
     Field = None
     INSTRUCTOR_AVAILABLE = False
 
-from wasabi import msg
 from dotenv import load_dotenv
+from wasabi import msg
 
 from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
@@ -33,7 +33,7 @@ class GeminiGenerator(Generator):
     Gemini Generator using the new google.genai client.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Gemini"
         self.description = (

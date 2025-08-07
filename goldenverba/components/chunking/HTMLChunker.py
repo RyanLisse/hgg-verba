@@ -4,9 +4,8 @@ with contextlib.suppress(Exception):
     from langchain_text_splitters import HTMLHeaderTextSplitter
 
 from goldenverba.components.chunk import Chunk
-from goldenverba.components.interfaces import Chunker
 from goldenverba.components.document import Document
-from goldenverba.components.interfaces import Embedding
+from goldenverba.components.interfaces import Chunker, Embedding
 
 
 class HTMLChunker(Chunker):
@@ -14,7 +13,7 @@ class HTMLChunker(Chunker):
     HTMLChunker for Verba using LangChain.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "HTML"
         self.requires_library = ["langchain_text_splitters "]
@@ -27,7 +26,6 @@ class HTMLChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         text_splitter = HTMLHeaderTextSplitter(
             headers_to_split_on=[
                 ("h1", "Header 1"),
@@ -38,13 +36,11 @@ class HTMLChunker(Chunker):
         )
 
         for document in documents:
-
             # Skip if document already contains chunks
             if len(document.chunks) > 0:
                 continue
-            
+
             for i, chunk in enumerate(text_splitter.split_text(document.content)):
-                
                 chunk_text = ""
 
                 # append title and page content (should only be one header as we are splitting at header so index at 0), if a header is found
@@ -58,8 +54,8 @@ class HTMLChunker(Chunker):
                     Chunk(
                         content=chunk_text,
                         chunk_id=i,
-                        start_i=None,# not implemented as HTML text splitter changes the actual document (removes tags)
-                        end_i=None, 
+                        start_i=None,  # not implemented as HTML text splitter changes the actual document (removes tags)
+                        end_i=None,
                         content_without_overlap=chunk_text,
                     )
                 )

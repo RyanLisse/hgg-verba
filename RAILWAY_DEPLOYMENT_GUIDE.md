@@ -177,7 +177,7 @@ cpuLimit = "1000m"   # 1 vCPU
    cd /Users/neo/Developer/hgg-verba
    
    # Create railway.toml with configuration above
-   # Ensure requirements.txt is up to date
+   # Ensure pyproject.toml dependencies are up to date
    # Verify .env files are correct
    ```
 
@@ -264,7 +264,7 @@ jobs:
 - [ ] Environment variables reference correct services
 - [ ] Weaviate connection tested
 - [ ] Health check endpoint working (`/api/health`)
-- [ ] Requirements.txt up to date
+- [ ] pyproject.toml dependencies up to date
 
 **Post-Deployment:**
 

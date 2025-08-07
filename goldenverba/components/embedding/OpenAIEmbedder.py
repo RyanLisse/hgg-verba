@@ -1,7 +1,6 @@
-import os
-import json
-from typing import List
 import io
+import json
+import os
 
 import aiohttp
 from wasabi import msg
@@ -16,7 +15,7 @@ class OpenAIEmbedder(Embedding):
 
     DEFAULT_MODELS = ["text-embedding-3-small", "text-embedding-3-large"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "OpenAI"
         self.description = "Vectorizes documents and queries using OpenAI"
@@ -58,7 +57,7 @@ class OpenAIEmbedder(Embedding):
         except Exception as e:
             msg.warn(f"Could not fetch OpenAI models: {e}. Using default models.")
 
-    async def vectorize(self, config: dict, content: List[str]) -> List[List[float]]:
+    async def vectorize(self, config: dict, content: list[str]) -> list[list[float]]:
         """Vectorize the input content using OpenAI's API."""
         model = config.get("Model", {"value": "text-embedding-ada-002"}).value
         api_key = get_environment(
@@ -110,7 +109,7 @@ class OpenAIEmbedder(Embedding):
                 raise
 
     @staticmethod
-    def get_models(token: str, url: str) -> List[str]:
+    def get_models(token: str, url: str) -> list[str]:
         """Fetch available embedding models from OpenAI API."""
         if token is None:
             return [

@@ -1,15 +1,16 @@
-import os
 import json
-import aiohttp
-from typing import List, Dict, AsyncGenerator
+import os
+from collections.abc import AsyncGenerator
 
-from goldenverba.components.interfaces import Generator
+import aiohttp
+
 from goldenverba.components.embedding.OllamaEmbedder import get_models
+from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
 
 
 class OllamaGenerator(Generator):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Ollama"
         self.url = os.getenv("OLLAMA_URL", "http://localhost:11434")
@@ -29,11 +30,11 @@ class OllamaGenerator(Generator):
 
     async def generate_stream(
         self,
-        config: Dict,
+        config: dict,
         query: str,
         context: str,
-        conversation: List[Dict] = [],
-    ) -> AsyncGenerator[Dict, None]:
+        conversation: list[dict] = [],
+    ) -> AsyncGenerator[dict, None]:
         model = config.get("Model").value
         url = f"{self.url}/api/chat"
         system_message = config.get("System Message").value
@@ -63,9 +64,9 @@ class OllamaGenerator(Generator):
         self,
         query: str,
         context: str,
-        conversation: List[Dict],
+        conversation: list[dict],
         system_message: str,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Prepare the message list for the Ollama API request."""
         messages = [
             {"role": "system", "content": system_message},
@@ -81,7 +82,7 @@ class OllamaGenerator(Generator):
         return messages
 
     @staticmethod
-    def _process_response(line: bytes) -> Dict:
+    def _process_response(line: bytes) -> dict:
         """Process a single line of response from the Ollama API."""
         json_data = json.loads(line.decode("utf-8"))
 
@@ -97,11 +98,11 @@ class OllamaGenerator(Generator):
         }
 
     @staticmethod
-    def _empty_response() -> Dict:
+    def _empty_response() -> dict:
         """Return an empty response."""
         return {"message": "", "finish_reason": "stop"}
 
     @staticmethod
-    def _error_response(message: str) -> Dict:
+    def _error_response(message: str) -> dict:
         """Return an error response."""
         return {"message": message, "finish_reason": "stop"}

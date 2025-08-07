@@ -5,6 +5,8 @@
 [![Weaviate](https://img.shields.io/static/v1?label=powered%20by&message=Weaviate%20%E2%9D%A4&color=green&style=flat-square)](https://weaviate.io/)
 [![PyPi downloads](https://static.pepy.tech/personalized-badge/goldenverba?period=total&units=international_system&left_color=grey&right_color=orange&left_text=pip%20downloads)](https://pypi.org/project/goldenverba/) [![Docker support](https://img.shields.io/badge/Docker_support-%E2%9C%93-4c1?style=flat-square&logo=docker&logoColor=white)](https://docs.docker.com/get-started/) [![Demo](https://img.shields.io/badge/Check%20out%20the%20demo!-yellow?&style=flat-square&logo=react&logoColor=white)](https://verba.weaviate.io/)
 
+> **🚀 PostgreSQL Migration**: This version has been migrated from Supabase to work with any PostgreSQL instance with pgvector extension. See [POSTGRESQL_MIGRATION.md](POSTGRESQL_MIGRATION.md) for setup instructions and migration details.
+
 Welcome to Verba: The Golden RAGtriever, an open-source application designed to offer an end-to-end, streamlined, and user-friendly interface for Retrieval-Augmented Generation (RAG) out of the box. In just a few easy steps, explore your datasets and extract insights with ease, either locally with Ollama and Huggingface or through LLM providers such as Anthrophic, Cohere, and OpenAI.
 
 ```
@@ -115,23 +117,50 @@ Verba is a fully-customizable personal assistant utilizing [Retrieval Augmented 
 
 # Getting Started with Verba
 
-You have three deployment options for Verba:
+You have multiple deployment options for Verba:
 
-- Install via pip
+## Quick Start (Recommended)
 
+- **Install via uv (Fastest)**
+
+```bash
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install and run Verba directly
+uvx goldenverba start
 ```
+
+- **Install via pip**
+
+```bash
 pip install goldenverba
+verba start
 ```
 
-- Build from Source
+## Development Setup
 
-```
+- **Build from Source with uv (Recommended for Development)**
+
+```bash
 git clone https://github.com/weaviate/Verba
-
-pip install -e .
+cd Verba
+uv sync --group dev
+uv run verba start
 ```
 
-- Use Docker for Deployment
+> **Note:** This project uses modern Astral tooling including uv (package manager), ruff (linter/formatter), and ty (type checker). This provides the fastest Python development experience available.
+
+- **Build from Source with pip**
+
+```bash
+git clone https://github.com/weaviate/Verba
+cd Verba
+pip install -e ".[dev]"
+verba start
+```
+
+- **Use Docker for Deployment**
 
 **Prerequisites**: If you're not using Docker, ensure that you have `Python >=3.10.0` installed on your system.
 
@@ -246,25 +275,44 @@ pip install `.[huggingface]`
 
 > If you're using Docker, modify the Dockerfile accordingly
 
+# How to deploy with uv (Recommended)
+
+`Python >=3.10.0`
+
+1. **Install uv (if not already installed)**
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+2. **Install and run Verba directly**
+
+```bash
+uvx goldenverba start
+```
+
+> You can specify the --port and --host via flags: `uvx goldenverba start --port 9000 --host 0.0.0.0`
+
 # How to deploy with pip
 
 `Python >=3.10.0`
 
 1. (Very Important) **Initialize a new Python Environment**
 
-```
-python3 -m virtualenv venv
+```bash
+python3 -m venv venv
+source venv/bin/activate
 ```
 
 2. **Install Verba**
 
-```
+```bash
 pip install goldenverba
 ```
 
 3. **Launch Verba**
 
-```
+```bash
 verba start
 ```
 
@@ -278,29 +326,76 @@ Visit localhost:8000
 
 5. (Optional)**Create .env file and add environment variables**
 
-# How to build from Source
+# How to build from Source with uv (Recommended for Development)
 
-1. **Clone the Verba repos**
+1. **Install uv (if not already installed)**
 
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
+
+2. **Clone the Verba repository**
+
+```bash
 git clone https://github.com/weaviate/Verba.git
+cd Verba
+```
+
+3. **Install dependencies and run**
+
+```bash
+uv sync --group dev
+uv run verba start
+```
+
+> You can specify the --port and --host via flags: `uv run verba start --port 9000 --host 0.0.0.0`
+
+## Development Commands
+
+With uv, you can run various development commands:
+
+```bash
+# Format code with ruff
+uv run ruff format goldenverba
+
+# Lint code with ruff
+uv run ruff check goldenverba
+
+# Type check with ty (preview)
+uv run ty check goldenverba
+
+# Run tests
+uv run pytest
+
+# Run all quality checks
+make check  # Runs lint, format, typecheck, and tests
+```
+
+# How to build from Source with pip
+
+1. **Clone the Verba repository**
+
+```bash
+git clone https://github.com/weaviate/Verba.git
+cd Verba
 ```
 
 2. **Initialize a new Python Environment**
 
-```
-python3 -m virtualenv venv
+```bash
+python3 -m venv venv
+source venv/bin/activate
 ```
 
 3. **Install Verba**
 
-```
-pip install -e .
+```bash
+pip install -e ".[dev]"
 ```
 
 4. **Launch Verba**
 
-```
+```bash
 verba start
 ```
 

@@ -1,21 +1,22 @@
 from fastapi import WebSocket
+from wasabi import msg
+
 from goldenverba.server.types import (
-    FileStatus,
-    StatusReport,
+    CreateNewDocument,
     DataBatchPayload,
     FileConfig,
-    CreateNewDocument,
+    FileStatus,
+    StatusReport,
 )
-from wasabi import msg
 
 
 class LoggerManager:
-    def __init__(self, socket: WebSocket = None):
+    def __init__(self, socket: WebSocket = None) -> None:
         self.socket = socket
 
     async def send_report(
         self, file_Id: str, status: FileStatus, message: str, took: float
-    ):
+    ) -> None:
         msg.info(f"{status} | {file_Id} | {message} | {took}")
         if self.socket is not None:
             payload: StatusReport = {
@@ -42,7 +43,7 @@ class LoggerManager:
 
 
 class BatchManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.batches = {}
 
     def add_batch(self, payload: DataBatchPayload) -> FileConfig:
@@ -69,7 +70,7 @@ class BatchManager:
         except Exception as e:
             msg.fail(f"Failed to add batch to BatchManager: {str(e)}")
 
-    def check_batch(self, fileID: str):
+    def check_batch(self, fileID: str) -> bool:
         if len(self.batches[fileID]["chunks"].keys()) == self.batches[fileID]["total"]:
             msg.good(f"Collected all Batches of {fileID}")
             chunks = self.batches[fileID]["chunks"]

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Verba is an open-source Retrieval-Augmented Generation (RAG) application that provides a user-friendly interface for querying and interacting with documents using AI. It consists of a Python FastAPI backend and a Next.js React frontend, using Weaviate as the vector database.
+Verba is an open-source Retrieval-Augmented Generation (RAG) application that provides a user-friendly interface for querying and interacting with documents using AI. It consists of a Python FastAPI backend and a Next.js React frontend, using PostgreSQL with pgvector as the vector database.
 
 ## Key Architecture
 
@@ -12,7 +12,7 @@ Verba is an open-source Retrieval-Augmented Generation (RAG) application that pr
 - **FastAPI server** with async support in `goldenverba/server/api.py`
 - **Component-based plugin system** with base interfaces in `goldenverba/components/interfaces.py`
 - **Manager pattern** for handling different component types (readers, chunkers, embedders, retrievers, generators)
-- **Weaviate integration** for vector storage and configuration persistence
+- **PostgreSQL with pgvector** for vector storage and configuration persistence
 - **WebSocket support** for real-time updates during document processing
 
 ### Frontend Architecture
@@ -24,31 +24,51 @@ Verba is an open-source Retrieval-Augmented Generation (RAG) application that pr
 ## Common Development Commands
 
 ### Backend Development
+
+**With uv (Recommended):**
+```bash
+# Install dependencies and sync
+uv sync --group dev
+
+# Install with specific extras
+uv sync --group huggingface  # For local embeddings
+uv sync --group google       # For Google Vertex AI
+
+# Start the server
+uv run verba start --port 8000 --host localhost
+
+# Reset configuration
+uv run verba reset --deployment Local
+
+# Run tests
+uv run pytest
+uv run pytest --cov=goldenverba  # With coverage
+
+# Run a specific test
+uv run pytest goldenverba/tests/test_verba_manager.py::TestVerbaManager::test_initialization
+
+# Code quality with Astral tools
+uv run ruff check goldenverba     # Lint code
+uv run ruff format goldenverba    # Format code (replaces black)
+uv run ty check goldenverba       # Type checking (preview)
+```
+
+**With pip (Alternative):**
 ```bash
 # Install the package in development mode
-pip install -e .
+pip install -e ".[dev]"
 
 # Install with specific extras
 pip install -e ".[huggingface]"  # For local embeddings
 pip install -e ".[google]"        # For Google Vertex AI
-pip install -e ".[dev]"           # For development tools
 
 # Start the server
 verba start --port 8000 --host localhost
 
-# Reset configuration
-verba reset --deployment Local
-
-# Run tests
-pytest
-pytest --cov=goldenverba  # With coverage
-
-# Run a specific test
-pytest goldenverba/tests/test_verba_manager.py::TestVerbaManager::test_initialization
-
-# Linting and formatting
-ruff check goldenverba    # Check code style
-black goldenverba         # Format code
+# Run tests and linting
+pytest --cov=goldenverba
+ruff check goldenverba
+ruff format goldenverba
 ```
 
 ### Frontend Development
@@ -101,7 +121,9 @@ make test-ui            # Run frontend tests with Vitest UI
 # Code quality
 make lint               # Run linters (backend + frontend)
 make format             # Format code (backend + frontend)
-make check              # Run all checks (lint + tests)
+make typecheck          # Run type checking with ty
+make check              # Run all checks (lint + format + tests + typecheck)
+make check-backend      # Run comprehensive backend checks with Astral tools
 
 # Utilities
 make clean              # Clean build artifacts and logs
@@ -116,7 +138,7 @@ docker compose --env-file .env up -d --build
 
 # Services will be available at:
 # - Verba: localhost:8000
-# - Weaviate: localhost:8080
+# - PostgreSQL: Managed by Railway or local instance
 
 # Docker commands via Makefile
 make docker-build       # Build Docker images
@@ -170,7 +192,7 @@ await self.manager.verb_manager.send_update(
 ```
 
 ### Configuration Storage
-Configuration is stored in Weaviate and can be accessed via:
+Configuration is stored in PostgreSQL and can be accessed via:
 ```python
 config = await manager.config_manager.get_config()
 ```
@@ -189,7 +211,7 @@ except Exception as e:
 
 ### Backend Tests
 - Unit tests for individual components in `goldenverba/tests/`
-- Mock Weaviate client for isolated testing
+- Mock PostgreSQL client for isolated testing
 - Use `pytest-asyncio` for async test functions
 - Run with `pytest --cov=goldenverba` for coverage reports
 
@@ -207,7 +229,7 @@ except Exception as e:
 1. **Reader** loads raw content
 2. **Chunker** splits into manageable pieces
 3. **Embedder** creates vector representations
-4. **Weaviate** stores chunks with metadata
+4. **PostgreSQL** stores chunks with metadata and vector embeddings
 5. **Retriever** finds relevant chunks
 6. **Generator** creates responses using LLM
 
@@ -223,8 +245,9 @@ The architecture is designed to support multi-modal data (images, videos) in fut
 ## Environment Variables
 
 Key environment variables to set:
-- `WEAVIATE_URL_VERBA` - Weaviate instance URL
-- `WEAVIATE_API_KEY_VERBA` - Weaviate API key
+- `DATABASE_URL` - PostgreSQL connection URL
+- `POSTGRES_HOST` - PostgreSQL host
+- `POSTGRES_PASSWORD` - PostgreSQL password
 - `OPENAI_API_KEY` - For OpenAI models (now using Responses API)
 - `ANTHROPIC_API_KEY` - For Anthropic Claude 4 models
 - `COHERE_API_KEY` - For Cohere models

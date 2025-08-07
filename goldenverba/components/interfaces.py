@@ -1,12 +1,8 @@
-from goldenverba.components.document import Document
-from goldenverba.server.types import FileConfig
-from goldenverba.components.types import InputConfig
-from goldenverba.components.util import strip_non_letters
-
 from dotenv import load_dotenv
 
-from wasabi import msg
-from weaviate import Client
+from goldenverba.components.document import Document
+from goldenverba.components.types import InputConfig
+from goldenverba.server.types import FileConfig
 
 load_dotenv()
 
@@ -16,7 +12,7 @@ class VerbaComponent:
     Base Class for Verba Readers, Chunkers, Embedders, Retrievers, and Generators.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.name = ""
         self.requires_env = []
         self.requires_library = []
@@ -57,7 +53,7 @@ class Reader(VerbaComponent):
     Interface for Verba Readers.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.type = "FILE"  # "URL"
         self.extension = ["txt", "md", "mdx", "py", "ts", "tsx", "js", "go", "css"]
@@ -75,7 +71,7 @@ class Embedding(VerbaComponent):
     Interface for Verba Embedder Components.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.max_batch_size = 128
 
@@ -93,7 +89,7 @@ class Chunker(VerbaComponent):
     Interface for Verba Chunking.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.config = {}
 
@@ -114,251 +110,12 @@ class Chunker(VerbaComponent):
         raise NotImplementedError("chunk method must be implemented by a subclass.")
 
 
-class Embedder(VerbaComponent):
-    """
-    Interface for Verba Embedding.
-    """
-
-    def __init__(self):
-        super().__init__()
-        self.vectorizer = ""
-
-    def embed(
-        self,
-        documents: list[Document],
-        client: Client,
-        logging: list[dict],
-        batch_size: int = 100,
-    ) -> bool:
-        """Embed verba documents and its chunks to Weaviate
-        @parameter: documents : list[Document] - List of Verba documents
-        @parameter: client : Client - Weaviate Client
-        @parameter: batch_size : int - Batch Size of Input
-        @returns bool - Bool whether the embedding what successful.
-        """
-        raise NotImplementedError("embed method must be implemented by a subclass.")
-
-    def remove_document(
-        self, client: Client, doc_name: str, doc_class_name: str, chunk_class_name: str
-    ) -> None:
-        """Deletes documents and its chunks
-        @parameter: client : Client - Weaviate Client
-        @parameter: doc_name : str - Document name
-        @parameter: doc_class_name : str - Class name of Document
-        @parameter: chunk_class_name : str - Class name of Chunks.
-        """
-        client.batch.delete_objects(
-            class_name=doc_class_name,
-            where={"path": ["doc_name"], "operator": "Equal", "valueText": doc_name},
-        )
-
-        client.batch.delete_objects(
-            class_name=chunk_class_name,
-            where={"path": ["doc_name"], "operator": "Equal", "valueText": doc_name},
-        )
-
-        msg.warn(f"Deleted document {doc_name} and its chunks")
-
-    def remove_document_by_id(self, client: Client, doc_id: str):
-        doc_class_name = "VERBA_Document_" + strip_non_letters(self.vectorizer)
-        chunk_class_name = "VERBA_Chunk_" + strip_non_letters(self.vectorizer)
-
-        client.data_object.delete(uuid=doc_id, class_name=doc_class_name)
-
-        client.batch.delete_objects(
-            class_name=chunk_class_name,
-            where={"path": ["doc_uuid"], "operator": "Equal", "valueText": doc_id},
-        )
-
-        msg.warn(f"Deleted document {doc_id} and its chunks")
-
-    def get_document_class(self) -> str:
-        return "VERBA_Document_" + strip_non_letters(self.vectorizer)
-
-    def get_chunk_class(self) -> str:
-        return "VERBA_Chunk_" + strip_non_letters(self.vectorizer)
-
-    def get_cache_class(self) -> str:
-        return "VERBA_Cache_" + strip_non_letters(self.vectorizer)
-
-    def search_documents(
-        self, client: Client, query: str, doc_type: str, page: int, page_size: int
-    ) -> list:
-        """Search for documents from Weaviate
-        @parameter query_string : str - Search query
-        @returns list - Document list.
-        """
-        doc_class_name = "VERBA_Document_" + strip_non_letters(self.vectorizer)
-        offset = page_size * (page - 1)
-
-        if doc_type == "" or doc_type is None:
-            query_results = (
-                client.query.get(
-                    class_name=doc_class_name,
-                    properties=["doc_name", "doc_type", "doc_link"],
-                )
-                .with_bm25(query, properties=["doc_name"])
-                .with_additional(properties=["id"])
-                .with_limit(page_size)
-                .with_offset(offset)
-                .do()
-            )
-        else:
-            query_results = (
-                client.query.get(
-                    class_name=doc_class_name,
-                    properties=["doc_name", "doc_type", "doc_link"],
-                )
-                .with_bm25(query, properties=["doc_name"])
-                .with_where(
-                    {
-                        "path": ["doc_type"],
-                        "operator": "Equal",
-                        "valueText": doc_type,
-                    }
-                )
-                .with_offset(offset)
-                .with_additional(properties=["id"])
-                .with_limit(100)
-                .do()
-            )
-
-        # TODO Better Error Handling, what if error occur?
-        results = query_results["data"]["Get"][doc_class_name]
-        return results
-
-    def get_need_vectorization(self) -> bool:
-        # Return True if vectorizer is set and not using Weaviate's built-in embedding
-        return bool(self.vectorizer) and self.vectorizer != "Weaviate"
-
-    def vectorize_query(self, query: str):
-        raise NotImplementedError(
-            "vectorize_query method must be implemented by a subclass."
-        )
-
-    def conversation_to_query(self, queries: list[str], conversation: dict) -> str:
-        query = ""
-
-        if len(conversation) > 1:
-            if conversation[-1].type == "system":
-                query += conversation[-1].content + " "
-            elif conversation[-2].type == "system":
-                query += conversation[-2].content + " "
-
-        for _query in queries:
-            query += _query + " "
-
-        return query.lower()
-
-    def retrieve_semantic_cache(
-        self, client: Client, query: str, dist: float = 0.04
-    ) -> str:
-        """Retrieve results from semantic cache based on query and distance threshold
-        @parameter query - str - User query
-        @parameter dist - float - Distance threshold
-        @returns Optional[dict] - List of results or None.
-        """
-        needs_vectorization = self.get_need_vectorization()
-
-        match_results = (
-            client.query.get(
-                class_name=self.get_cache_class(),
-                properties=["query", "system"],
-            )
-            .with_where(
-                {
-                    "path": ["query"],
-                    "operator": "Equal",
-                    "valueText": query,
-                }
-            )
-            .with_limit(1)
-        ).do()
-
-        if (
-            "data" in match_results
-            and len(match_results["data"]["Get"][self.get_cache_class()]) > 0
-            and (
-                query
-                == match_results["data"]["Get"][self.get_cache_class()][0]["query"]
-            )
-        ):
-            msg.good("Direct match from cache")
-            return (
-                match_results["data"]["Get"][self.get_cache_class()][0]["system"],
-                0.0,
-            )
-
-        query_results = (
-            client.query.get(
-                class_name=self.get_cache_class(),
-                properties=["query", "system"],
-            )
-            .with_additional(properties=["distance"])
-            .with_limit(1)
-        )
-
-        if needs_vectorization:
-            vector = self.vectorize_query(query)
-            query_results = query_results.with_near_vector(
-                content={"vector": vector},
-            ).do()
-
-        else:
-            query_results = query_results.with_near_text(
-                content={"concepts": [query]},
-            ).do()
-
-        if "data" not in query_results:
-            msg.warn(query_results)
-            return None, None
-
-        results = query_results["data"]["Get"][self.get_cache_class()]
-
-        if not results:
-            return None, None
-
-        result = results[0]
-
-        if float(result["_additional"]["distance"]) <= dist:
-            msg.good("Retrieved similar from cache")
-            return result["system"], float(result["_additional"]["distance"])
-
-        else:
-            return None, None
-
-    def add_to_semantic_cache(self, client: Client, query: str, system: str):
-        """Add results to semantic cache
-        @parameter query : str - User query
-        @parameter results : list[dict] - Results from Weaviate
-        @parameter system : str - System message
-        @returns None.
-        """
-        needs_vectorization = self.get_need_vectorization()
-
-        with client.batch as batch:
-            batch.batch_size = 1
-            properties = {
-                "query": str(query),
-                "system": system,
-            }
-            msg.good("Saved to cache")
-
-            if needs_vectorization:
-                vector = self.vectorize_query(query)
-                client.batch.add_data_object(
-                    properties, self.get_cache_class(), vector=vector
-                )
-            else:
-                client.batch.add_data_object(properties, self.get_cache_class())
-
-
 class Retriever(VerbaComponent):
     """
     Interface for Verba Retrievers.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.config["Suggestion"] = InputConfig(
             type="bool",
@@ -369,15 +126,16 @@ class Retriever(VerbaComponent):
 
     async def retrieve(
         self,
-        client,
-        query,
-        vector,
-        config,
-        weaviate_manager,
-        embedder,
-        labels,
-        document_uuids,
-    ):
+        config: dict,
+        query: str,
+        chunks: list,
+    ) -> list:
+        """Retrieve relevant chunks based on query and configuration
+        @parameter: config : dict - Retriever Configuration
+        @parameter: query : str - User query
+        @parameter: chunks : list - List of chunks to retrieve from
+        @return: list - List of retrieved chunks
+        """
         raise NotImplementedError("retrieve method must be implemented by a subclass.")
 
 
@@ -386,7 +144,7 @@ class Generator(VerbaComponent):
     Interface for Verba Generators.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.context_window = 5000
         self.config["System Message"] = InputConfig(

@@ -1,22 +1,24 @@
 # AnthropicInstructorGenerator.py - Enhanced Anthropic generator with Instructor integration
+import logging
 import os
+import time
+from collections.abc import AsyncIterator
+
+import instructor
+from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
+from instructor.mode import Mode
+
 from goldenverba.components.interfaces import Generator
-from goldenverba.components.types import InputConfig
-from goldenverba.components.util import get_environment
 from goldenverba.components.schemas import (
-    RAGResponse,
-    EnhancedRAGResponse,
     Citation,
     ConfidenceLevel,
+    EnhancedRAGResponse,
+    RAGResponse,
     SourceType,
 )
-import instructor
-from instructor.mode import Mode
-from anthropic import AsyncAnthropic
-import logging
-import time
-from typing import List, Dict, AsyncIterator
+from goldenverba.components.types import InputConfig
+from goldenverba.components.util import get_environment
 
 load_dotenv()
 
@@ -30,7 +32,7 @@ class AnthropicGenerator(Generator):
     Supports Claude 4 models with advanced reasoning, multimodal capabilities, and tool usage.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Anthropic"
         self.description = "Enhanced Anthropic Claude generator with structured outputs, advanced reasoning, and multimodal support"
@@ -151,9 +153,9 @@ class AnthropicGenerator(Generator):
 
     async def generate_structured_response(
         self,
-        messages: List[Dict],
+        messages: list[dict],
         model: str,
-        config: Dict,
+        config: dict,
         response_format: str = "enhanced",
     ) -> EnhancedRAGResponse:
         """Generate a structured response using Instructor."""
@@ -258,7 +260,9 @@ class AnthropicGenerator(Generator):
                     yield chunk
             else:
                 # Fall back to regular streaming
-                async for chunk in self.generate_regular_stream(messages, model, config):
+                async for chunk in self.generate_regular_stream(
+                    messages, model, config
+                ):
                     yield chunk
 
         except Exception as e:
@@ -420,7 +424,7 @@ class AnthropicGenerator(Generator):
         }
 
     async def generate_regular_stream(
-        self, messages: List[Dict], model: str, config: Dict
+        self, messages: list[dict], model: str, config: dict
     ):
         """Fall back to regular streaming for non-structured output."""
         temperature = float(config.get("Temperature", {}).get("value", "0.7"))
@@ -507,7 +511,7 @@ Please provide a comprehensive, well-structured response that demonstrates your 
 
     def extract_citations_from_context(
         self, context: str, max_citations: int = 8
-    ) -> List[Citation]:
+    ) -> list[Citation]:
         """Extract citations from context with Claude-optimized processing."""
         citations = []
 

@@ -2,46 +2,49 @@ import asyncio
 import json
 import logging
 import os
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
-from fastapi import FastAPI, WebSocket, Request
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, Response, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.websockets import WebSocketDisconnect
-from dotenv import load_dotenv
-from wasabi import msg  # type: ignore[import]
 from langsmith import Client as LangSmithClient
+from starlette.websockets import WebSocketDisconnect
+from wasabi import msg  # type: ignore[import-untyped]
 
-from goldenverba import verba_manager
-from goldenverba.server.helpers import LoggerManager, BatchManager
+from goldenverba.unified_verba_manager import VerbaManager, ClientManager
+from goldenverba.server.helpers import BatchManager, LoggerManager
 
 # Import types
 from goldenverba.server.types import (
-    ResetPayload,
-    QueryPayload,
-    GeneratePayload,
-    Credentials,
-    GetDocumentPayload,
+    ChunksPayload,
     ConnectPayload,
+    Credentials,
+    DataBatchPayload,
     DatacountPayload,
-    GetSuggestionsPayload,
-    GetAllSuggestionsPayload,
     DeleteSuggestionPayload,
+    FeedbackPayload,
+    GeneratePayload,
+    GetAllSuggestionsPayload,
+    GetChunkPayload,
     GetContentPayload,
-    SetThemeConfigPayload,
-    SetUserConfigPayload,
+    GetDocumentPayload,
+    GetSuggestionsPayload,
+    GetVectorPayload,
+    QueryPayload,
+    ResetPayload,
     SearchQueryPayload,
     SetRAGConfigPayload,
-    GetChunkPayload,
-    GetVectorPayload,
-    DataBatchPayload,
-    ChunksPayload,
-    FeedbackPayload,
+    SetThemeConfigPayload,
+    SetUserConfigPayload,
 )
+# Unified PostgreSQL manager imported above
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -52,22 +55,22 @@ load_dotenv()
 production_key = os.environ.get("VERBA_PRODUCTION")
 tag = os.environ.get("VERBA_GOOGLE_TAG", "")
 
-
 if production_key:
     msg.info(f"Verba runs in {production_key} mode")
     production = production_key
 else:
     production = "Local"
 
-manager = verba_manager.VerbaManager()
+manager = VerbaManager()
 
-client_manager = verba_manager.ClientManager()
+# Use unified ClientManager for connection pooling
+client_manager = ClientManager()
 
 ### Lifespan
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
     await client_manager.disconnect()
 
@@ -87,7 +90,9 @@ app.add_middleware(
 
 # Custom middleware to check if the request is from the same origin
 @app.middleware("http")
-async def check_same_origin(request: Request, call_next):
+async def check_same_origin(
+    request: Request, call_next: Callable[[Request], Any]
+) -> Response:
     # Allow public access to /api/health
     if request.url.path == "/api/health":
         return await call_next(request)
@@ -134,7 +139,7 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "frontend/out"), name="app
 
 @app.get("/")
 @app.head("/")
-async def serve_frontend():
+async def serve_frontend() -> FileResponse:
     return FileResponse(os.path.join(BASE_DIR, "frontend/out/index.html"))
 
 
@@ -143,14 +148,13 @@ async def serve_frontend():
 
 # Define health check endpoint
 @app.get("/api/health")
-async def health_check():
-
+async def health_check() -> JSONResponse:
     await client_manager.clean_up()
 
     if production == "Local":
         deployments = await manager.get_deployments()
     else:
-        deployments = {"WEAVIATE_URL_VERBA": "", "WEAVIATE_API_KEY_VERBA": ""}
+        deployments = {"DATABASE_URL": "", "POSTGRES_HOST": "", "POSTGRES_PASSWORD": ""}
 
     return JSONResponse(
         content={
@@ -163,22 +167,19 @@ async def health_check():
 
 
 @app.get("/api/health/websocket")
-async def websocket_health():
+async def websocket_health() -> JSONResponse:
     """Check WebSocket server health."""
     return JSONResponse(
         content={
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
-            "websocket_endpoints": [
-                "/ws/generate_stream",
-                "/ws/import_files"
-            ]
+            "websocket_endpoints": ["/ws/generate_stream", "/ws/import_files"],
         }
     )
 
 
 @app.post("/api/connect")
-async def connect_to_verba(payload: ConnectPayload):
+async def connect_to_verba(payload: ConnectPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
         config = await manager.load_rag_config(client)
@@ -196,12 +197,12 @@ async def connect_to_verba(payload: ConnectPayload):
             },
         )
     except Exception as e:
-        msg.fail(f"Failed to connect to Weaviate {str(e)}")
+        msg.fail(f"Failed to connect to PostgreSQL {str(e)}")
         return JSONResponse(
             status_code=400,
             content={
                 "connected": False,
-                "error": f"Failed to connect to Weaviate {str(e)}",
+                "error": f"Failed to connect to PostgreSQL {str(e)}",
                 "rag_config": {},
                 "theme": {},
                 "themes": {},
@@ -213,12 +214,12 @@ async def connect_to_verba(payload: ConnectPayload):
 
 
 @app.websocket("/ws/generate_stream")
-async def websocket_generate_stream(websocket: WebSocket):
+async def websocket_generate_stream(websocket: WebSocket) -> None:
     await websocket.accept()
     while True:  # Start a loop to keep the connection alive.
         try:
             data = await websocket.receive_text()
-            
+
             # First, try to parse as JSON to check message type
             try:
                 json_data = json.loads(data)
@@ -228,7 +229,7 @@ async def websocket_generate_stream(websocket: WebSocket):
                     continue
             except json.JSONDecodeError:
                 pass
-            
+
             # Parse and validate the JSON string using Pydantic model
             payload = GeneratePayload.model_validate_json(data)
 
@@ -251,7 +252,7 @@ async def websocket_generate_stream(websocket: WebSocket):
                     reasoning_text += chunk["message"]
                 elif chunk.get("type") != "transition":
                     full_text += chunk["message"]
-                
+
                 if chunk["finish_reason"] == "stop":
                     chunk["full_text"] = full_text
                     if reasoning_text:
@@ -272,8 +273,7 @@ async def websocket_generate_stream(websocket: WebSocket):
 
 
 @app.websocket("/ws/import_files")
-async def websocket_import_files(websocket: WebSocket):
-
+async def websocket_import_files(websocket: WebSocket) -> None:
     if production == "Demo":
         return
 
@@ -284,7 +284,7 @@ async def websocket_import_files(websocket: WebSocket):
     while True:
         try:
             data = await websocket.receive_text()
-            
+
             # First, try to parse as JSON to check message type
             try:
                 json_data = json.loads(data)
@@ -294,7 +294,7 @@ async def websocket_import_files(websocket: WebSocket):
                     continue
             except json.JSONDecodeError:
                 pass
-            
+
             batch_data = DataBatchPayload.model_validate_json(data)
             fileConfig = batcher.add_batch(batch_data)
             if fileConfig is not None:
@@ -316,7 +316,7 @@ async def websocket_import_files(websocket: WebSocket):
 
 # Get Configuration
 @app.post("/api/get_rag_config")
-async def retrieve_rag_config(payload: Credentials):
+async def retrieve_rag_config(payload: Credentials) -> JSONResponse:
     try:
         client = await client_manager.connect(payload)
         config = await manager.load_rag_config(client)
@@ -336,7 +336,7 @@ async def retrieve_rag_config(payload: Credentials):
 
 
 @app.post("/api/set_rag_config")
-async def update_rag_config(payload: SetRAGConfigPayload):
+async def update_rag_config(payload: SetRAGConfigPayload) -> JSONResponse:
     if production == "Demo":
         return JSONResponse(
             content={
@@ -364,7 +364,7 @@ async def update_rag_config(payload: SetRAGConfigPayload):
 
 
 @app.post("/api/get_user_config")
-async def retrieve_user_config(payload: Credentials):
+async def retrieve_user_config(payload: Credentials) -> JSONResponse:
     try:
         client = await client_manager.connect(payload)
         config = await manager.load_user_config(client)
@@ -384,7 +384,7 @@ async def retrieve_user_config(payload: Credentials):
 
 
 @app.post("/api/set_user_config")
-async def update_user_config(payload: SetUserConfigPayload):
+async def update_user_config(payload: SetUserConfigPayload) -> JSONResponse:
     if production == "Demo":
         return JSONResponse(
             content={
@@ -414,7 +414,7 @@ async def update_user_config(payload: SetUserConfigPayload):
 
 # Get Configuration
 @app.post("/api/get_theme_config")
-async def retrieve_theme_config(payload: Credentials):
+async def retrieve_theme_config(payload: Credentials) -> JSONResponse:
     try:
         client = await client_manager.connect(payload)
         theme, themes = await manager.load_theme_config(client)
@@ -435,7 +435,7 @@ async def retrieve_theme_config(payload: Credentials):
 
 
 @app.post("/api/set_theme_config")
-async def update_theme_config(payload: SetThemeConfigPayload):
+async def update_theme_config(payload: SetThemeConfigPayload) -> JSONResponse:
     if production == "Demo":
         return JSONResponse(
             content={
@@ -469,7 +469,7 @@ async def update_theme_config(payload: SetThemeConfigPayload):
 
 # Receive query and return chunks and query answer
 @app.post("/api/query")
-async def query(payload: QueryPayload):
+async def query(payload: QueryPayload) -> JSONResponse:
     msg.good(f"Received query: {payload.query}")
     try:
         client = await client_manager.connect(payload.credentials)
@@ -493,11 +493,10 @@ async def query(payload: QueryPayload):
 
 # Retrieve specific document based on UUID
 @app.post("/api/get_document")
-async def get_document(payload: GetDocumentPayload):
+async def get_document(payload: GetDocumentPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
-        document = await manager.weaviate_manager.get_document(
-            client,
+        document = await manager.database_manager.get_document(
             payload.uuid,
             properties=[
                 "title",
@@ -537,12 +536,12 @@ async def get_document(payload: GetDocumentPayload):
 
 
 @app.post("/api/get_datacount")
-async def get_document_count(payload: DatacountPayload):
+async def get_document_count(payload: DatacountPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
         document_uuids = [document.uuid for document in payload.documentFilter]
-        datacount = await manager.weaviate_manager.get_datacount(
-            client, payload.embedding_model, document_uuids
+        datacount = await manager.database_manager.get_datacount(
+            payload.embedding_model, document_uuids
         )
         return JSONResponse(
             content={
@@ -559,10 +558,10 @@ async def get_document_count(payload: DatacountPayload):
 
 
 @app.post("/api/get_labels")
-async def get_labels(payload: Credentials):
+async def get_labels(payload: Credentials) -> JSONResponse:
     try:
         client = await client_manager.connect(payload)
-        labels = await manager.weaviate_manager.get_labels(client)
+        labels = await manager.database_manager.get_labels()
         return JSONResponse(
             content={
                 "labels": labels,
@@ -579,7 +578,7 @@ async def get_labels(payload: Credentials):
 
 # Retrieve specific document based on UUID
 @app.post("/api/get_content")
-async def get_content(payload: GetContentPayload):
+async def get_content(payload: GetContentPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
         content, maxPage = await manager.get_content(
@@ -601,11 +600,11 @@ async def get_content(payload: GetContentPayload):
 
 # Retrieve specific document based on UUID
 @app.post("/api/get_vectors")
-async def get_vectors(payload: GetVectorPayload):
+async def get_vectors(payload: GetVectorPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
-        vector_groups = await manager.weaviate_manager.get_vectors(
-            client, payload.uuid, payload.showAll
+        vector_groups = await manager.database_manager.get_vectors(
+            payload.uuid, payload.showAll
         )
         return JSONResponse(
             content={
@@ -625,11 +624,11 @@ async def get_vectors(payload: GetVectorPayload):
 
 # Retrieve specific document based on UUID
 @app.post("/api/get_chunks")
-async def get_chunks(payload: ChunksPayload):
+async def get_chunks(payload: ChunksPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
-        chunks = await manager.weaviate_manager.get_chunks(
-            client, payload.uuid, payload.page, payload.pageSize
+        chunks = await manager.database_manager.get_chunks(
+            payload.uuid, payload.page, payload.pageSize
         )
         return JSONResponse(
             content={
@@ -649,11 +648,11 @@ async def get_chunks(payload: ChunksPayload):
 
 # Retrieve specific document based on UUID
 @app.post("/api/get_chunk")
-async def get_chunk(payload: GetChunkPayload):
+async def get_chunk(payload: GetChunkPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
-        chunk = await manager.weaviate_manager.get_chunk(
-            client, payload.uuid, payload.embedder
+        chunk = await manager.database_manager.get_chunk(
+            payload.uuid, payload.embedder
         )
         return JSONResponse(
             content={
@@ -671,20 +670,19 @@ async def get_chunk(payload: GetChunkPayload):
         )
 
 
-## Retrieve and search documents imported to Weaviate
+## Retrieve and search documents imported to PostgreSQL
 @app.post("/api/get_all_documents")
-async def get_all_documents(payload: SearchQueryPayload):
+async def get_all_documents(payload: SearchQueryPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
-        documents, total_count = await manager.weaviate_manager.get_documents(
-            client,
+        documents, total_count = await manager.database_manager.get_documents(
             payload.query,
             payload.pageSize,
             payload.page,
             payload.labels,
             properties=["title", "extension", "fileSize", "labels", "source", "meta"],
         )
-        labels = await manager.weaviate_manager.get_labels(client)
+        labels = await manager.database_manager.get_labels()
 
         msg.good(f"Succesfully retrieved document: {len(documents)} documents")
         return JSONResponse(
@@ -709,7 +707,7 @@ async def get_all_documents(payload: SearchQueryPayload):
 
 # Delete specific document based on UUID
 @app.post("/api/delete_document")
-async def delete_document(payload: GetDocumentPayload):
+async def delete_document(payload: GetDocumentPayload) -> JSONResponse:
     if production == "Demo":
         msg.warn("Can't delete documents when in Production Mode")
         return JSONResponse(status_code=200, content={})
@@ -717,7 +715,7 @@ async def delete_document(payload: GetDocumentPayload):
     try:
         client = await client_manager.connect(payload.credentials)
         msg.info(f"Deleting {payload.uuid}")
-        await manager.weaviate_manager.delete_document(client, payload.uuid)
+        await manager.database_manager.delete_document(payload.uuid)
         return JSONResponse(status_code=200, content={})
 
     except Exception as e:
@@ -729,20 +727,20 @@ async def delete_document(payload: GetDocumentPayload):
 
 
 @app.post("/api/reset")
-async def reset_verba(payload: ResetPayload):
+async def reset_verba(payload: ResetPayload) -> JSONResponse:
     if production == "Demo":
         return JSONResponse(status_code=200, content={})
 
     try:
         client = await client_manager.connect(payload.credentials)
         if payload.resetMode == "ALL":
-            await manager.weaviate_manager.delete_all(client)
+            await manager.database_manager.delete_all()
         elif payload.resetMode == "DOCUMENTS":
-            await manager.weaviate_manager.delete_all_documents(client)
+            await manager.database_manager.delete_all_documents()
         elif payload.resetMode == "CONFIG":
-            await manager.weaviate_manager.delete_all_configs(client)
+            await manager.database_manager.delete_all_configs()
         elif payload.resetMode == "SUGGESTIONS":
-            await manager.weaviate_manager.delete_all_suggestions(client)
+            await manager.database_manager.delete_all_suggestions()
 
         msg.info(f"Resetting Verba in ({payload.resetMode}) mode")
 
@@ -755,12 +753,10 @@ async def reset_verba(payload: ResetPayload):
 
 # Get Status meta data
 @app.post("/api/get_meta")
-async def get_meta(payload: Credentials):
+async def get_meta(payload: Credentials) -> JSONResponse:
     try:
         client = await client_manager.connect(payload)
-        node_payload, collection_payload = await manager.weaviate_manager.get_metadata(
-            client
-        )
+        node_payload, collection_payload = await manager.database_manager.get_metadata()
         return JSONResponse(
             content={
                 "error": "",
@@ -782,11 +778,11 @@ async def get_meta(payload: Credentials):
 
 
 @app.post("/api/get_suggestions")
-async def get_suggestions(payload: GetSuggestionsPayload):
+async def get_suggestions(payload: GetSuggestionsPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
-        suggestions = await manager.weaviate_manager.retrieve_suggestions(
-            client, payload.query, payload.limit
+        suggestions = await manager.database_manager.retrieve_suggestions(
+            payload.query, payload.limit
         )
         return JSONResponse(
             content={
@@ -802,13 +798,14 @@ async def get_suggestions(payload: GetSuggestionsPayload):
 
 
 @app.post("/api/get_all_suggestions")
-async def get_all_suggestions(payload: GetAllSuggestionsPayload):
+async def get_all_suggestions(payload: GetAllSuggestionsPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
-        suggestions, total_count = (
-            await manager.weaviate_manager.retrieve_all_suggestions(
-                client, payload.page, payload.pageSize
-            )
+        (
+            suggestions,
+            total_count,
+        ) = await manager.database_manager.retrieve_all_suggestions(
+            payload.page, payload.pageSize
         )
         return JSONResponse(
             content={
@@ -826,10 +823,10 @@ async def get_all_suggestions(payload: GetAllSuggestionsPayload):
 
 
 @app.post("/api/delete_suggestion")
-async def delete_suggestion(payload: DeleteSuggestionPayload):
+async def delete_suggestion(payload: DeleteSuggestionPayload) -> JSONResponse:
     try:
         client = await client_manager.connect(payload.credentials)
-        await manager.weaviate_manager.delete_suggestions(client, payload.uuid)
+        await manager.database_manager.delete_suggestions(payload.uuid)
         return JSONResponse(
             content={
                 "status": 200,
@@ -844,24 +841,30 @@ async def delete_suggestion(payload: DeleteSuggestionPayload):
 
 
 @app.post("/api/feedback")
-async def submit_feedback(payload: FeedbackPayload):
-    logger.info(f"Received feedback request: runId={payload.runId}, feedbackType={payload.feedbackType}")
+async def submit_feedback(payload: FeedbackPayload) -> JSONResponse:
+    logger.info(
+        f"Received feedback request: runId={payload.runId}, feedbackType={payload.feedbackType}"
+    )
     try:
         client = LangSmithClient(
-            api_url=payload.credentials["url"] if "url" in payload.credentials else None,
-            api_key=payload.credentials["key"] if "key" in payload.credentials else None
+            api_url=payload.credentials["url"]
+            if "url" in payload.credentials
+            else None,
+            api_key=payload.credentials["key"]
+            if "key" in payload.credentials
+            else None,
         )
-        
-        feedback_score = 1 if payload.feedbackType == 'positive' else 0
-        
+
+        feedback_score = 1 if payload.feedbackType == "positive" else 0
+
         feedback = client.create_feedback(
             run_id=payload.runId,
             key="user_rating",
             score=feedback_score,
             comment=payload.additionalFeedback,
-            value=payload.feedbackType
+            value=payload.feedbackType,
         )
-        
+
         logger.info(f"Feedback submitted successfully: feedback_id={feedback.id}")
         return {"status": "success", "feedback_id": str(feedback.id)}
     except Exception as e:

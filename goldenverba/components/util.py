@@ -1,8 +1,10 @@
-import numpy as np
 import os
 
+import numpy as np
 
 # Step 1: Standardize the data
+
+
 def standardize_data(data):
     mean = np.mean(data, axis=0)
     std_dev = np.std(data, axis=0)
@@ -10,17 +12,23 @@ def standardize_data(data):
 
 
 # Step 2: Compute the covariance matrix
+
+
 def compute_covariance_matrix(data):
     return np.cov(data, rowvar=False)
 
 
 # Step 3: Perform eigenvalue decomposition of the covariance matrix
+
+
 def eigen_decomposition(covariance_matrix):
     eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
     return eigenvalues, eigenvectors
 
 
 # Step 4: Sort the eigenvalues and their corresponding eigenvectors
+
+
 def sort_eigenvalues_eigenvectors(eigenvalues, eigenvectors):
     idx = eigenvalues.argsort()[::-1]
     sorted_eigenvalues = eigenvalues[idx]
@@ -29,16 +37,22 @@ def sort_eigenvalues_eigenvectors(eigenvalues, eigenvectors):
 
 
 # Step 5: Select the top k eigenvectors (principal components)
+
+
 def select_top_k_components(eigenvectors, k):
     return eigenvectors[:, :k]
 
 
 # Step 6: Transform the original data to the new subspace
+
+
 def transform_data(data, components):
     return data.dot(components)
 
 
 # Function to perform PCA
+
+
 def pca(data, k):
     print(data[:10])
     data_standardized = standardize_data(data)

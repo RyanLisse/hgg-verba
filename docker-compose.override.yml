@@ -1,0 +1,28 @@
+# Development overrides for docker-compose.yml
+# This file is automatically loaded by docker-compose for local development
+
+services:
+  verba:
+    build:
+      target: builder  # Use builder stage for development with more tools
+    volumes:
+      # Mount source code for hot reloading in development
+      - ./goldenverba:/app/goldenverba:ro
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      # Mount data directory for persistence
+      - ./data:/app/data
+    environment:
+      # Development-specific environment variables
+      PYTHONPATH: /app
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONUNBUFFERED: 1
+      # Enable debug mode
+      DEBUG: "true"
+      # Use development server with auto-reload
+      UVICORN_RELOAD: "true"
+    # Override command for development
+    command: ["uv", "run", "verba", "start", "--host", "0.0.0.0", "--reload"]
+    # Expose additional ports for debugging
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # debugpy port

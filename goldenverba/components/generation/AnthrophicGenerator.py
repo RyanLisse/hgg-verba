@@ -1,10 +1,12 @@
+import json
 import os
+
+import aiohttp
 from dotenv import load_dotenv
+
 from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
 from goldenverba.components.util import get_environment
-import aiohttp
-import json
 
 load_dotenv()
 
@@ -14,7 +16,7 @@ class AnthropicGenerator(Generator):
     Anthropic Generator.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Anthropic"
         self.description = "Using Anthropic LLM models to generate answers to queries"

@@ -7,7 +7,7 @@ class WindowRetriever(Retriever):
     WindowRetriever that retrieves chunks and their surrounding context depending on the window size.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.description = "Retrieve relevant chunks from Weaviate"
         self.name = "Advanced"
@@ -54,7 +54,6 @@ class WindowRetriever(Retriever):
         labels,
         document_uuids,
     ):
-
         search_mode = config["Search Mode"].value
         limit_mode = config["Limit Mode"].value
         limit = int(config["Limit/Sensitivity"].value)
@@ -112,7 +111,6 @@ class WindowRetriever(Retriever):
             return (value - min_value) / (max_value - min_value)
 
         def generate_window_list(value, window):
-
             value = int(value)
             window = int(window)
             # Create a range of values around the given value, excluding the original value
@@ -202,7 +200,6 @@ class WindowRetriever(Retriever):
         return (sorted_documents, context)
 
     def combine_context(self, documents: list[dict]) -> str:
-
         context = ""
 
         for document in documents:
@@ -210,7 +207,7 @@ class WindowRetriever(Retriever):
             if len(document["metadata"]) > 0:
                 context += f"Document Metadata: {document['metadata']}\n"
             for chunk in document["chunks"]:
-                context += f"Chunk: {int(chunk['chunk_id'])+1}\n"
+                context += f"Chunk: {int(chunk['chunk_id']) + 1}\n"
                 if chunk["score"] > 0:
                     context += f"High Relevancy: {chunk['score']:.2f}\n"
                 context += f"{chunk['content']}\n"

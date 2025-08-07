@@ -1,0 +1,150 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.uv-venv/
+temp_venv/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.coverage
+.pytest_cache/
+.tox/
+.nox/
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.qlty/
+test-results/
+playwright-report/
+
+# Documentation
+docs/_build/
+.readthedocs.yml
+
+# Logs
+*.log
+logs/
+app.log
+backend.log
+frontend.log
+verba.log
+
+# Data and temporary files
+data/
+memories.json
+reflections.json
+*.tmp
+*.temp
+
+# Node.js (for frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+frontend/.next/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env*
+!.env.example
+
+# Migration and deployment files
+migration/
+scripts/
+railway.toml
+vercel.json
+
+# Research and documentation files
+*.md
+!README.md
+img/
+instructions/
+
+# Lock files (will be copied separately)
+package-lock.json
+bun.lockb
+uv.lock
+
+# Compiled frontend assets (will be built in container)
+frontend/public/
+frontend/components/
+frontend/app/
+frontend/lib/
+frontend/test/
+
+# Development tools
+Makefile
+pypi_commands.sh
+fix_type_annotations.py
+validate_migration.py
+migration_tool.py
+
+# Test files
+test/
+*_test.py
+test_*.py
+*_test.js
+test_*.js
+playwright.config.js
+jest.config.js
+vitest.config.ts
+
+# Supabase (not needed in container)
+supabase/

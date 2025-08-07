@@ -1,6 +1,6 @@
 import base64
-import json
 import io
+import json
 
 from wasabi import msg
 
@@ -33,7 +33,7 @@ class BasicReader(Reader):
     The BasicReader reads text, code, PDF, and DOCX files.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Default"
         self.description = "Ingests text, code, PDF, and DOCX files"

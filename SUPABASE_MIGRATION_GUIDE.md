@@ -24,10 +24,10 @@ This guide provides complete instructions for migrating Verba from Weaviate to S
 
 ### Dependencies
 
-Install Supabase-specific dependencies:
+Install Supabase-specific dependencies using uv:
 
 ```bash
-pip install -r requirements-supabase.txt
+uv sync
 ```
 
 Key packages:

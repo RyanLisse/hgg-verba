@@ -2,15 +2,15 @@ import base64
 import io
 import os
 
+import aiohttp
 import requests
 from wasabi import msg
-import aiohttp
 
 from goldenverba.components.document import Document, create_document
 from goldenverba.components.interfaces import Reader
-from goldenverba.server.types import FileConfig
-from goldenverba.components.util import get_environment
 from goldenverba.components.types import InputConfig
+from goldenverba.components.util import get_environment
+from goldenverba.server.types import FileConfig
 
 
 class UnstructuredReader(Reader):
@@ -18,7 +18,7 @@ class UnstructuredReader(Reader):
     Unstructured API Reader for importing multiple file types using the Unstructured.io API.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.requires_env = ["UNSTRUCTURED_API_KEY"]
         self.name = "Unstructured IO"

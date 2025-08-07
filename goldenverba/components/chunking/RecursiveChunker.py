@@ -4,10 +4,9 @@ with contextlib.suppress(Exception):
     from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from goldenverba.components.chunk import Chunk
-from goldenverba.components.interfaces import Chunker
 from goldenverba.components.document import Document
+from goldenverba.components.interfaces import Chunker, Embedding
 from goldenverba.components.types import InputConfig
-from goldenverba.components.interfaces import Embedding
 
 
 class RecursiveChunker(Chunker):
@@ -15,7 +14,7 @@ class RecursiveChunker(Chunker):
     RecursiveChunker for Verba using LangChain.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Recursive"
         self.requires_library = ["langchain_text_splitters "]
@@ -62,7 +61,6 @@ class RecursiveChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         units = int(config["Chunk Size"].value)
         overlap = int(config["Overlap"].value)
         seperators = config["Seperators"].values
@@ -76,14 +74,12 @@ class RecursiveChunker(Chunker):
         )
 
         for document in documents:
-
             # Skip if document already contains chunks
             if len(document.chunks) > 0:
                 continue
-            
+
             # char_end_i = -1
             for i, chunk in enumerate(text_splitter.split_text(document.content)):
-
                 # leavingt this commented because this _does_ work but the text splitter strips whitespace and therefore modifies the original doc
                 # if overlap == 0:
                 #     char_start_i = char_end_i + 1

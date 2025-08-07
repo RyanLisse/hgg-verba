@@ -1,8 +1,10 @@
-from goldenverba.server.types import FileConfig
-from goldenverba.components.chunk import Chunk
-from spacy.tokens import Doc
-import spacy
 import json
+
+import spacy
+from spacy.tokens import Doc
+
+from goldenverba.components.chunk import Chunk
+from goldenverba.server.types import FileConfig
 
 
 class Document:
@@ -16,7 +18,7 @@ class Document:
         source: str = "",
         meta: dict = {},
         metadata: str = "",
-    ):
+    ) -> None:
         self.title = title
         self.content = content
         self.extension = extension

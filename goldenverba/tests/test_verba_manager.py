@@ -1,11 +1,15 @@
-import pytest
 from unittest.mock import Mock, patch
-from goldenverba.verba_manager import VerbaManager
+
+import pytest
+
 from goldenverba.server.types import Credentials
+from goldenverba.verba_manager_supabase import VerbaManagerSupabase
+
 
 @pytest.fixture
 def verba_manager():
-    return VerbaManager()
+    return VerbaManagerSupabase()
+
 
 def test_verba_manager_initialization(verba_manager):
     assert verba_manager.reader_manager is not None
@@ -13,27 +17,32 @@ def test_verba_manager_initialization(verba_manager):
     assert verba_manager.embedder_manager is not None
     assert verba_manager.retriever_manager is not None
     assert verba_manager.generator_manager is not None
-    assert verba_manager.weaviate_manager is not None
+    assert verba_manager.database_manager is not None
+
 
 @pytest.mark.asyncio
 async def test_connect(verba_manager):
     credentials = Credentials(
-        deployment="Local",
-        url="http://localhost:8080",
-        key="test-key"
+        deployment="Local", url="postgresql://localhost:5432/verba", key="test-key"
     )
-    
-    with patch('weaviate.client.WeaviateAsyncClient'), \
-         patch('goldenverba.components.managers.WeaviateManager.verify_collection') as mock_verify:
-        mock_verify.return_value = True
+
+    with patch(
+        "goldenverba.components.supabase_manager.SupabaseManager.connect"
+    ) as mock_connect:
+        mock_connect.return_value = Mock()
         client = await verba_manager.connect(credentials)
         assert client is not None
+
 
 @pytest.mark.asyncio
 async def test_disconnect(verba_manager):
     mock_client = Mock()
-    await verba_manager.disconnect(mock_client)
-    mock_client.close.assert_called_once()
+    with patch(
+        "goldenverba.components.supabase_manager.SupabaseManager.disconnect"
+    ) as mock_disconnect:
+        await verba_manager.disconnect(mock_client)
+        mock_disconnect.assert_called_once()
+
 
 def test_verify_config(verba_manager):
     config_a = {
@@ -44,11 +53,11 @@ def test_verify_config(verba_manager):
                     "config": {
                         "test": {
                             "description": "Test config",
-                            "values": ["value1", "value2"]
+                            "values": ["value1", "value2"],
                         }
                     }
                 }
-            }
+            },
         }
     }
     config_b = {
@@ -59,11 +68,11 @@ def test_verify_config(verba_manager):
                     "config": {
                         "test": {
                             "description": "Test config",
-                            "values": ["value1", "value2"]
+                            "values": ["value1", "value2"],
                         }
                     }
                 }
-            }
+            },
         }
     }
     assert verba_manager.verify_config(config_a, config_b)
@@ -76,11 +85,11 @@ def test_verify_config(verba_manager):
                     "config": {
                         "test": {
                             "description": "Different config",
-                            "values": ["value1", "value2"]
+                            "values": ["value1", "value2"],
                         }
                     }
                 }
-            }
+            },
         }
     }
     assert not verba_manager.verify_config(config_a, config_b)

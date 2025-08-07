@@ -1,5 +1,3 @@
-
-
 class Chunk:
     def __init__(
         self,
@@ -8,7 +6,7 @@ class Chunk:
         chunk_id: str = "",
         start_i: int = 0,
         end_i: int = 0,
-    ):
+    ) -> None:
         self.content = content
         self.title = ""
         self.chunk_id = chunk_id

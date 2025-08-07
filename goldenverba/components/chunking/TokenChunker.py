@@ -1,10 +1,9 @@
 from wasabi import msg
 
 from goldenverba.components.chunk import Chunk
-from goldenverba.components.interfaces import Chunker
 from goldenverba.components.document import Document
+from goldenverba.components.interfaces import Chunker, Embedding
 from goldenverba.components.types import InputConfig
-from goldenverba.components.interfaces import Embedding
 
 
 class TokenChunker(Chunker):
@@ -12,7 +11,7 @@ class TokenChunker(Chunker):
     TokenChunker for Verba built with spacy.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Token"
         self.description = "Splits documents based on word tokens"
@@ -38,12 +37,10 @@ class TokenChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         units = int(config["Tokens"].value)
         overlap = int(config["Overlap"].value)
 
         for document in documents:
-
             doc = document.spacy_doc
 
             # Skip if document already contains chunks

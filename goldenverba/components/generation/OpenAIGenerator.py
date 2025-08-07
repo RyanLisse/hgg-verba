@@ -1,24 +1,27 @@
 # OpenAIGenerator.py - Enhanced OpenAI generator using Responses API
+import logging
 import os
-from dotenv import load_dotenv
-from goldenverba.components.interfaces import Generator
-from goldenverba.components.types import InputConfig
-from goldenverba.components.util import get_environment
-from goldenverba.components.schemas import (
-    RAGResponse,
-    EnhancedRAGResponse,
-    Citation,
-    ConfidenceLevel,
-    SourceType,
-)
+import time
+from collections.abc import Generator
+from typing import Any
+
 import instructor
+from dotenv import load_dotenv
 from instructor.mode import Mode
 from langsmith import traceable
 from langsmith.run_helpers import get_current_run_tree
 from openai import AsyncOpenAI
-import logging
-import time
-from typing import List, Dict
+
+from goldenverba.components.interfaces import Generator
+from goldenverba.components.schemas import (
+    Citation,
+    ConfidenceLevel,
+    EnhancedRAGResponse,
+    RAGResponse,
+    SourceType,
+)
+from goldenverba.components.types import InputConfig
+from goldenverba.components.util import get_environment
 
 load_dotenv()
 
@@ -37,7 +40,7 @@ class OpenAIGenerator(Generator):
     Supports web search, file search, and advanced reasoning traces.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "OpenAI"
         self.description = "Enhanced OpenAI generator using Responses API with structured outputs, web search, and advanced reasoning"
@@ -140,7 +143,7 @@ class OpenAIGenerator(Generator):
         self.client = None
         self.instructor_client = None
 
-    async def initialize_client(self, config):
+    async def initialize_client(self, config: dict[str, Any]) -> None:
         """Initialize both regular and instructor clients."""
         openai_key = get_environment(
             config, "API Key", "OPENAI_API_KEY", "No OpenAI API Key found"
@@ -161,9 +164,9 @@ class OpenAIGenerator(Generator):
     @traceable
     async def generate_structured_response(
         self,
-        messages: List[Dict],
+        messages: list[dict],
         model: str,
-        config: Dict,
+        config: dict,
         response_format: str = "enhanced",
     ) -> EnhancedRAGResponse:
         """Generate a structured response using the Responses API."""
@@ -279,7 +282,9 @@ class OpenAIGenerator(Generator):
                 "runId": "error",
             }
 
-    def stream_structured_response(self, response: EnhancedRAGResponse):
+    def stream_structured_response(
+        self, response: EnhancedRAGResponse
+    ) -> Generator[str, None, None]:
         """Stream a structured response in chunks."""
         run_id = response.token_usage.get("run_id", "structured_response")
 
@@ -389,7 +394,7 @@ class OpenAIGenerator(Generator):
         }
 
     async def generate_regular_stream(
-        self, messages: List[Dict], model: str, config: Dict
+        self, messages: list[dict], model: str, config: dict
     ):
         """Fall back to regular streaming for non-structured output."""
         temperature = float(config.get("Temperature", {}).get("value", "0.7"))
@@ -472,7 +477,7 @@ Please provide a comprehensive response using the context provided above.""",
 
     def extract_citations_from_context(
         self, context: str, max_citations: int = 5
-    ) -> List[Citation]:
+    ) -> list[Citation]:
         """Extract citations from the provided context."""
         citations = []
 

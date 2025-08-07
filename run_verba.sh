@@ -16,9 +16,18 @@ lsof -ti:3000 | xargs kill -9 2>/dev/null || true
 # Start backend
 echo -e "${GREEN}Starting Backend Server on http://localhost:8000${NC}"
 cd "$(dirname "$0")"
-source .venv/bin/activate
-verba start --port 8000 --host localhost &
-BACKEND_PID=$!
+
+# Use uv if available, otherwise fall back to venv
+if command -v uv >/dev/null 2>&1; then
+    echo -e "${BLUE}Using uv for backend startup...${NC}"
+    uv run verba start --port 8000 --host localhost &
+    BACKEND_PID=$!
+else
+    echo -e "${BLUE}Using virtual environment for backend startup...${NC}"
+    source .venv/bin/activate
+    verba start --port 8000 --host localhost &
+    BACKEND_PID=$!
+fi
 
 # Wait for backend to start
 echo -e "${BLUE}Waiting for backend to start...${NC}"

@@ -1,21 +1,24 @@
 # LiteLLMInstructorGenerator.py - Enhanced LiteLLM generator with Instructor integration
-import os
-from dotenv import load_dotenv
-from goldenverba.components.interfaces import Generator
-from goldenverba.components.types import InputConfig
-from goldenverba.components.schemas import (
-    RAGResponse,
-    EnhancedRAGResponse,
-    Citation,
-    ThinkingTrace,
-    ConfidenceLevel,
-    SourceType,
-)
-import instructor
-from instructor.mode import Mode
 import logging
+import os
 import time
-from typing import List, Dict, Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
+
+import instructor
+from dotenv import load_dotenv
+from instructor.mode import Mode
+
+from goldenverba.components.interfaces import Generator
+from goldenverba.components.schemas import (
+    Citation,
+    ConfidenceLevel,
+    EnhancedRAGResponse,
+    RAGResponse,
+    SourceType,
+    ThinkingTrace,
+)
+from goldenverba.components.types import InputConfig
 
 load_dotenv()
 
@@ -98,7 +101,7 @@ class LiteLLMGenerator(Generator):
     Supports 100+ LLM providers with unified interface and cost tracking.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "LiteLLM"
         self.description = "Enhanced LiteLLM generator with structured outputs supporting 100+ LLM providers"
@@ -210,7 +213,7 @@ class LiteLLMGenerator(Generator):
         self.client = None
         self.instructor_client = None
 
-    def _get_supported_models(self) -> List[str]:
+    def _get_supported_models(self) -> list[str]:
         """Get list of supported models across all providers."""
         return [
             # OpenAI Models
@@ -419,7 +422,7 @@ class LiteLLMGenerator(Generator):
         }
 
     def _get_completion_params(
-        self, messages: List[Dict], model: str, config: Dict
+        self, messages: list[dict], model: str, config: dict
     ) -> dict:
         """Get completion parameters for LiteLLM."""
         temperature = float(
@@ -522,9 +525,9 @@ class LiteLLMGenerator(Generator):
 
     async def generate_structured_response(
         self,
-        messages: List[Dict],
+        messages: list[dict],
         model: str,
-        config: Dict,
+        config: dict,
         response_format: str = "enhanced",
     ) -> EnhancedRAGResponse:
         """Generate a structured response using LiteLLM + Instructor."""
@@ -715,7 +718,7 @@ class LiteLLMGenerator(Generator):
         }
 
     async def generate_regular_stream(
-        self, messages: List[Dict], model: str, config: Dict
+        self, messages: list[dict], model: str, config: dict
     ):
         """Fall back to regular LiteLLM streaming for non-structured output."""
         from litellm import acompletion
@@ -785,7 +788,7 @@ Please provide a comprehensive response that demonstrates reasoning and cites re
 
     def extract_citations_from_context(
         self, context: str, max_citations: int = MAX_CITATIONS
-    ) -> List[Citation]:
+    ) -> list[Citation]:
         """Extract citations from context with LiteLLM-optimized processing."""
         citations = []
 
@@ -818,7 +821,7 @@ Please provide a comprehensive response that demonstrates reasoning and cites re
 
         return citations
 
-    def get_supported_providers(self) -> Dict[str, Any]:
+    def get_supported_providers(self) -> dict[str, Any]:
         """Return comprehensive information about supported providers."""
         return {
             "openai": {

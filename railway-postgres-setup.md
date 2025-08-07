@@ -44,9 +44,8 @@ SELECT * FROM pg_extension WHERE extname = 'vector';
 
 Set these additional variables for Verba:
 ```bash
-# Replace Weaviate with PostgreSQL
-railway variables set USE_POSTGRESQL=true
-railway variables set USE_WEAVIATE=false
+# Configure pure PostgreSQL backend
+railway variables set DATABASE_URL=${{Postgres.DATABASE_URL}}
 
 # Optional: Set specific database name
 railway variables set POSTGRES_DB=verba_rag
@@ -83,20 +82,15 @@ SELECT 'pgvector version: ' || extversion FROM pg_extension WHERE extname = 'vec
 # Set environment variables
 echo "⚙️ Configuring environment variables..."
 railway variables set USE_POSTGRESQL=true
-railway variables set USE_WEAVIATE=false
 
 echo "✅ Railway PostgreSQL setup complete!"
 echo "🔄 Redeploying application..."
 railway up
 ```
 
-## Migration from Weaviate
+## Database Initialization
 
-Once PostgreSQL is setup, run the migration script:
-
-```bash
-python scripts/migrate_weaviate_to_postgres.py
-```
+PostgreSQL will be automatically initialized with the required schema when the application starts. No manual migration is needed for new installations.
 
 ## Verification
 

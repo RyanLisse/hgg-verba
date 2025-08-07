@@ -1,0 +1,49 @@
+# Production Docker Compose configuration
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  verba:
+    build:
+      target: production
+      # Production-specific build optimizations
+      cache_from:
+        - type=registry,ref=ghcr.io/weaviate/verba:cache
+      cache_to:
+        - type=registry,ref=ghcr.io/weaviate/verba:cache,mode=max
+    # Production environment optimizations
+    environment:
+      # Production-specific environment variables
+      PYTHONPATH: /app
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONUNBUFFERED: 1
+      # Disable debug mode
+      DEBUG: "false"
+      # Production server settings
+      UVICORN_WORKERS: 4
+      UVICORN_HOST: "0.0.0.0"
+      UVICORN_PORT: 8000
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    # Production restart policy
+    restart: unless-stopped
+    # Production logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    # Read-only root filesystem for security
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /app/tmp:noexec,nosuid,size=100m

@@ -17,7 +17,14 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from goldenverba.components.managers import VerbaWeaviateManager
+try:
+    # VerbaWeaviateManager has been removed - this script is for reference only
+    from goldenverba.components.managers import VerbaWeaviateManager
+except ImportError:
+    print("❌ VerbaWeaviateManager not available - Weaviate support has been removed")
+    print("This migration script is kept for reference only.")
+    sys.exit(1)
+
 from goldenverba.components.supabase_manager import SupabaseManager
 from goldenverba.server.types import Credentials
 from wasabi import msg

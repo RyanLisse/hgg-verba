@@ -1,15 +1,15 @@
 import os
+
+import aiohttp
 import requests
 from wasabi import msg
-import aiohttp
 
 from goldenverba.components.interfaces import Embedding
 from goldenverba.components.types import InputConfig
 
 
 class OllamaEmbedder(Embedding):
-
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Ollama"
         self.url = os.getenv("OLLAMA_URL", "http://localhost:11434")
@@ -26,7 +26,6 @@ class OllamaEmbedder(Embedding):
         }
 
     async def vectorize(self, config: dict, content: list[str]) -> list[float]:
-
         model = config.get("Model").value
 
         data = {"model": model, "input": content}

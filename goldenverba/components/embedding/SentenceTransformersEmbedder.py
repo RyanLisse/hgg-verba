@@ -12,7 +12,7 @@ class SentenceTransformersEmbedder(Embedding):
     SentenceTransformersEmbedder base class for Verba.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "SentenceTransformers"
         self.requires_library = ["sentence_transformers"]

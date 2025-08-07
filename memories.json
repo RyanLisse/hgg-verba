@@ -15,8 +15,8 @@
       ],
       "timestamp": "2025-08-05T21:20:54.039Z",
       "context": "LiteLLM migration for Verba RAG application",
-      "accessCount": 7,
-      "lastAccessed": "2025-08-06T06:56:36.288Z",
+      "accessCount": 8,
+      "lastAccessed": "2025-08-07T12:40:25.815Z",
       "lastVerified": "2025-08-05T21:20:54.039Z",
       "status": "fresh"
     },
@@ -35,8 +35,8 @@
       ],
       "timestamp": "2025-08-05T21:22:27.835Z",
       "context": "LiteLLM research for Verba integration",
-      "accessCount": 2,
-      "lastAccessed": "2025-08-05T22:22:10.755Z",
+      "accessCount": 3,
+      "lastAccessed": "2025-08-07T12:40:25.815Z",
       "lastVerified": "2025-08-05T21:22:27.835Z",
       "status": "fresh"
     },
@@ -55,8 +55,8 @@
       ],
       "timestamp": "2025-08-05T21:31:14.393Z",
       "context": "Successful LiteLLM migration completion",
-      "accessCount": 2,
-      "lastAccessed": "2025-08-05T22:22:10.755Z",
+      "accessCount": 3,
+      "lastAccessed": "2025-08-07T12:40:25.815Z",
       "lastVerified": "2025-08-05T21:31:14.393Z",
       "status": "fresh"
     },
@@ -77,8 +77,8 @@
       ],
       "timestamp": "2025-08-05T21:34:55.193Z",
       "context": "Instructor library integration migration",
-      "accessCount": 5,
-      "lastAccessed": "2025-08-06T06:56:36.288Z",
+      "accessCount": 6,
+      "lastAccessed": "2025-08-07T12:40:25.815Z",
       "lastVerified": "2025-08-05T21:34:55.193Z",
       "status": "fresh"
     },
@@ -99,8 +99,8 @@
         "litellm"
       ],
       "timestamp": "2025-08-05T21:35:34.176Z",
-      "accessCount": 5,
-      "lastAccessed": "2025-08-06T06:56:36.288Z",
+      "accessCount": 6,
+      "lastAccessed": "2025-08-07T12:40:25.815Z",
       "lastVerified": "2025-08-05T21:35:34.176Z",
       "status": "fresh"
     },
@@ -119,8 +119,8 @@
       ],
       "timestamp": "2025-08-05T21:43:53.876Z",
       "context": "LiteLLM generator upgrade completion",
-      "accessCount": 1,
-      "lastAccessed": "2025-08-05T22:16:41.535Z",
+      "accessCount": 2,
+      "lastAccessed": "2025-08-07T12:40:25.815Z",
       "lastVerified": "2025-08-05T21:43:53.876Z",
       "status": "fresh"
     },
@@ -158,8 +158,8 @@
       ],
       "timestamp": "2025-08-05T22:01:49.147Z",
       "context": "Working on Verba RAG application frontend updates",
-      "accessCount": 3,
-      "lastAccessed": "2025-08-06T06:56:36.288Z",
+      "accessCount": 4,
+      "lastAccessed": "2025-08-07T12:40:25.815Z",
       "lastVerified": "2025-08-05T22:01:49.147Z",
       "status": "fresh"
     },
@@ -198,8 +198,8 @@
       ],
       "timestamp": "2025-08-05T22:07:24.971Z",
       "context": "Completed Verba frontend update for Instructor integration",
-      "accessCount": 3,
-      "lastAccessed": "2025-08-06T06:56:36.288Z",
+      "accessCount": 4,
+      "lastAccessed": "2025-08-07T12:40:25.815Z",
       "lastVerified": "2025-08-05T22:07:24.971Z",
       "status": "fresh"
     },
@@ -255,8 +255,8 @@
       ],
       "timestamp": "2025-08-05T22:16:01.969Z",
       "context": "Completed Railway Weaviate configuration for Verba application",
-      "accessCount": 6,
-      "lastAccessed": "2025-08-06T06:56:36.288Z",
+      "accessCount": 7,
+      "lastAccessed": "2025-08-07T12:40:25.815Z",
       "lastVerified": "2025-08-05T22:16:01.969Z",
       "status": "fresh"
     },
@@ -313,8 +313,8 @@
       ],
       "timestamp": "2025-08-05T22:19:18.168Z",
       "context": "Complete Instructor integration deployment",
-      "accessCount": 5,
-      "lastAccessed": "2025-08-06T06:56:36.288Z",
+      "accessCount": 6,
+      "lastAccessed": "2025-08-07T12:40:25.815Z",
       "lastVerified": "2025-08-05T22:19:18.168Z",
       "status": "fresh"
     },
@@ -1043,7 +1043,116 @@
       "lastAccessed": "2025-08-06T07:51:52.994Z",
       "lastVerified": "2025-08-06T07:51:52.994Z",
       "status": "fresh"
+    },
+    {
+      "id": "mem_1754467182074_st0u7qmbb",
+      "content": "Successfully merged terragon/migrate-to-supabase-pgtap-pgvector-tailwind4-shadcn branch to main as requested by user. This brings the complete modern stack to main: 1) PostgreSQL/Supabase migration with pgvector, 2) Tailwind CSS v4 upgrade, 3) shadcn/ui integration, 4) Railway PostgreSQL configuration, 5) Migration tools and scripts. Railway deployment working, PostgreSQL service configured, modern UI stack complete.",
+      "type": "config",
+      "tags": [
+        "config",
+        "deployment",
+        "git",
+        "merge",
+        "main-branch",
+        "postgresql",
+        "tailwind",
+        "shadcn",
+        "railway",
+        "completed"
+      ],
+      "timestamp": "2025-08-06T07:59:42.073Z",
+      "context": "Completed merge to main branch as requested by user",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-06T07:59:42.073Z",
+      "lastVerified": "2025-08-06T07:59:42.073Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1754570475814_g7qjov8m0",
+      "content": "LiteLLM architecture research for Verba integration completed:\n\n## Core Architecture\n- LiteLLM v1.74.15+ supports 100+ providers unified API\n- OpenAI-compatible interface with async/streaming support\n- Callback system for observability and logging\n- Built-in cost tracking and usage monitoring\n\n## Latest Models Support (2025)\n- GPT-4.1 (54.6% on SWE-bench, 1M context)\n- Claude 4 Sonnet/Opus (advanced reasoning)\n- Gemini 2.5 Flash/Pro (multimodal capabilities)\n- New model support via OpenRouter\n\n## FastAPI Integration Patterns\n- Async completion with `acompletion()`\n- Streaming responses with `stream=True`\n- WebSocket support for real-time updates\n- Callback integration for middleware\n\n## PostgreSQL Observability\n- Built-in database logging support\n- Custom callback system for PostgreSQL\n- Spend tracking and error logging\n- TimescaleDB integration for time-series data\n\n## Key Features for Verba\n- Unified API across all providers\n- Async/await pattern support\n- Cost tracking and monitoring\n- Error handling and fallbacks\n- Streaming response support",
+      "type": "error",
+      "tags": [
+        "error",
+        "api",
+        "database",
+        "litellm",
+        "verba",
+        "fastapi",
+        "postgresql",
+        "architecture",
+        "integration",
+        "research"
+      ],
+      "timestamp": "2025-08-07T12:41:15.814Z",
+      "context": "LiteLLM architecture research for Verba RAG application integration",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-07T12:41:15.814Z",
+      "lastVerified": "2025-08-07T12:41:15.814Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1754570568791_go9379geh",
+      "content": "LiteLLM embedding models research completed:\n\n## Supported Providers & Models\n- **OpenAI**: text-embedding-3-large, text-embedding-3-small, text-embedding-ada-002\n- **Cohere**: embed-english-v3.0, embed-multilingual-v3.0 (with input_type support)\n- **Voyage AI**: voyage-3.5, voyage-3-large, voyage-code-3, voyage-finance-2, voyage-law-2\n- **Google Vertex AI**: text-embedding-004, textembedding-gecko (+ multimodal support)\n- **AWS Bedrock**: amazon.titan-embed-text-v2:0, cohere.embed-english-v3\n- **HuggingFace**: Any feature-extraction model (microsoft/codebert-base, BAAI/bge-large-zh)\n- **Jina AI**: jina-embeddings-v3, jina-embeddings-v2-base-en\n- **Mistral**: mistral-embed\n\n## Key Features\n- Async support via `aembedding()` function\n- Batch processing capabilities\n- Multimodal embeddings (text + images)\n- Provider-specific parameters (input_type, dimensions, task_type)\n- Cost tracking and observability\n- PostgreSQL callback integration support\n\n## Integration Patterns\n- Unified API across all providers: `embedding(model=\"provider/model\", input=[\"text\"])`\n- Async pattern: `await aembedding(model=\"...\", input=[...])`\n- Proxy support for centralized model management\n- Custom callbacks for database logging",
+      "type": "code",
+      "tags": [
+        "code",
+        "api",
+        "database",
+        "litellm",
+        "embeddings",
+        "verba",
+        "models",
+        "integration",
+        "async",
+        "research"
+      ],
+      "timestamp": "2025-08-07T12:42:48.791Z",
+      "context": "LiteLLM embedding models research for Verba RAG application integration",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-07T12:42:48.791Z",
+      "lastVerified": "2025-08-07T12:42:48.791Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1754570723601_pkued1aja",
+      "content": "Starting research on Instructor library integration with Pydantic v2 for structured outputs. User needs comprehensive information about: current compatibility, LiteLLM integration, validation/retry mechanisms, partial streaming, provider modes, and RAG application best practices.",
+      "type": "general",
+      "tags": [
+        "general",
+        "instructor",
+        "pydantic-v2",
+        "litellm",
+        "structured-outputs",
+        "rag",
+        "research"
+      ],
+      "timestamp": "2025-08-07T12:45:23.601Z",
+      "context": "Research task for Verba RAG application - need to understand latest Instructor patterns for structured outputs",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-07T12:45:23.601Z",
+      "lastVerified": "2025-08-07T12:45:23.601Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1754570776005_uc1phqwk4",
+      "content": "Instructor library research findings: Latest version is 1.10.0 (July 2025), fully compatible with Pydantic v2, supports LiteLLM integration via instructor.from_litellm(), has multiple modes (JSON_SCHEMA, TOOLS, ANTHROPIC_TOOLS), excellent streaming support with create_partial, automatic retries with validation, and optimized for RAG applications with 3M+ monthly downloads.",
+      "type": "config",
+      "tags": [
+        "config",
+        "instructor",
+        "research-complete",
+        "pydantic-v2",
+        "litellm",
+        "rag-optimization",
+        "2025-version"
+      ],
+      "timestamp": "2025-08-07T12:46:16.005Z",
+      "context": "Complete research on Instructor library for Verba RAG application implementation",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-07T12:46:16.005Z",
+      "lastVerified": "2025-08-07T12:46:16.005Z",
+      "status": "fresh"
     }
   ],
-  "lastUpdated": "2025-08-06T07:51:52.994Z"
+  "lastUpdated": "2025-08-07T12:46:16.005Z"
 }

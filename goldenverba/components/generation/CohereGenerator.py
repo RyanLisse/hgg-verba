@@ -1,11 +1,12 @@
-import os
 import json
-import aiohttp
-from typing import List, Dict, AsyncGenerator
+import os
+from collections.abc import AsyncGenerator
 
+import aiohttp
+
+from goldenverba.components.embedding.CohereEmbedder import get_models
 from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
-from goldenverba.components.embedding.CohereEmbedder import get_models
 from goldenverba.components.util import get_environment
 
 
@@ -14,23 +15,23 @@ class CohereGenerator(Generator):
     CohereGenerator Generator.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Cohere"
         self.description = "Generator using Cohere's latest Command models"
         self.url = os.getenv("COHERE_BASE_URL", "https://api.cohere.com/v1")
         self.context_window = 256000  # Command A supports 256K context
-        
+
         # Try to get models dynamically, with June 2025 defaults as fallback
         try:
             models = get_models(self.url, os.getenv("COHERE_API_KEY", None), "chat")
         except Exception:
             # June 2025 models as fallback
             models = [
-                "command-a-03-2025",      # Latest flagship model (111B params, 256K context)
-                "command-r-plus-08-2024", # Previous flagship for complex RAG
-                "command-r-08-2024",      # Simpler RAG, faster and cheaper
-                "command-r7b-arabic",     # Specialized for Arabic and English
+                "command-a-03-2025",  # Latest flagship model (111B params, 256K context)
+                "command-r-plus-08-2024",  # Previous flagship for complex RAG
+                "command-r-08-2024",  # Simpler RAG, faster and cheaper
+                "command-r7b-arabic",  # Specialized for Arabic and English
             ]
 
         self.config["Model"] = InputConfig(
@@ -50,11 +51,11 @@ class CohereGenerator(Generator):
 
     async def generate_stream(
         self,
-        config: Dict,
+        config: dict,
         query: str,
         context: str,
-        conversation: List[Dict] = [],
-    ) -> AsyncGenerator[Dict, None]:
+        conversation: list[dict] = [],
+    ) -> AsyncGenerator[dict, None]:
         model = config.get("Model").value
         api_key = get_environment(
             config, "API Key", "COHERE_API_KEY", "No Cohere API Key found"
@@ -105,9 +106,9 @@ class CohereGenerator(Generator):
         self,
         query: str,
         context: str,
-        conversation: List[Dict],
+        conversation: list[dict],
         system_message: str,
-    ) -> tuple[str, List[Dict]]:
+    ) -> tuple[str, list[dict]]:
         """Prepare the message and chat history for the Cohere API request."""
         chat_history = [
             {
@@ -127,7 +128,7 @@ class CohereGenerator(Generator):
         return message, chat_history
 
     @staticmethod
-    def _process_response(line: bytes) -> Dict:
+    def _process_response(line: bytes) -> dict:
         """Process a single line of response from the Cohere API."""
         json_data = json.loads(line.decode("utf-8"))
         return {
@@ -138,6 +139,6 @@ class CohereGenerator(Generator):
         }
 
     @staticmethod
-    def _error_response(message: str) -> Dict:
+    def _error_response(message: str) -> dict:
         """Return an error response."""
         return {"message": message, "finish_reason": "stop"}

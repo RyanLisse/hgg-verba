@@ -14,11 +14,13 @@ assignees: ""
 
 <!-- Please specify how you installed Verba. Please always make sure to install Verba in a clean python environment and have at least 3.10.0 installed -->
 
+- [ ] uvx goldenverba start (recommended)
+- [ ] uv sync --group dev (from source)
 - [ ] pip install goldenverba
 - [ ] pip install from source
 - [ ] Docker installation
 
-If you installed via pip, please specify the version:
+If you installed via pip or uvx, please specify the version:
 
 ## Weaviate Deployment
 

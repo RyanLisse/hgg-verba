@@ -1,17 +1,16 @@
-import aiohttp
+import base64
 import os
 import urllib
-import base64
 
+import aiohttp
 from wasabi import msg
 
 from goldenverba.components.document import Document
 from goldenverba.components.interfaces import Reader
-from goldenverba.server.types import FileConfig
 from goldenverba.components.reader.BasicReader import BasicReader
-from goldenverba.components.util import get_environment
-
 from goldenverba.components.types import InputConfig
+from goldenverba.components.util import get_environment
+from goldenverba.server.types import FileConfig
 
 
 class GitReader(Reader):
@@ -19,7 +18,7 @@ class GitReader(Reader):
     The GitReader downloads files from GitHub or GitLab and ingests them into Weaviate.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Git"
         self.type = "URL"

@@ -1,13 +1,13 @@
-import os
-import requests
-import aiohttp
 import json
+import os
+
+import aiohttp
+import requests
+from wasabi import msg
 
 from goldenverba.components.interfaces import Embedding
 from goldenverba.components.types import InputConfig
 from goldenverba.components.util import get_environment
-
-from wasabi import msg
 
 
 class CohereEmbedder(Embedding):
@@ -15,7 +15,7 @@ class CohereEmbedder(Embedding):
     CohereEmbedder for Verba.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Cohere"
         self.description = "Vectorizes documents and queries using Cohere"

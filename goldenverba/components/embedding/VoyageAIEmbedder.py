@@ -1,5 +1,4 @@
 import os
-from typing import List
 
 import aiohttp
 from wasabi import msg
@@ -12,7 +11,7 @@ from goldenverba.components.util import get_environment
 class VoyageAIEmbedder(Embedding):
     """VoyageAIEmbedder for Verba."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "VoyageAI"
         self.description = "Vectorizes documents and queries using VoyageAI"
@@ -48,7 +47,7 @@ class VoyageAIEmbedder(Embedding):
                 values=[],
             )
 
-    async def vectorize(self, config: dict, content: List[str]) -> List[List[float]]:
+    async def vectorize(self, config: dict, content: list[str]) -> list[list[float]]:
         """Vectorize the input content using VoyageAI's API."""
         model = config.get("Model").value
         api_key = get_environment(
@@ -99,7 +98,7 @@ class VoyageAIEmbedder(Embedding):
                 raise
 
     @staticmethod
-    def get_models(token: str, url: str) -> List[str]:
+    def get_models(token: str, url: str) -> list[str]:
         """Fetch available embedding models from VoyageAI API."""
         return [
             "voyage-2",

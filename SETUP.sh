@@ -169,19 +169,15 @@ setup_venv() {
     fi
     
     if [[ ! -d ".venv" ]]; then
-        # Try using uv if available (preferred in codex-universal), otherwise use standard venv
+        # Prefer uv for virtual environment creation
         if command_exists uv; then
-            print_info "Creating virtual environment with uv..."
-            # In codex-universal, uv is pre-installed and optimized
-            if [[ "$CODEX_ENV" == true ]]; then
-                print_info "Using uv in codex-universal environment"
-            fi
+            print_info "Creating virtual environment with uv (preferred)..."
             if ! uv venv .venv --python "$PYTHON_CMD"; then
                 print_error "Failed to create virtual environment with uv"
                 exit 1
             fi
         else
-            print_info "Creating virtual environment with $PYTHON_CMD..."
+            print_info "uv not found, creating virtual environment with $PYTHON_CMD..."
             if ! $PYTHON_CMD -m venv .venv; then
                 print_error "Failed to create virtual environment"
                 exit 1
@@ -300,68 +296,59 @@ install_backend() {
         PIP_CMD=".venv/bin/pip"
     fi
     
-    # Check if virtual environment Python exists
-    VENV_CORRUPTED=false
-    if [[ -L "$VENV_PYTHON" ]]; then
-        # It's a symlink, check if it's broken
-        if [[ ! -e "$VENV_PYTHON" ]]; then
-            print_error "Virtual environment has broken symlinks at $VENV_PYTHON"
-            VENV_CORRUPTED=true
-        fi
-    elif [[ ! -f "$VENV_PYTHON" ]]; then
-        print_error "Virtual environment Python not found at $VENV_PYTHON"
-        VENV_CORRUPTED=true
-    fi
-    
-    if [[ "$VENV_CORRUPTED" == true ]]; then
-        print_info "Attempting to recreate virtual environment..."
-        rm -rf .venv
-        
-        # Try using uv if available, otherwise use standard venv
-        if command_exists uv; then
-            print_info "Using uv to create virtual environment..."
-            uv venv .venv --python "$PYTHON_CMD"
-        else
-            print_info "Using standard venv to create virtual environment..."
-            $PYTHON_CMD -m venv .venv
-        fi
-        
-        # Check again
-        STILL_CORRUPTED=false
+    # Check if uv is available and prefer it for package management
+    if command_exists uv; then
+        print_info "Using uv for package installation (preferred)..."
+        print_info "Installing Verba package in development mode..."
+        uv sync --group dev
+    else
+        print_warning "uv not found, falling back to pip..."
+
+        # Check if virtual environment Python exists
+        VENV_CORRUPTED=false
         if [[ -L "$VENV_PYTHON" ]]; then
+            # It's a symlink, check if it's broken
             if [[ ! -e "$VENV_PYTHON" ]]; then
-                STILL_CORRUPTED=true
+                print_error "Virtual environment has broken symlinks at $VENV_PYTHON"
+                VENV_CORRUPTED=true
             fi
         elif [[ ! -f "$VENV_PYTHON" ]]; then
-            STILL_CORRUPTED=true
+            print_error "Virtual environment Python not found at $VENV_PYTHON"
+            VENV_CORRUPTED=true
         fi
-        
-        if [[ "$STILL_CORRUPTED" == true ]]; then
-            print_error "Failed to create virtual environment"
-            exit 1
+
+        if [[ "$VENV_CORRUPTED" == true ]]; then
+            print_info "Attempting to recreate virtual environment..."
+            rm -rf .venv
+            $PYTHON_CMD -m venv .venv
+
+            # Check again
+            STILL_CORRUPTED=false
+            if [[ -L "$VENV_PYTHON" ]]; then
+                if [[ ! -e "$VENV_PYTHON" ]]; then
+                    STILL_CORRUPTED=true
+                fi
+            elif [[ ! -f "$VENV_PYTHON" ]]; then
+                STILL_CORRUPTED=true
+            fi
+
+            if [[ "$STILL_CORRUPTED" == true ]]; then
+                print_error "Failed to create virtual environment"
+                exit 1
+            fi
         fi
-    fi
-    
-    # For uv environments, use uv pip instead of regular pip if available
-    # Note: In codex-universal, uv is the preferred package manager
-    if command_exists uv && ([[ "$CODEX_ENV" == true ]] || ([[ -f ".venv/pyvenv.cfg" ]] && grep -q "uv = true" ".venv/pyvenv.cfg" 2>/dev/null)); then
-        print_info "Using uv for package installation..."
-        print_info "Installing Verba package in development mode..."
-        # Ensure pip is available in the virtual environment first
-        uv pip install --quiet pip setuptools wheel
-        uv pip install -e ".[dev]"
-    else
+
         # Ensure pip is up to date in the virtual environment
         print_info "Upgrading pip..."
         $VENV_PYTHON -m pip install --upgrade pip
-        
+
         # Check if pip command exists
         if [[ ! -f "$PIP_CMD" ]] && [[ ! -L "$PIP_CMD" ]]; then
             print_error "pip not found at $PIP_CMD"
             print_info "Installing pip in virtual environment..."
             $VENV_PYTHON -m ensurepip --upgrade
         fi
-        
+
         # Install package in development mode with dev extras
         print_info "Installing Verba package in development mode..."
         if [[ -f "$PIP_CMD" ]] || [[ -L "$PIP_CMD" ]]; then
@@ -408,9 +395,8 @@ setup_env() {
         else
             print_warning "No .env.example file found. Creating basic .env file..."
             cat > .env << EOF
-# Weaviate Configuration
-WEAVIATE_URL_VERBA=http://localhost:8080
-WEAVIATE_API_KEY_VERBA=
+# PostgreSQL Configuration
+# DATABASE_URL=postgresql://user:password@localhost:5432/verba
 
 # API Keys (add your keys here)
 OPENAI_API_KEY=
@@ -461,17 +447,35 @@ main() {
     echo "=================================="
     echo
     print_info "Next steps:"
-    echo "  1. Activate the virtual environment:"
-    if [[ "$OS" == "windows" ]]; then
-        echo "     .venv\\Scripts\\activate"
+    if command_exists uv; then
+        echo "  1. With uv (recommended):"
+        echo "     uv run verba start"
+        echo "  2. Or install globally and run:"
+        echo "     uvx goldenverba start"
+        echo "  3. Or activate the virtual environment:"
+        if [[ "$OS" == "windows" ]]; then
+            echo "     .venv\\Scripts\\activate"
+        else
+            echo "     source .venv/bin/activate"
+        fi
+        echo "     verba start"
     else
-        echo "     source .venv/bin/activate"
+        echo "  1. Activate the virtual environment:"
+        if [[ "$OS" == "windows" ]]; then
+            echo "     .venv\\Scripts\\activate"
+        else
+            echo "     source .venv/bin/activate"
+        fi
+        echo "  2. Start Verba:"
+        echo "     verba start"
     fi
-    echo "  2. Update .env file with your API keys"
-    echo "  3. Start Weaviate (if using locally):"
-    echo "     docker compose up -d weaviate"
-    echo "  4. Start Verba:"
-    echo "     verba start"
+    echo "  3. Update .env file with your API keys"
+    echo "  4. For local development with PostgreSQL:"
+    echo "     Set DATABASE_URL in .env or use Railway PostgreSQL"
+    echo "  5. For development with modern tooling:"
+    echo "     uv run ruff format goldenverba  # Format code"
+    echo "     uv run ruff check goldenverba   # Lint code"
+    echo "     uv run ty check goldenverba     # Type check (preview)"
     echo
 }
 

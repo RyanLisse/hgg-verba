@@ -7,10 +7,9 @@ with contextlib.suppress(Exception):
     )
 
 from goldenverba.components.chunk import Chunk
-from goldenverba.components.interfaces import Chunker
 from goldenverba.components.document import Document
+from goldenverba.components.interfaces import Chunker, Embedding
 from goldenverba.components.types import InputConfig
-from goldenverba.components.interfaces import Embedding
 
 
 class CodeChunker(Chunker):
@@ -18,7 +17,7 @@ class CodeChunker(Chunker):
     CodeChunker for Verba using LangChain.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name = "Code"
         self.requires_library = ["langchain_text_splitters "]
@@ -51,22 +50,21 @@ class CodeChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         language = config["Language"].value
         chunk_size = config["Chunk Size"].value
         chunk_overlap = config["Chunk Overlap"].value
 
-        text_splitter = RecursiveCharacterTextSplitter.from_language(language=language, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        text_splitter = RecursiveCharacterTextSplitter.from_language(
+            language=language, chunk_size=chunk_size, chunk_overlap=chunk_overlap
+        )
 
         for document in documents:
-
             # Skip if document already contains chunks
             if len(document.chunks) > 0:
                 continue
-            
+
             char_end_i = -1
             for i, chunk in enumerate(text_splitter.split_text(document.content)):
-                
                 if chunk_overlap == 0:
                     char_start_i = char_end_i + 1
                     char_end_i = char_start_i + len(chunk)

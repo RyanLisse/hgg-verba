@@ -58,9 +58,8 @@ if not exist .env (
         echo Warning: No .env file found
         echo Creating minimal .env for local deployment...
         (
-            echo # Verba Local Deployment Configuration
-            echo WEAVIATE_URL_VERBA=http://localhost:8080
-            echo WEAVIATE_API_KEY_VERBA=
+            echo # Verba Local Deployment Configuration - PostgreSQL
+            echo # DATABASE_URL=postgresql://user:password@localhost:5432/verba
             echo.
             echo # Add your API keys here
             echo OPENAI_API_KEY=
