@@ -1,7 +1,17 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Paperclip, RotateCcw, Copy, Check, User, Bot } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import type React from "react";
+import {
+  Send,
+  Loader2,
+  Paperclip,
+  RotateCcw,
+  Copy,
+  Check,
+  User,
+  Bot,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,7 +25,7 @@ interface Message {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
-  chunks?: any[];
+  chunks?: unknown[];
   isStreaming?: boolean;
 }
 
@@ -25,7 +35,11 @@ interface AIChatbotProps {
   className?: string;
 }
 
-export default function AIChatbot({ conversationId, onSendMessage, className }: AIChatbotProps) {
+export default function AIChatbot({
+  conversationId,
+  onSendMessage,
+  className,
+}: AIChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -103,9 +117,7 @@ export default function AIChatbot({ conversationId, onSendMessage, className }: 
             assistantMessage.content += chunk;
             setMessages((prev) =>
               prev.map((msg) =>
-                msg.id === assistantMessage.id
-                  ? { ...assistantMessage }
-                  : msg
+                msg.id === assistantMessage.id ? { ...assistantMessage } : msg
               )
             );
           }
@@ -167,7 +179,12 @@ export default function AIChatbot({ conversationId, onSendMessage, className }: 
   };
 
   return (
-    <div className={cn("flex flex-col h-full bg-background rounded-lg border", className)}>
+    <div
+      className={cn(
+        "flex flex-col h-full bg-background rounded-lg border",
+        className
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b">
         <div className="flex items-center gap-3">
@@ -181,7 +198,9 @@ export default function AIChatbot({ conversationId, onSendMessage, className }: 
           </div>
           <div>
             <h3 className="font-semibold text-sm">Verba Assistant</h3>
-            <p className="text-xs text-muted-foreground">AI-powered RAG assistant</p>
+            <p className="text-xs text-muted-foreground">
+              AI-powered RAG assistant
+            </p>
           </div>
         </div>
       </div>
@@ -194,7 +213,8 @@ export default function AIChatbot({ conversationId, onSendMessage, className }: 
               <Bot className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">Start a conversation</h3>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Ask questions about your documents and I'll help you find relevant information.
+                Ask questions about your documents and I&apos;ll help you find
+                relevant information.
               </p>
             </div>
           ) : (
@@ -225,11 +245,19 @@ export default function AIChatbot({ conversationId, onSendMessage, className }: 
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       <ReactMarkdown
                         components={{
-                          code({ node, inline, className, children, ...props }) {
-                            const match = /language-(\w+)/.exec(className || "");
+                          code({
+                            node,
+                            inline,
+                            className,
+                            children,
+                            ...props
+                          }) {
+                            const match = /language-(\w+)/.exec(
+                              className || ""
+                            );
                             return !inline && match ? (
                               <SyntaxHighlighter
-                                style={oneDark}
+                                style={oneDark as any}
                                 language={match[1]}
                                 PreTag="div"
                                 {...props}
@@ -251,7 +279,9 @@ export default function AIChatbot({ conversationId, onSendMessage, className }: 
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {message.content}
+                    </p>
                   )}
                   {message.role === "assistant" && !message.isStreaming && (
                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
@@ -356,7 +386,9 @@ export default function AIChatbot({ conversationId, onSendMessage, className }: 
           <Button
             size="icon"
             onClick={handleSendMessage}
-            disabled={isLoading || (!input.trim() && attachedFiles.length === 0)}
+            disabled={
+              isLoading || (!input.trim() && attachedFiles.length === 0)
+            }
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

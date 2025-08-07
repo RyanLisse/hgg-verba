@@ -27,8 +27,8 @@ export class ReconnectingWebSocket {
   private ws: WebSocket | null = null;
   private config: Required<WebSocketConfig>;
   private retryCount = 0;
-  private heartbeatTimer: NodeJS.Timeout | null = null;
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private messageQueue: WebSocketMessage[] = [];
   private isDestroyed = false;
   private connectionState: ConnectionState = "DISCONNECTED";
@@ -62,13 +62,13 @@ export class ReconnectingWebSocket {
   private emit(event: string, ...args: unknown[]): void {
     const listeners = this.listeners.get(event);
     if (listeners) {
-      for (const callback of listeners) {
+      listeners.forEach((callback) => {
         try {
           callback(...args);
         } catch (error) {
           console.error(`Error in ${event} handler:`, error);
         }
-      }
+      });
     }
   }
 

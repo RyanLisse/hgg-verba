@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] });
 const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
 const openSans = Open_Sans({ subsets: ["latin"] });
 const ptMono = PT_Mono({ subsets: ["latin"], weight: "400" });
-export type FontKey = "Inter" | "plusJakartaSans" | "openSans" | "ptMono";
+export type FontKey = "inter" | "plusJakartaSans" | "openSans" | "ptMono";
 
 export const fonts: Record<FontKey, typeof inter> = {
   inter: inter,

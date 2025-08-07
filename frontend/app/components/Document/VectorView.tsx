@@ -142,12 +142,6 @@ const Sphere: React.FC<{
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
         onClick={handleClick}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            handleClick(e as React.MouseEvent<HTMLDivElement>);
-          }
-        }}
       >
         <sphereGeometry args={[sphereRadius, 32, 32]} />
         <meshBasicMaterial

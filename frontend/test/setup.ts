@@ -43,21 +43,24 @@ mock.module("next/font/google", () => ({
 
 // Add test matchers
 expect.extend({
-  toBeInTheDocument(received: Element | null | undefined) {
+  toBeInTheDocument(received: unknown) {
+    const element = received as Element | null | undefined;
     return {
-      pass: received !== null && received !== undefined,
+      pass: element !== null && element !== undefined,
       message: () => "element should be in the document",
     };
   },
-  toBeDisabled(received: HTMLElement | null | undefined) {
+  toBeDisabled(received: unknown) {
+    const element = received as HTMLElement | null | undefined;
     return {
-      pass: (received as HTMLInputElement)?.disabled === true,
+      pass: (element as HTMLInputElement)?.disabled === true,
       message: () => "element should be disabled",
     };
   },
-  toHaveClass(received: Element | null | undefined, className: string) {
+  toHaveClass(received: unknown, className: string) {
+    const element = received as Element | null | undefined;
     return {
-      pass: received?.className?.includes(className) === true,
+      pass: element?.className?.includes(className) === true,
       message: () => `element should have class ${className}`,
     };
   },
@@ -66,7 +69,7 @@ expect.extend({
 // Add test matchers types
 declare global {
   namespace jest {
-    interface Matchers<R, _T = Record<string, never>> {
+    interface Matchers<R> {
       toBeInTheDocument(): R;
       toBeDisabled(): R;
       toHaveClass(className: string): R;

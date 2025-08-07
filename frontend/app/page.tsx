@@ -269,8 +269,8 @@ export default function Home() {
           {currentPage === "IMPORT_DATA" && (
             <IngestionView
               credentials={credentials}
-              ragConfig={RAGConfig}
-              setragConfig={setRAGConfig}
+              RAGConfig={RAGConfig}
+              setRAGConfig={setRAGConfig}
               addStatusMessage={addStatusMessage}
             />
           )}

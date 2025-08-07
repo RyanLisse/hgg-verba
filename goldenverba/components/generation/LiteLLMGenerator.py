@@ -233,9 +233,13 @@ class LiteLLMGenerator(Generator):
             "anthropic/claude-3.5-sonnet-20241022",
             "anthropic/claude-3.5-haiku-20241022",
             # Google Models
+            "gemini/gemini-2.5-flash",  # Latest Gemini 2.5 Flash
+            "gemini/gemini-2.5-pro",  # Latest Gemini 2.5 Pro
             "gemini/gemini-1.5-flash",  # Fast Gemini
             "gemini/gemini-1.5-pro",  # Advanced Gemini
             "gemini/gemini-2.0-flash-exp",  # Experimental
+            "vertex_ai/gemini-2.5-flash",  # Vertex AI 2.5 Flash
+            "vertex_ai/gemini-2.5-pro",  # Vertex AI 2.5 Pro
             "vertex_ai/gemini-1.5-flash",  # Vertex AI
             "vertex_ai/gemini-1.5-pro",  # Vertex AI Pro
             # Azure OpenAI
@@ -596,13 +600,12 @@ class LiteLLMGenerator(Generator):
             response.token_usage = cost_info
 
             # Add provider-specific enhancements
-            if supports_reasoning:
-                if not response.reasoning_trace:
-                    response.reasoning_trace = ThinkingTrace(
-                        reasoning_steps=[],
-                        final_conclusion=response.answer,
-                        complexity_level="automated",
-                    )
+            if supports_reasoning and not response.reasoning_trace:
+                response.reasoning_trace = ThinkingTrace(
+                    reasoning_steps=[],
+                    final_conclusion=response.answer,
+                    complexity_level="automated",
+                )
 
             # Add provider information
             response.tools_used = [f"litellm_{provider}"]
@@ -629,7 +632,7 @@ class LiteLLMGenerator(Generator):
         config: dict,
         query: str,
         context: str,
-        conversation: list[dict] = [],
+        conversation: list[dict] | None = None,
     ):
         """Generate streaming response with structured output support."""
 
@@ -745,7 +748,11 @@ class LiteLLMGenerator(Generator):
             }
 
     def prepare_messages(
-        self, query: str, context: str, conversation: list[dict], system_message: str
+        self,
+        query: str,
+        context: str,
+        conversation: list[dict] | None,
+        system_message: str,
     ) -> list[dict]:
         """Prepare messages optimized for LiteLLM unified interface."""
 
@@ -769,8 +776,9 @@ Context length: {len(context)} characters"""
         ]
 
         # Add conversation history
-        for message in conversation:
-            messages.append({"role": message.type, "content": message.content})
+        if conversation:
+            for message in conversation:
+                messages.append({"role": message.type, "content": message.content})
 
         # Add current query with context
         user_content = f"""Please analyze and respond to this query using the provided context.
@@ -843,11 +851,13 @@ Please provide a comprehensive response that demonstrates reasoning and cites re
             },
             "google": {
                 "models": [
+                    "gemini-2.5-flash",
+                    "gemini-2.5-pro",
                     "gemini-1.5-flash",
                     "gemini-1.5-pro",
                     "gemini-2.0-flash-exp",
                 ],
-                "features": ["multimodal", "code_execution", "grounding"],
+                "features": ["multimodal", "code_execution", "grounding", "reasoning"],
                 "env_key": "GOOGLE_API_KEY",
             },
             "cohere": {

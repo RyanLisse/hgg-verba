@@ -268,7 +268,7 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
               updateConfig={updateConfig}
               saveComponentConfig={saveComponentConfig}
               blocked={fileMap[selectedFileData].block}
-              skip_component={false}
+              skipComponent={false}
             />
             <ComponentView
               ragConfig={fileMap[selectedFileData].rag_config}
@@ -277,7 +277,7 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
               updateConfig={updateConfig}
               saveComponentConfig={saveComponentConfig}
               blocked={fileMap[selectedFileData].block}
-              skip_component={false}
+              skipComponent={false}
             />
           </div>
         )}

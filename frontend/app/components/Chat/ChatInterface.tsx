@@ -159,7 +159,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     });
 
     // Set up event handlers
-    ws.on("stateChange", (newState: ConnectionState) => {
+    ws.on("stateChange", (...args: unknown[]) => {
+      const newState = args[0] as ConnectionState;
       setSocketStatus(newState);
       if (newState === "DISCONNECTED" || newState === "ERROR") {
         addStatusMessage("WebSocket disconnected", "WARNING");
@@ -168,7 +169,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
     });
 
-    ws.on("message", (data: WebSocketMessage | { type: string }) => {
+    ws.on("message", (...args: unknown[]) => {
+      const data = args[0] as WebSocketMessage | { type: string };
       // If we aren't actively fetching, ignore messages
       if (!isFetching.current) {
         setPreviewText("");
@@ -244,11 +246,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
     });
 
-    ws.on("error", (error: Error) => {
+    ws.on("error", (...args: unknown[]) => {
+      const error = args[0] as Error;
       console.error("WebSocket Error:", error);
     });
 
-    ws.on("close", (event: CloseEvent) => {
+    ws.on("close", (...args: unknown[]) => {
+      const event = args[0] as CloseEvent;
       if (event.wasClean) {
         // Clean WebSocket closure - no action needed
       }
