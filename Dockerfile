@@ -20,7 +20,7 @@ COPY README.md ./
 
 # Create virtual environment and install dependencies
 # Use --frozen if lock file exists, otherwise allow resolution
-RUN --mount=type=cache,target=/opt/uv-cache/ \
+RUN --mount=type=cache,id=uv-cache,target=/opt/uv-cache/ \
     if [ -f uv.lock ]; then \
         uv sync --frozen --no-install-project; \
     else \
@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/opt/uv-cache/ \
 COPY goldenverba ./goldenverba
 
 # Install the project itself (non-editable for production)
-RUN --mount=type=cache,target=/opt/uv-cache/ \
+RUN --mount=type=cache,id=uv-cache,target=/opt/uv-cache/ \
     if [ -f uv.lock ]; then \
         uv sync --frozen --no-editable; \
     else \
@@ -41,15 +41,13 @@ RUN --mount=type=cache,target=/opt/uv-cache/ \
 # Stage 2: Production image
 FROM python:3.11-slim AS production
 
-# Install system dependencies needed at runtime
+# Install system dependencies and create non-root user for security
 RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user for security
-RUN groupadd --gid 1000 app && \
-    useradd --uid 1000 --gid app --shell /bin/bash --create-home app
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 1000 app \
+    && useradd --uid 1000 --gid app --shell /bin/bash --create-home app
 
 # Copy only the virtual environment from builder stage
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
@@ -69,7 +67,7 @@ ENV PYTHONPATH="/app"
 
 # Health check with proper error handling
 HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8080/api/health', timeout=10)" || exit 1
+    CMD ["python", "-c", "import requests; requests.get('http://localhost:8080/api/health', timeout=10)"]
 
 EXPOSE 8080
 CMD ["verba", "start", "--host", "0.0.0.0", "--port", "8080"]

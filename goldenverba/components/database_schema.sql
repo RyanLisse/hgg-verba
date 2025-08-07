@@ -65,8 +65,8 @@ CREATE INDEX IF NOT EXISTS idx_chunks_embedder ON verba_chunks(embedder);
 CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON verba_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 CREATE INDEX IF NOT EXISTS idx_chunks_content ON verba_chunks USING GIN (to_tsvector('english', content));
 
-CREATE INDEX IF NOT EXISTS idx_config_type ON verba_config USING GIN ((config->>'config_type'));
-CREATE INDEX IF NOT EXISTS idx_config_active ON verba_config USING GIN (((config->>'is_active')::boolean));
+CREATE INDEX IF NOT EXISTS idx_config_type ON verba_config USING GIN ((config->>'config_type') gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_config_active ON verba_config USING btree (((config->>'is_active')::boolean));
 
 CREATE INDEX IF NOT EXISTS idx_suggestions_query ON verba_suggestions(query);
 CREATE INDEX IF NOT EXISTS idx_suggestions_count ON verba_suggestions(count DESC);

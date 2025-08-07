@@ -4,16 +4,16 @@ Consolidated manager that handles all RAG operations with PostgreSQL + pgvector
 """
 
 import asyncio
-import os
 import json
+import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 import asyncpg
 from dotenv import load_dotenv
-from wasabi import msg
 from pgvector.asyncpg import register_vector
+from wasabi import msg
 
 from goldenverba.components.document import Document
 from goldenverba.components.managers import (
@@ -23,7 +23,6 @@ from goldenverba.components.managers import (
     ReaderManager,
     RetrieverManager,
 )
-from goldenverba.server.helpers import LoggerManager
 from goldenverba.server.types import (
     ChunkScore,
     Credentials,
@@ -49,7 +48,7 @@ class VerbaManager:
         self.generator_manager = GeneratorManager()
 
         # PostgreSQL connection pool
-        self.pool: Optional[asyncpg.Pool] = None
+        self.pool: asyncpg.Pool | None = None
         self.database_url: Optional[str] = None
 
         # Configuration UUIDs (maintain compatibility)
@@ -68,12 +67,14 @@ class VerbaManager:
         # Core libraries
         try:
             import fastapi
+
             self.installed_libraries["fastapi"] = True
         except ImportError:
             self.installed_libraries["fastapi"] = False
 
         try:
             import uvicorn
+
             self.installed_libraries["uvicorn"] = True
         except ImportError:
             self.installed_libraries["uvicorn"] = False
@@ -82,6 +83,7 @@ class VerbaManager:
         try:
             import asyncpg
             import pgvector
+
             self.installed_libraries["asyncpg"] = True
             self.installed_libraries["pgvector"] = True
         except ImportError as e:
@@ -94,9 +96,11 @@ class VerbaManager:
         # PostgreSQL environment variables
         self.environment_variables["DATABASE_URL"] = bool(os.getenv("DATABASE_URL"))
         self.environment_variables["POSTGRES_HOST"] = bool(os.getenv("POSTGRES_HOST"))
-        self.environment_variables["POSTGRES_PASSWORD"] = bool(os.getenv("POSTGRES_PASSWORD"))
+        self.environment_variables["POSTGRES_PASSWORD"] = bool(
+            os.getenv("POSTGRES_PASSWORD")
+        )
 
-    async def connect(self, credentials: Credentials) -> Optional[asyncpg.Pool]:
+    async def connect(self, credentials: Credentials) -> asyncpg.Pool | None:
         """
         Connect to PostgreSQL database.
 
@@ -114,9 +118,9 @@ class VerbaManager:
                 self.database_url = credentials.url
             else:
                 self.database_url = (
-                    os.getenv("DATABASE_URL") or 
-                    os.getenv("RAILWAY_POSTGRES_URL") or
-                    self._build_database_url()
+                    os.getenv("DATABASE_URL")
+                    or os.getenv("RAILWAY_POSTGRES_URL")
+                    or self._build_database_url()
                 )
 
             if not self.database_url:
@@ -144,7 +148,7 @@ class VerbaManager:
             msg.fail(f"PostgreSQL connection failed: {str(e)}")
             raise e
 
-    def _build_database_url(self) -> Optional[str]:
+    def _build_database_url(self) -> str | None:
         """Build database URL from individual environment variables."""
         host = os.getenv("POSTGRES_HOST")
         port = os.getenv("POSTGRES_PORT", "5432")
@@ -226,20 +230,20 @@ class VerbaManager:
             msg.warn(f"Schema initialization warning: {str(e)}")
             # Continue anyway - basic tables might still work
 
-    async def disconnect(self, pool: Optional[asyncpg.Pool] = None) -> None:
+    async def disconnect(self, pool: asyncpg.Pool | None = None) -> None:
         """Disconnect from PostgreSQL database."""
         start_time = asyncio.get_event_loop().time()
-        
+
         if pool or self.pool:
             target_pool = pool or self.pool
             await target_pool.close()
             if target_pool == self.pool:
                 self.pool = None
-        
+
         end_time = asyncio.get_event_loop().time()
         msg.info(f"PostgreSQL disconnection time: {end_time - start_time:.2f} seconds")
 
-    async def get_deployments(self) -> Dict[str, Any]:
+    async def get_deployments(self) -> dict[str, Any]:
         """Get available PostgreSQL deployment configurations"""
         deployments = {
             "DATABASE_URL": os.getenv("DATABASE_URL", ""),
@@ -248,7 +252,7 @@ class VerbaManager:
         }
         return deployments
 
-    async def health_check(self, pool: Optional[asyncpg.Pool] = None) -> Dict[str, Any]:
+    async def health_check(self, pool: asyncpg.Pool | None = None) -> Dict[str, Any]:
         """Perform health check on PostgreSQL connection."""
         try:
             target_pool = pool or self.pool
@@ -262,8 +266,8 @@ class VerbaManager:
 
             async with target_pool.acquire() as conn:
                 # Test basic query
-                result = await conn.fetchval("SELECT 1")
-                
+                await conn.fetchval("SELECT 1")
+
                 # Test pgvector extension
                 await conn.fetchval("SELECT vector_dims('[1,2,3]'::vector)")
 
@@ -271,7 +275,9 @@ class VerbaManager:
                 "status": "healthy",
                 "backend": "postgresql",
                 "timestamp": datetime.utcnow().isoformat(),
-                "database_url": self.database_url[:50] + "..." if self.database_url else "unknown"
+                "database_url": self.database_url[:50] + "..."
+                if self.database_url
+                else "unknown",
             }
 
         except Exception as e:
@@ -282,7 +288,9 @@ class VerbaManager:
                 "timestamp": datetime.utcnow().isoformat(),
             }
 
-    async def get_document_stats(self, pool: Optional[asyncpg.Pool] = None) -> Dict[str, Any]:
+    async def get_document_stats(
+        self, pool: asyncpg.Pool | None = None
+    ) -> Dict[str, Any]:
         """Get document statistics from PostgreSQL."""
         try:
             target_pool = pool or self.pool
@@ -292,10 +300,10 @@ class VerbaManager:
             async with target_pool.acquire() as conn:
                 # Get document count
                 doc_count = await conn.fetchval("SELECT COUNT(*) FROM documents")
-                
+
                 # Get chunk count
                 chunk_count = await conn.fetchval("SELECT COUNT(*) FROM chunks")
-                
+
                 # Get vector dimensions (if any chunks exist)
                 vector_dims = None
                 if chunk_count > 0:
@@ -318,7 +326,7 @@ class ClientManager:
     """PostgreSQL Client Manager for connection pooling."""
 
     def __init__(self) -> None:
-        self.pools: Dict[str, Dict] = {}
+        self.pools: dict[str, Dict] = {}
         self.manager: VerbaManager = VerbaManager()
         self.max_time: int = 30  # 30 minutes
         self.last_cleanup: datetime = datetime.now()
@@ -331,7 +339,7 @@ class ClientManager:
     async def connect(self, credentials: Credentials) -> asyncpg.Pool:
         """Connect to PostgreSQL with connection pooling."""
         cred_hash = self.hash_credentials(credentials)
-        
+
         if cred_hash in self.pools:
             msg.info("Found existing PostgreSQL connection pool")
             return self.pools[cred_hash]["pool"]
@@ -346,6 +354,25 @@ class ClientManager:
                 return pool
             except Exception as e:
                 raise e
+
+    async def clean_up(self):
+        """Clean up old PostgreSQL connections."""
+        current_time = datetime.now()
+        if (
+            current_time - self.last_cleanup
+        ).total_seconds() / 60 >= self.cleanup_interval:
+            expired_pools = []
+            for cred_hash, pool_data in self.pools.items():
+                time_diff = (current_time - pool_data["timestamp"]).total_seconds() / 60
+                if time_diff >= self.max_time:
+                    expired_pools.append(cred_hash)
+
+            for cred_hash in expired_pools:
+                pool_data = self.pools.pop(cred_hash)
+                await self.manager.disconnect(pool_data["pool"])
+                msg.info(f"Cleaned up expired PostgreSQL pool: {cred_hash}")
+
+            self.last_cleanup = current_time
 
     async def disconnect(self):
         """Disconnect all PostgreSQL pools."""
