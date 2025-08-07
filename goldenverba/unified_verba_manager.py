@@ -215,6 +215,7 @@ class VerbaManager:
         CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON chunks USING hnsw (embedding vector_cosine_ops);
         CREATE INDEX IF NOT EXISTS idx_chunks_document_id ON chunks(document_id);
         CREATE INDEX IF NOT EXISTS idx_documents_name ON documents(name);
+        CREATE INDEX IF NOT EXISTS idx_documents_content ON documents USING gin(to_tsvector('english', content));
         CREATE INDEX IF NOT EXISTS idx_configurations_type_active ON configurations(config_type, is_active);
         """
 
