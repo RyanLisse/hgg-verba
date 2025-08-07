@@ -42,7 +42,7 @@ def start(port, host, prod, workers):
     actual_port = int(os.getenv("PORT", port))
 
     uvicorn.run(
-        "goldenverba.server.api_postgresql:app",
+        "goldenverba.server.api:app",
         host=host,
         port=actual_port,
         reload=(not prod),
@@ -67,23 +67,34 @@ def reset(confirm):
         return
 
     import asyncio
-
-    from goldenverba.components.postgresql_manager import PostgreSQLManager
+    from goldenverba.unified_verba_manager import VerbaManager
+    from goldenverba.server.types import Credentials
 
     async def async_reset():
-        manager = PostgreSQLManager()
+        manager = VerbaManager()
         try:
-            await manager.connect()
+            # Use environment variables for connection
+            credentials = Credentials(
+                deployment="PostgreSQL",
+                url=os.getenv("DATABASE_URL", ""),
+                key=os.getenv("POSTGRES_PASSWORD", "")
+            )
+
+            pool = await manager.connect(credentials)
+            if not pool:
+                raise Exception("Failed to connect to database")
 
             # Drop and recreate all tables
-            async with manager.pool.acquire() as conn:
+            async with pool.acquire() as conn:
                 await conn.execute("DROP SCHEMA public CASCADE;")
                 await conn.execute("CREATE SCHEMA public;")
                 await conn.execute("GRANT ALL ON SCHEMA public TO postgres;")
                 await conn.execute("GRANT ALL ON SCHEMA public TO public;")
 
             # Reinitialize schema
-            await manager._init_schema()
+            async with pool.acquire() as conn:
+                await manager._ensure_schema(conn)
+
             click.echo("✅ Database reset completed successfully")
 
         except Exception as e:

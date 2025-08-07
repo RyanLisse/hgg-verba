@@ -2,7 +2,7 @@
 import logging
 import os
 import time
-from collections.abc import Generator
+from collections.abc import Generator as TypingGenerator
 from typing import Any
 
 import instructor
@@ -284,7 +284,7 @@ class OpenAIGenerator(Generator):
 
     def stream_structured_response(
         self, response: EnhancedRAGResponse
-    ) -> Generator[str, None, None]:
+    ) -> TypingGenerator[str, None, None]:
         """Stream a structured response in chunks."""
         run_id = response.token_usage.get("run_id", "structured_response")
 
