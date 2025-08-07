@@ -146,7 +146,17 @@ async def serve_frontend() -> FileResponse:
 ### INITIAL ENDPOINTS
 
 
-# Define health check endpoint
+# Define health check endpoints
+@app.get("/health")
+async def simple_health_check() -> JSONResponse:
+    """Simple health check for Railway and other platforms."""
+    return JSONResponse(
+        content={
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+        }
+    )
+
 @app.get("/api/health")
 async def health_check() -> JSONResponse:
     await client_manager.clean_up()
