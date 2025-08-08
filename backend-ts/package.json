@@ -1,0 +1,11 @@
+{
+  "name": "my-verba-ts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "encore.dev": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
